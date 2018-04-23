@@ -1,7 +1,7 @@
 package fast.dsl
 
 class VagrantConfig(
-  var mem: Int = 2048,
+  var mem: Int = 1024,
   var cpu: Int = 1,
   var linkedClone: Boolean = true,
   var user: String = "vargant",
@@ -11,17 +11,20 @@ class VagrantConfig(
 /**
  * This extension will generate vagrant project file.
  */
-class VagrantExtension(): DeployFastExtension() {
+class VagrantExtension : DeployFastExtension() {
   lateinit var config: VagrantConfig
 
   fun configure(
-    block: VagrantConfig.() -> Unit){
+    block: VagrantConfig.() -> Unit): VagrantExtension {
 
     config = VagrantConfig().apply(block)
+
+
+
+    return this
   }
 
-
-companion object {
+  companion object {
     fun dsl() = DeployFastDSL.deployFast(VagrantExtension()) {
       info {
         name = "Vagrant Extension"

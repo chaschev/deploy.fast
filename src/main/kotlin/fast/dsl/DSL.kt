@@ -1,5 +1,8 @@
 package fast.dsl
 
+import fast.runtime.AllSessionsRuntimeContext
+import fast.runtime.SessionRuntimeContext
+
 data class TaskResult(
   val ok: Boolean = true,
   val modified: Boolean = true,
@@ -25,10 +28,12 @@ open class Task(
   override val name: String,
   override val desc: String? = null
 ) : ITask {
-  override val before = TaskSet()
-  override val after = TaskSet()
+  override val before by lazy { TaskSet() }
+  override val after  by lazy { TaskSet() }
 
-  open internal fun run(context: TaskContext) : TaskResult {
+  internal lateinit var extension: DeployFastExtension
+
+  open internal fun play(context: TaskContext) : TaskResult {
     TODO()
   }
 
@@ -39,14 +44,15 @@ open class Task(
 }
 
 open class LambdaTask(name: String, val block: (TaskContext) -> TaskResult): Task(name) {
-  override fun run(context: TaskContext) : TaskResult {
+  override fun play(context: TaskContext) : TaskResult {
 
     return block.invoke(context)
   }
 }
 
 // TODO: consider - can be a composite task
-class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc) {
+class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc), Iterable<Task> {
+
   private val tasks = ArrayList<Task>()
 
   fun append(task: Task) = tasks.add(task)
@@ -57,7 +63,14 @@ class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc)
     tasks.add(LambdaTask(name, block))
   }
 
-  override fun run(context: TaskContext): TaskResult {
+  fun tasks(): List<Task> = tasks
+
+  override fun play(context: TaskContext): TaskResult {
+    //       //TODO: update result
+
+    for (task in tasks) {
+      context.session.play(task)
+    }
 
     /*
 
@@ -82,43 +95,35 @@ class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc)
   fun addAll(taskSet: TaskSet) {
     tasks.addAll(taskSet.tasks)
   }
+
+  override fun iterator(): Iterator<Task> {
+    return tasks.iterator()
+  }
+
 }
 
 open class NamedExtTasks {
+  lateinit var context: TaskContext
 
 }
 
 enum class RunningStatus {
-  notStarted, started, running, stopped, aborted, unknown
+  notStarted, started, running, stopped, aborted, unknown, notApplicable
 }
 
 enum class InstalledStatus {
-  installed, notInstalled, uninstalled, unknown
+  installed, notInstalled, installedWrongVersion, uninstalled, unknown
 }
 
 data class ServiceStatus(
   val installation: InstalledStatus,
-  val running: RunningStatus,
+  val running: RunningStatus = RunningStatus.notApplicable,
   val pid: Int? = null
 ) {
-
-}
-
-abstract class DeployFastExtension {
-  /* Named extension tasks */
-  open val tasks: NamedExtTasks = TODO("not implemented")
-
-  /* Has state means extension represents a ONE process run on the host which state can be changed */
-  open val hasState = true
-  open val hasFacts = false
-
-  open fun getInstalledState(): Boolean = TODO()
-
-  // there can be several installations and running instances
-  // each extension instance corresponds to ONE such process
-  open fun getStatus(): ServiceStatus = TODO()
-
-  fun play(): TaskResult = TODO()
+  companion object {
+    val installed = ServiceStatus(InstalledStatus.installed)
+    val notInstalled = ServiceStatus(InstalledStatus.notInstalled)
+  }
 }
 
 class SystemServiceAppExtension: DeployFastExtension() {
@@ -128,9 +133,10 @@ class SystemServiceAppExtension: DeployFastExtension() {
 
 
 class TaskContext(
-  val ctx: SessionRuntimeContext
-
-)
+  val session: SessionRuntimeContext
+) {
+  val ssh = session.ssh
+}
 
 class InfoDSL(
 ) {
@@ -172,14 +178,14 @@ class DeployFastDSL<EXT : DeployFastExtension>(val ext: EXT) {
     info = InfoDSL().apply(block)
   }
 
-  private var beforeGlobalTasks: (GlobalSessionRuntimeContext.() -> Unit)? = null
-  private var afterGlobalTasks: (GlobalSessionRuntimeContext.() -> Unit)? = null
+  private var beforeGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
+  private var afterGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
 
-  fun beforeGlobalTasks(block: GlobalSessionRuntimeContext.() -> Unit) {
+  fun beforeGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
     beforeGlobalTasks = block
   }
 
-  fun afterGlobalTasks(block: GlobalSessionRuntimeContext.() -> Unit) {
+  fun afterGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
     afterGlobalTasks = block
   }
 
@@ -194,6 +200,7 @@ class DeployFastDSL<EXT : DeployFastExtension>(val ext: EXT) {
   fun afterPlay(block: TasksDSL.() -> Unit) {
     tasks.after.addAll(TasksDSL().apply(block).taskSet)
   }
+
 
   companion object {
     fun  <EXT : DeployFastExtension> deployFast(ext: EXT, block: DeployFastDSL<EXT>.() -> Unit): DeployFastDSL<EXT> {

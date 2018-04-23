@@ -1,13 +1,18 @@
-package fast.dsl
+package fast.inventory
 
-class Hosts(
-  val hosts: List<String>
-)
+import java.util.concurrent.ConcurrentHashMap
 
-class Host(
+class Inventory(
+  val groups: List<IGroup>
+) {
+  val group = CompositeGroup().groups.addAll(groups)
+}
+
+data class Host(
   val address: String,
   val name: String = address,
-  internal val groups: ArrayList<Group>
+  internal val groups: ArrayList<Group> = ArrayList(),
+  val vars: ConcurrentHashMap<String, Any> = ConcurrentHashMap()
 )
 
 interface IGroup {
@@ -16,11 +21,13 @@ interface IGroup {
 }
 
 class CompositeGroup() : IGroup {
+  val groups = ArrayList<IGroup>()
+
   override val name: String by lazy { TODO() }
   override val hosts: List<Host> by lazy { TODO() }
 }
 
-class Group(
+data class Group(
   override val name: String,
   override val hosts: List<Host>
 ) : IGroup {
