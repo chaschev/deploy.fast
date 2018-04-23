@@ -34,6 +34,16 @@ buildscript {
   }
 }
 
+repositories {
+  mavenLocal()
+  mavenCentral()
+  jcenter()
+  maven { url 'https://raw.github.com/chaschev/kgit/repository' }
+//  maven { url 'https://raw.github.com/chaschev/honey-mouth/repository' }
+  maven { url 'https://raw.github.com/chaschev/kotlin-core/repository' }
+  maven { url 'https://raw.github.com/chaschev/kotlin-observable/repository' }
+}
+
 
 apply plugin: 'org.jetbrains.kotlin.platform.jvm'
 apply plugin: 'project-report'
