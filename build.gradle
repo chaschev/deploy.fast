@@ -1,0 +1,142 @@
+buildscript {
+  ext.versions = [
+    'kotlin'    : '1.2.40',
+    'coroutines': '0.22.5',
+  ]
+
+  ext.deps = [
+    'kotlin' : [
+      'libs' : [
+        'jre' : "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
+        'reflect' : "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}",
+        'coroutines': "org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.coroutines}",
+      ],
+      'test' : [
+        'jre' : "org.jetbrains.kotlin:kotlin-test-junit:${versions.kotlin}",
+      ],
+    ],
+    'junit' : 'junit:junit:4.12'
+  ]
+
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
+    classpath "net.researchgate:gradle-release:2.7.6"
+    classpath "honey:kgit:0.1.8"
+  }
+
+  repositories {
+    mavenCentral()
+    mavenLocal()
+    maven { url 'http://dl.bintray.com/kotlin/kotlin-eap-1.2' }
+    maven { url 'https://plugins.gradle.org/m2/' }
+    maven { url 'https://raw.github.com/chaschev/kgit/repository' }
+    maven { url 'https://raw.github.com/chaschev/github-release-gradle-plugin/repository' }
+  }
+}
+
+
+apply plugin: 'org.jetbrains.kotlin.platform.jvm'
+apply plugin: 'project-report'
+
+apply plugin: 'kotlin'
+
+//Shadow plugin & dependencies
+apply plugin: 'java'
+apply plugin: 'net.researchgate.release'
+apply plugin: 'maven-publish'
+
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+
+dependencies {
+  def withExcludes = { boolean excludeDesign ->
+    return {
+      exclude group: 'org.simpleframework', module: 'simple'
+      if (excludeDesign) {
+      }
+    }
+  }
+
+  compile deps.kotlin.libs.jre
+  compile deps.kotlin.libs.reflect
+  compile deps.kotlin.libs.coroutines
+
+  compile "io.github.microutils:kotlin-logging:1.4.6"
+  compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"
+
+  compile gradleApi()
+
+  compile 'com.hierynomus:sshj:0.24.0'
+
+
+  testCompile 'org.apache.logging.log4j:log4j-core:2.9.1'
+  testCompile 'org.apache.logging.log4j:log4j-api:2.9.1'
+  testCompile 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
+
+  testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
+  testCompile deps.kotlin.test.jre
+
+  testCompile 'io.kotlintest:kotlintest:2.0.7'
+}
+
+group = 'honey'
+
+def repoUrl = "https://github.com/chaschev/deploy.fast.git"
+
+task publishToGitTask(dependsOn: build) {
+  doLast {
+    mavenPublishTask.publishToGit()
+  }
+}
+
+publishToMavenLocal.dependsOn(build)
+
+test {
+  testLogging {
+    events 'passed', 'skipped', 'failed'
+  }
+}
+
+//for maven local
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+    }
+  }
+}
+
+kotlin {
+  experimental {
+    coroutines "enable"
+  }
+}
+
+release {
+  preTagCommitMessage = 'gradle release - pre tag commit: '
+  tagCommitMessage = 'gradle release - creating tag: '
+  newVersionCommitMessage = 'gradle release - new version commit: '
+  versionPropertyFile = 'gradle.properties'
+
+  scmAdapters = [
+    net.researchgate.release.GitAdapter
+  ]
+
+  buildProps = [
+    "honeyMouth.installClass": 'honey.install.BadgerInstallerMain',
+    "honeyMouth.preinstallClass": 'honey.install.PatchKotlinCompilerPreinstall',
+    "honeyMouth.dslDefClass": 'honey.install.BadgerInstallDef'
+  ]
+
+  git {
+    publishToGit = true
+
+    gitRepoUrl = "https://github.com/chaschev/deploy.fast.git"
+    //TODO fix
+    gitAccessRepoUrl = "https://github.com/chaschev/deploy.fast.git"
+
+    requireBranch = 'master'
+  }
+}
