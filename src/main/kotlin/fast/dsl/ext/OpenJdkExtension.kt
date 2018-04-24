@@ -16,13 +16,14 @@ class OpenJdkExtension(
   app: AppContext,
   config: (TaskContext) -> OpenJdkConfig
 ) : DeployFastExtension<OpenJdkConfig>(
-  app, config
+  "openjdk", app, config
 ) {
   val apt = AptExtension(app, {AptExtensionConfig()})
 
-  override fun getStatus(): ServiceStatus {
+  //todo: move to tasks
+  /*override fun getStatus(): ServiceStatus {
     return runBlocking {
-      val installed = apt.tasks.listInstalled("openjdk")!!
+      val installed = apt.tasks().listInstalled("openjdk")!!
 
       if (installed.isEmpty()) return@runBlocking ServiceStatus.notInstalled
 
@@ -30,7 +31,7 @@ class OpenJdkExtension(
 
       ServiceStatus.installed
     }
-  }
+  }*/
 
 }
 

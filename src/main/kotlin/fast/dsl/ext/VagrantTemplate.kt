@@ -20,7 +20,7 @@ Vagrant.configure(2) do |config|
 #config.ssh.insert_key = false
     config.vm.synced_folder ".", "/vagrant", disabled: true
 
-    ${hostConfigs.map {
+    ${hostConfigs.joinToString("\n") {
           with(it) {
             """
       config.vm.define "$hostname" do |host|

@@ -16,14 +16,15 @@ class NoConfig: ExtensionConfig {
 
 }
 
-abstract class DeployFastApp(app: AppContext) : DeployFastExtension<NoConfig>(app, {NoConfig()})
+abstract class DeployFastApp(name: String, app: AppContext) : DeployFastExtension<NoConfig>(name, app, {NoConfig()})
 
 abstract class DeployFastExtension<CONF: ExtensionConfig>(
+  val name: String,
   val app: AppContext,
   val config: (TaskContext) -> CONF
 ) {
   /* Named extension tasks */
-  open val tasks: NamedExtTasks = NamedExtTasks()
+  open val tasks: (TaskContext) -> NamedExtTasks = {NamedExtTasks(it as DeployFastExtension<ExtensionConfig>)}
 
   lateinit var global: AllSessionsRuntimeContext
 

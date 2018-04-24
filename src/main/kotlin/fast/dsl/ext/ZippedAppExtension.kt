@@ -5,7 +5,7 @@ import fast.runtime.AppContext
 import fast.runtime.TaskContext
 
 
-class ZippedAppTasks : NamedExtTasks() {
+class ZippedAppTasks(extension: ZippedAppExtension) : NamedExtTasks(extension as DeployFastExtension<ExtensionConfig>) {
   fun install() : Task = TODO()
   fun verifyInstall(): Task = TODO()
 }
@@ -56,6 +56,6 @@ class ZippedAppConfig(
 class ZippedAppExtension(
   app: AppContext,
   config: (TaskContext) -> ZippedAppConfig
-): DeployFastExtension<ZippedAppConfig>(app, config) {
-  override val tasks: ZippedAppTasks = ZippedAppTasks()
+): DeployFastExtension<ZippedAppConfig>("zippedApp", app, config) {
+  override val tasks: (TaskContext) -> ZippedAppTasks = {ZippedAppTasks(this@ZippedAppExtension)}
 }

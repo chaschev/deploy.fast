@@ -6,9 +6,10 @@ import fast.runtime.TaskContext
 import fast.ssh.command.Regexes
 import fast.ssh.runAndWait
 
-class AptTasks : NamedExtTasks() {
+class AptTasks(aptExtension: AptExtension) : NamedExtTasks(aptExtension as DeployFastExtension<ExtensionConfig>) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String>? {
-    return context.ssh.runAndWait(timeoutMs, "apt list --installed | grep $filter",
+    TODO()
+    /*return context.ssh.runAndWait(timeoutMs, "apt list --installed | grep $filter",
       process = {
         val items = if (it.stdout.contains("CLI interface")) {
           val list = it.stdout.trim().toString()
@@ -26,9 +27,8 @@ class AptTasks : NamedExtTasks() {
       },
       processErrors = {
         emptySet<String>()
-      }).value
+      }).value*/
   }
-
 }
 
 
@@ -41,12 +41,13 @@ class AptExtensionConfig: ExtensionConfig
 class AptExtension(
   app: AppContext,
   config: (TaskContext) -> AptExtensionConfig
-) : DeployFastExtension<AptExtensionConfig>(app, config) {
+) : DeployFastExtension<AptExtensionConfig>("apt", app, config) {
+  override val tasks: (TaskContext) -> AptTasks = {AptTasks(this@AptExtension)}
+
   override fun getStatus(): ServiceStatus {
     return ServiceStatus(InstalledStatus.installed, RunningStatus.notApplicable)
   }
 
-  override val tasks = AptTasks()
 }
 
 

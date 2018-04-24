@@ -1,53 +1,81 @@
 package fast.runtime
 
-import fast.dsl.DeployFastDSL
-import fast.dsl.ExtensionConfig
-import fast.dsl.Task
-import fast.dsl.TaskResult
+import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.ssh.asyncNoisy
+import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.Job
 
 
 //User accesses Task Context
 //TODO consider another abstraction level: separate user context from logic
-class TaskContext(
+class TaskContext
+(
+  val task: Task,
   val global: AllSessionsRuntimeContext,
   val session: SessionRuntimeContext,
   val parent: TaskContext?
 ) {
-  constructor(session: SessionRuntimeContext, parent: TaskContext) : this(parent.global, session, parent)
+  constructor(task: Task, session: SessionRuntimeContext, parent: TaskContext) : this(task, parent.global, session, parent)
 
   val ssh = session.ssh
+
   lateinit var config: ExtensionConfig
+  lateinit var extension: DeployFastExtension<ExtensionConfig>
 
   private val children = ArrayList<TaskContext>()
 
   // job is required for cancellation and coordination between tasks
   @Volatile
-  private var job: Job? = null
+  private var job: Deferred<TaskResult>? = null
 
   /**
    * Api to play a Task
    *
    * That's the only entry point for playing tasks!
    */
-  private fun playOneTask(childTask: Task): TaskResult {
+  private suspend fun playOneTask(childTask: Task): TaskResult {
+    job = asyncNoisy {
+      val childContext = newChildContext(childTask)
+       childTask.doIt(childContext)
+    }
+
+    return job!!.await()
+  }
+
+  internal fun newChildContext(childTask: Task): TaskContext {
     val childSession = session.newChildContext(childTask)
 
-    val childContext = TaskContext(childSession, this)
+    val childContext = TaskContext(childTask, childSession, this@TaskContext)
+
+    children += childContext
 
     // almost everything is initialised before execution
     // now, update vars extension's config
     // and then start
-    children += childContext
 
-    childContext.config = childTask.extension.config(childContext)
 
-    return childTask.play(childContext)
+    if(childTask.extension != null) {
+      childContext.config = childTask.extension!!.config(childContext)
+      childContext.extension = childTask.extension!!
+    } else {
+      childContext.config = config
+    }
+
+    // TODO apply interceptors here (to change config variables)
+
+    return childContext
   }
 
-  fun play(childTask: Task): TaskResult {
+  suspend fun playExtensionTask(task: ExtensionTask): TaskResult {
+    val childCtx = newChildContext(task)
+    return childCtx.play(task.asTask())
+  }
+
+  suspend fun play(childTask: Task): TaskResult {
+    // TODO apply interceptors here (modify tasks)
+    if(childTask is ExtensionTask) return playExtensionTask(childTask)
+
     var result = ok
 
     with(childTask) {
@@ -65,7 +93,7 @@ class TaskContext(
     return result
   }
 
-  fun play(dsl: DeployFastDSL<*, *>) {
+  suspend fun play(dsl: DeployFastDSL<*, *>) {
     //that will go TaskSet/Task -> play -> iterate -> play each child
     play(dsl.tasks)
   }

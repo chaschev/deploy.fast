@@ -9,6 +9,7 @@ import fast.ssh.KnownHostsConfig
 import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.runBlocking
+import mu.KLogging
 
 
 class AppContext(
@@ -16,13 +17,17 @@ class AppContext(
   val globalRuntime: AllSessionsRuntimeContext
 )
 
-object DeployFast {
+object DeployFast : KLogging() {
   fun runIt() {
 
   }
 
   @JvmStatic
   fun main(args: Array<String>) {
+    logger.warn { "warn" }
+    logger.info { "info" }
+    logger.debug { "debug" }
+
     val inventory = Inventory(
       listOf(
         Group(
@@ -33,7 +38,6 @@ object DeployFast {
         )
       )
     )
-
 
     runBlocking {
       val allSessionsContext = AllSessionsRuntimeContext(inventory)
@@ -46,7 +50,7 @@ object DeployFast {
       val ctx = SessionRuntimeContext(
         dsl.globalTasks, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
 
-      val taskCtx = TaskContext(allSessionsContext, ctx, null)
+      val taskCtx = TaskContext(dsl.globalTasks, allSessionsContext, ctx, null)
 
       taskCtx.play(dsl.globalTasks)
 
@@ -68,7 +72,7 @@ object DeployFast {
             val rootSessionContext = SessionRuntimeContext(
               Task.root, null, "", allSessionsContext, host, ssh)
 
-            val rootTaskContext = TaskContext(allSessionsContext, rootSessionContext, null)
+            val rootTaskContext = TaskContext(dsl.tasks, allSessionsContext, rootSessionContext, null)
 
             allSessionsContext.sessions[host.address] = rootTaskContext
 

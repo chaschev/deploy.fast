@@ -73,17 +73,15 @@ dependencies {
   compile deps.kotlin.libs.reflect
   compile deps.kotlin.libs.coroutines
 
-  compile "io.github.microutils:kotlin-logging:1.4.6"
   compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"
-
-  compile gradleApi()
 
   compile 'com.hierynomus:sshj:0.24.0'
 
+  compile "io.github.microutils:kotlin-logging:1.4.6"
 
-  testCompile 'org.apache.logging.log4j:log4j-core:2.9.1'
-  testCompile 'org.apache.logging.log4j:log4j-api:2.9.1'
-  testCompile 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
+  compile 'org.apache.logging.log4j:log4j-core:2.11.0'
+  compile 'org.apache.logging.log4j:log4j-api:2.11.0'
+  compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.0'
 
   testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
   testCompile deps.kotlin.test.jre

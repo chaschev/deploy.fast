@@ -5,6 +5,7 @@ import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
 import fast.runtime.AppContext
 import fast.runtime.TaskContext
+import mu.KLogging
 import java.io.File
 
 inline fun <T> nullForException(
@@ -20,24 +21,41 @@ inline fun <T> nullForException(
 }
 
 
-class VagrantTasks : NamedExtTasks() {
-  fun updateFile(): TaskResult {
-    val vagrantFile = File("Vagrantfile")
+class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>) : NamedExtTasks(extension) {
+  fun updateFile(): Task {
+    //TODO: finish
+    /*
+    updateFile requires
+      extension
+      config
+      if it is called from outside, a new task must be created
+    need to pass proper extension to a task
+    coordinate tasks and contexts and extensions
+     */
+    return ExtensionTask("updateFile", null, extension, { ctx ->
+      logger.info { "updating Vagrantfile" }
+      val vagrantFile = File("Vagrantfile")
 
-    val text = nullForException {vagrantFile.readText()}
+      val text = nullForException {vagrantFile.readText()}
 
-    if(text == null || !text.substring(200).contains("Managed by ")) {
-      VagrantTemplate(context.config as VagrantConfig).writeToFile(vagrantFile)
-    } else {
-      throw Exception("can't write to $vagrantFile: it already exists and not ours!")
-    }
+      if(text == null || !text.substring(200).contains("Managed by ")) {
+        VagrantTemplate(ctx.config as VagrantConfig).writeToFile(vagrantFile)
+      } else {
+        throw Exception("can't write to $vagrantFile: it already exists and not ours!")
+      }
 
-    return ok
+       ok
+    })
+
   }
 
   /* Don't really implement this */
   fun vagrantUp(): TaskResult {
     TODO()
+  }
+
+  companion object : KLogging() {
+
   }
 
 //  val config by lazy { _config as VagrantConfig}
@@ -47,7 +65,7 @@ data class VagrantHost(
   val host: Host,
   val hostname: String = host.name,
   val ip: String = host.address,
-  val box: String = "ubuntu64/xenial",
+  val box: String = "ubuntu/xenial64",
   val netmask: String = "255.255.255.0",
   val memory: Int = 1024,
   val cpu: Int = 1,
@@ -67,8 +85,8 @@ class VagrantConfig(
 class VagrantExtension(
   app: AppContext,
   config: (TaskContext) -> VagrantConfig
-) : DeployFastExtension<VagrantConfig>(app, config) {
-  override val tasks = VagrantTasks()
+) : DeployFastExtension<VagrantConfig>("vagrant", app, config) {
+  override val tasks: (TaskContext) -> VagrantTasks = {VagrantTasks(this as DeployFastExtension<ExtensionConfig>)}
 }
 
 

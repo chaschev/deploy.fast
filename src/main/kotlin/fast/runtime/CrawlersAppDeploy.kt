@@ -9,7 +9,7 @@ import fast.dsl.ext.OpenJdkExtension
 import fast.dsl.ext.VagrantConfig
 import fast.dsl.ext.VagrantExtension
 
-class CrawlersAppDeploy(app: AppContext) : DeployFastApp(app) {
+class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
 
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension(app, {VagrantConfig(
@@ -28,8 +28,14 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp(app) {
       }
 
       globalTasksBeforePlay {
-        task("update Vagrantfile") {
-          ext.vagrant.tasks.updateFile()
+        task("update_vagrantfile") {
+          //TODO vagrant extension context should be created here
+          //TODO tasks(...) should actually prepare a new task with vagrant config & context
+          //TODO remove context from tasks()
+          //TODO updateFile() should return a wrapper, which will create it's own context + context based on
+          //normally, new extension context are not initialized
+          //"Vagrant extension": "we want to create our own context and then run tasks
+          ext.vagrant.tasks(this).updateFile().play(this)
         }
       }
 
