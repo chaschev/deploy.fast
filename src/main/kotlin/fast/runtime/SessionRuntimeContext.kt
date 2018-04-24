@@ -1,26 +1,28 @@
 package fast.runtime
 
-import fast.dsl.DeployFastDSL
 import fast.dsl.Task
-import fast.dsl.TaskContext
+import fast.inventory.Host
 import fast.ssh.SshProvider
-import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.Job
 
 class SessionRuntimeContext(
-  val path: String,
   val task: Task,
-  val ssh: SshProvider,
+  val parent: SessionRuntimeContext?,
+  val path: String,
   val allSessionsContext: AllSessionsRuntimeContext,
-  val parent: SessionRuntimeContext?
+  val host: Host,
+  val ssh: SshProvider
 ) {
+  constructor(task: Task, parent: SessionRuntimeContext) :
+    this(
+      task = task,
+      parent = parent,
+      path = "${parent.path}.${task.name}",
+      allSessionsContext = parent.allSessionsContext,
+      ssh = parent.ssh,
+      host = parent.host
+    )
 
-  private val children = ArrayList<SessionRuntimeContext>()
-
-  private val stats = TaskStats()
-
-  @Volatile
-  private var job: Job? = null
+  private val stats: TaskStats = TaskStats()
 
 //  fun resolveVar(varName: String): String {
 //    // check if my groups override
@@ -33,38 +35,17 @@ class SessionRuntimeContext(
     //todo override config values
   }
 
-  /**
-   * Api to play a Task
-   */
-  fun play(task: Task) {
+  internal fun newChildContext(task: Task): SessionRuntimeContext {
+    val newChildContext = SessionRuntimeContext(task, this)
 
-    val newChildContext = SessionRuntimeContext(
-      "$path.${task.name}",
-      task,
-      ssh,
-      allSessionsContext,
-      this
-    )
+//    children += newChildContext
 
-    children += newChildContext
-
-    job = asyncNoisy {
-      //TODO: update result
-      for (beforeTask in task.before.tasks()) {
-        task.play(TaskContext(newChildContext))
-      }
-
-      task.play(TaskContext(newChildContext))
-
-      for (afterTask in task.after.tasks()) {
-        task.play(TaskContext(newChildContext))
-      }
-    }
-  }
-
-  fun play(dsl: DeployFastDSL<*>) {
-    //that will go TaskSet/Task -> play -> iterate -> play each child
-    play(dsl.tasks)
+    return newChildContext
   }
 }
+
+/*
+fun SessionRuntimeContext.newTaskCtx() =
+  TaskContext(allSessionsContext, this)
+*/
 

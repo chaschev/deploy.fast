@@ -1,27 +1,24 @@
 package fast.dsl.ext
 
 import fast.dsl.*
+import fast.runtime.AppContext
+import fast.runtime.TaskContext
 import kotlinx.coroutines.experimental.runBlocking
 
 data class OpenJdkConfig(
   var pack: String = "openjdk-8-jdk"
-)
+) : ExtensionConfig
 
 /**
  * This extension will generate vagrant project file.
  */
-class OpenJdkExtension() : DeployFastExtension() {
-  lateinit var config: OpenJdkConfig
-
-  val apt = AptExtension()
-
-  fun configure(
-    block: OpenJdkConfig.() -> Unit): OpenJdkExtension {
-
-    config = OpenJdkConfig().apply(block)
-
-    return this
-  }
+class OpenJdkExtension(
+  app: AppContext,
+  config: (TaskContext) -> OpenJdkConfig
+) : DeployFastExtension<OpenJdkConfig>(
+  app, config
+) {
+  val apt = AptExtension(app, {AptExtensionConfig()})
 
   override fun getStatus(): ServiceStatus {
     return runBlocking {
@@ -35,19 +32,6 @@ class OpenJdkExtension() : DeployFastExtension() {
     }
   }
 
-  companion object {
-    fun dsl() = DeployFastDSL.deployFast(VagrantExtension()) {
-      info {
-        name = "Vagrant Extension"
-        author = "Andrey Chaschev"
-      }
-
-      beforeGlobalTasks {
-
-      }
-    }
-
-  }
 }
 
 

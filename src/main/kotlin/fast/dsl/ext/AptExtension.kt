@@ -1,7 +1,8 @@
 package fast.dsl.ext
 
 import fast.dsl.*
-import fast.ssh.SshProvider
+import fast.runtime.AppContext
+import fast.runtime.TaskContext
 import fast.ssh.command.Regexes
 import fast.ssh.runAndWait
 
@@ -32,40 +33,20 @@ class AptTasks : NamedExtTasks() {
 
 
 
-class AptExtensionConfig(
-)
+class AptExtensionConfig: ExtensionConfig
 
 /**
  * This extension will generate vagrant project file.
  */
-class AptExtension() : DeployFastExtension() {
-  lateinit var config: AptExtensionConfig
-
-  fun configure(
-    block: AptExtensionConfig.() -> Unit) {
-
-    config = AptExtensionConfig().apply(block)
-  }
-
+class AptExtension(
+  app: AppContext,
+  config: (TaskContext) -> AptExtensionConfig
+) : DeployFastExtension<AptExtensionConfig>(app, config) {
   override fun getStatus(): ServiceStatus {
     return ServiceStatus(InstalledStatus.installed, RunningStatus.notApplicable)
   }
 
   override val tasks = AptTasks()
-
-  companion object {
-    fun dsl() = DeployFastDSL.deployFast(VagrantExtension()) {
-      info {
-        name = "Aptitude Extension"
-        author = "Andrey Chaschev"
-      }
-
-      beforeGlobalTasks {
-
-      }
-    }
-
-  }
 }
 
 

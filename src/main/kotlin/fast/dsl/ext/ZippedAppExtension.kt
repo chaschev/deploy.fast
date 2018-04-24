@@ -1,4 +1,8 @@
-package fast.dsl
+package fast.dsl.ext
+
+import fast.dsl.*
+import fast.runtime.AppContext
+import fast.runtime.TaskContext
 
 
 class ZippedAppTasks : NamedExtTasks() {
@@ -43,23 +47,15 @@ class ZippedAppConfig(
   var tempDir: String = "/tmp",
   var appDir: String = "/var/lib",
   var binDir: String = "/usr/local/bin"
-) {
+) : ExtensionConfig {
   fun symlinks(block: SymlinksDSL.() -> Unit): SymlinksDSL {
     return SymlinksDSL().apply(block)
   }
 }
 
-class ZippedAppExtension: DeployFastExtension() {
+class ZippedAppExtension(
+  app: AppContext,
+  config: (TaskContext) -> ZippedAppConfig
+): DeployFastExtension<ZippedAppConfig>(app, config) {
   override val tasks: ZippedAppTasks = ZippedAppTasks()
-
-  lateinit var config: ZippedAppConfig
-
-  fun configure(
-    name: String,
-    version: String,
-    baseUrl: String,
-    block: ZippedAppConfig.() -> Unit){
-
-    config = ZippedAppConfig(name, version, baseUrl).apply(block)
-  }
 }

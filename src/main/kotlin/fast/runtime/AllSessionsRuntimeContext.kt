@@ -6,5 +6,5 @@ import java.util.concurrent.ConcurrentHashMap
 class AllSessionsRuntimeContext(
   val inventory: Inventory
 ) {
-  val contexts: ConcurrentHashMap<String, SessionRuntimeContext> = ConcurrentHashMap()
+  val sessions: ConcurrentHashMap<String, TaskContext> = ConcurrentHashMap()
 }

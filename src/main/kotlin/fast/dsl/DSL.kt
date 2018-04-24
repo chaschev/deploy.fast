@@ -1,7 +1,7 @@
 package fast.dsl
 
 import fast.runtime.AllSessionsRuntimeContext
-import fast.runtime.SessionRuntimeContext
+import fast.runtime.TaskContext
 
 data class TaskResult(
   val ok: Boolean = true,
@@ -11,14 +11,23 @@ data class TaskResult(
   val code: Int = 0,
   val comment: String? = null
 ) {
+  operator fun times(other: TaskResult): TaskResult {
+    return TaskResult(
+      ok && other.ok,
+      modified || other.modified
+    )
+  }
 
+  companion object {
+    val ok = TaskResult()
+  }
 }
 
 interface ITask {
   val name: String
   val desc: String?
 
-  fun run() : TaskResult
+  fun run(taskContext: TaskContext): TaskResult
 
   val before: TaskSet
   val after: TaskSet
@@ -28,18 +37,26 @@ open class Task(
   override val name: String,
   override val desc: String? = null
 ) : ITask {
-  override val before by lazy { TaskSet() }
-  override val after  by lazy { TaskSet() }
+  override val before by lazy { TaskSet("before") }
+  override val after  by lazy { TaskSet("after") }
 
-  internal lateinit var extension: DeployFastExtension
+  /** Each task definition belongs to exactly one extension */
+  internal lateinit var extension: DeployFastExtension<ExtensionConfig>
 
   open internal fun play(context: TaskContext) : TaskResult {
     TODO()
   }
 
 
-  override fun run(): TaskResult {
-    return run(null!!)
+  /**
+   * That's not very clear - why playing only one task, but fuck it
+   */
+  override fun run(taskContext: TaskContext): TaskResult {
+    return taskContext.play(this)
+  }
+
+  companion object {
+    val root = LambdaTask("root", { TaskResult.ok})
   }
 }
 
@@ -69,11 +86,10 @@ class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc)
     //       //TODO: update result
 
     for (task in tasks) {
-      context.session.play(task)
+      task.run(context)
     }
 
     /*
-
     TODO: Running a composite task
      Run each task one after other in a normal way through session context
 
@@ -100,11 +116,12 @@ class TaskSet(name: String = "default", desc: String? = null) : Task(name, desc)
     return tasks.iterator()
   }
 
+  fun size() = tasks.size
+
 }
 
 open class NamedExtTasks {
   lateinit var context: TaskContext
-
 }
 
 enum class RunningStatus {
@@ -124,18 +141,6 @@ data class ServiceStatus(
     val installed = ServiceStatus(InstalledStatus.installed)
     val notInstalled = ServiceStatus(InstalledStatus.notInstalled)
   }
-}
-
-class SystemServiceAppExtension: DeployFastExtension() {
-  override val tasks: NamedExtTasks
-    get() = TODO()
-}
-
-
-class TaskContext(
-  val session: SessionRuntimeContext
-) {
-  val ssh = session.ssh
 }
 
 class InfoDSL(
@@ -164,13 +169,11 @@ inline fun <T> Any?.ifNotNull(block: () -> T): T {
 /**
  * TODO: rename ext into i.e. extensions,
  */
-class DeployFastDSL<EXT : DeployFastExtension>(val ext: EXT) {
+class DeployFastDSL<CONF: ExtensionConfig, EXT : DeployFastExtension<CONF>>(val ext: EXT) {
   internal var info: InfoDSL? = null
 
   val tasks: TaskSet = TaskSet()
   val globalTasks: TaskSet = TaskSet()
-//  var beforeTasks: TaskSet? = null
-//  var afterTasks: TaskSet? = null
 
   fun autoInstall(): Unit = TODO()
 
@@ -181,13 +184,18 @@ class DeployFastDSL<EXT : DeployFastExtension>(val ext: EXT) {
   private var beforeGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
   private var afterGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
 
-  fun beforeGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
+  fun globalTasksBeforePlay(block: TasksDSL.() -> Unit) {
+    globalTasks.addAll(TasksDSL().apply(block).taskSet)
+  }
+
+
+  /*fun beforeGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
     beforeGlobalTasks = block
   }
 
   fun afterGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
     afterGlobalTasks = block
-  }
+  }*/
 
   fun play(block: TasksDSL.() -> Unit) {
     tasks.addAll(TasksDSL().apply(block).taskSet)
@@ -203,8 +211,11 @@ class DeployFastDSL<EXT : DeployFastExtension>(val ext: EXT) {
 
 
   companion object {
-    fun  <EXT : DeployFastExtension> deployFast(ext: EXT, block: DeployFastDSL<EXT>.() -> Unit): DeployFastDSL<EXT> {
-      val deployFastDSL = DeployFastDSL<DeployFastExtension>(ext) as DeployFastDSL<EXT>
+    fun  <CONF: ExtensionConfig, EXT : DeployFastExtension<CONF>> deployFast(
+      ext: EXT, block: DeployFastDSL<CONF, EXT>.() -> Unit
+
+    ): DeployFastDSL<CONF, EXT> {
+      val deployFastDSL = DeployFastDSL(ext)
 
       deployFastDSL.apply(block)
 

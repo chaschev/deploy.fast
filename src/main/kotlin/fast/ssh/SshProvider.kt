@@ -15,5 +15,22 @@ interface SshProvider : ConsoleProvider {
     fun runSimple(): SimpleCommands = SimpleCommands(this)
 
     override fun files(): Files = SshFiles(this)
+
+    companion object {
+      val dummy = object: SshProvider {
+          override fun connect(): SshProvider {
+              TODO("dummy")
+          }
+
+          override fun createSession(): GenericSshSession {
+              TODO("dummy")
+          }
+
+          override fun withSession(block: (session: GenericSshSession) -> Unit) {
+              TODO("dummy")
+          }
+
+      }
+    }
 }
 

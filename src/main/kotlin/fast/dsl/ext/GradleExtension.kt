@@ -1,6 +1,11 @@
-package fast.dsl
+package fast.dsl.ext
+
+import fast.dsl.DeployFastDSL
+import fast.dsl.DeployFastExtension
+import fast.dsl.UserRights
 
 
+/*
 class GradleExtension(
 ): DeployFastExtension() {
   val zippedApp = ZippedAppExtension()
@@ -32,5 +37,6 @@ class GradleExtension(
     }
   }
 }
+*/
 
 

@@ -1,12 +1,27 @@
 package fast.dsl
 
 import fast.runtime.AllSessionsRuntimeContext
+import fast.runtime.AppContext
+import fast.runtime.TaskContext
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.createType
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.defaultType
 import kotlin.reflect.full.isSubtypeOf
 
-abstract class DeployFastExtension {
+interface ExtensionConfig {
+//  fun configure(): ExtensionConfig
+}
+
+class NoConfig: ExtensionConfig {
+
+}
+
+abstract class DeployFastApp(app: AppContext) : DeployFastExtension<NoConfig>(app, {NoConfig()})
+
+abstract class DeployFastExtension<CONF: ExtensionConfig>(
+  val app: AppContext,
+  val config: (TaskContext) -> CONF
+) {
   /* Named extension tasks */
   open val tasks: NamedExtTasks = NamedExtTasks()
 
@@ -20,24 +35,34 @@ abstract class DeployFastExtension {
     }
   }
 
-  val extensions: List<DeployFastExtension> by lazy {
+  val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties
 
     properties
       .filter {
-        it.returnType.isSubtypeOf(DeployFastExtension::class.createType())
+        it.returnType.isSubtypeOf(DeployFastExtension::class.defaultType)
       }
       .map { prop ->
-        (prop as KProperty1<DeployFastExtension, DeployFastExtension>).get(this)
+        (prop as KProperty1<DeployFastExtension<CONF>, DeployFastExtension<ExtensionConfig>>).get(this)
       }
   }
 
-  var context: TaskContext? = null
-    get() = field ?: throw UninitializedPropertyAccessException("AptExtension.context")
+  /**
+   * Execution-time context for ease of accessing variables
+   */
+  /*var context: TaskContext? = null
+    get() = field ?: throw Exception("TaskContext must be set before execution of named tasks. Not set: ${this::class.java.simpleName}.context")
     set(value) {
       field = value
       tasks.context = value!!
-    }
+    }*/
+
+  /**
+   *
+   */
+  fun setTaskContext(context: TaskContext) {
+
+  }
 
   /* Has state means extension represents a ONE process run on the host which state can be changed */
   open val hasState = true

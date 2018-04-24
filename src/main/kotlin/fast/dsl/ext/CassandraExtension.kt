@@ -1,5 +1,8 @@
-package fast.dsl
+package fast.dsl.ext
 
+import fast.dsl.*
+
+/*
 class CassandraExtension(): DeployFastExtension() {
   val zippedApp = ZippedAppExtension()
 
@@ -8,7 +11,7 @@ class CassandraExtension(): DeployFastExtension() {
 
   companion object {
     fun dsl() = DeployFastDSL.deployFast(CassandraExtension()) {
-//      autoInstall()
+      //      autoInstall()
 
       info {
         name = "Cassandra Extension"
@@ -42,14 +45,14 @@ class CassandraExtension(): DeployFastExtension() {
           }
 
           task("install service") {
-//            ext.zippedApp.tasks.installService().run()
+            //            ext.zippedApp.tasks.installService().run()
             TODO()
           }
         }
 
         afterPlay {
           task("check_install") {
-//            ext.zippedApp.tasks.getServiceState(installed = true, running = true).run()
+            //            ext.zippedApp.tasks.getServiceState(installed = true, running = true).run()
             TODO()
           }
         }
@@ -71,5 +74,6 @@ class CassandraExtension(): DeployFastExtension() {
 
   }
 }
+*/
 
 

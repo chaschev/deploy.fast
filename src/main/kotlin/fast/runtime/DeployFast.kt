@@ -1,51 +1,22 @@
 package fast.runtime
 
-import fast.dsl.*
-import fast.dsl.ext.OpenJdkExtension
+import fast.dsl.Task
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.ssh.GenericSshProvider
 import fast.ssh.KnownHostsConfig
+import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.runBlocking
 
 
-class CrawlersExtension() : DeployFastExtension() {
-  val vagrant = VagrantExtension().configure {
-    mem = 2048
-  }
-  val openJdk = OpenJdkExtension().configure {
-    pack = "openjdk-8-jdk"
-  }
-
-  companion object {
-    fun dsl() = DeployFastDSL.deployFast(CrawlersExtension()) {
-      info {
-        name = "Vagrant Extension"
-        author = "Andrey Chaschev"
-      }
-
-      beforePlay {
-        ext.vagrant
-      }
-
-      play {
-        task {
-          println("jdk installation status" + ext.openJdk.getStatus())
-
-          TaskResult()
-        }
-      }
-    }
-
-  }
-}
-
-
+class AppContext(
+  val inventory: Inventory,
+  val globalRuntime: AllSessionsRuntimeContext
+)
 
 object DeployFast {
-
   fun runIt() {
 
   }
@@ -63,14 +34,23 @@ object DeployFast {
       )
     )
 
+
     runBlocking {
-
       val allSessionsContext = AllSessionsRuntimeContext(inventory)
+      val app = AppContext(inventory, allSessionsContext)
 
-      val dsl = CrawlersExtension.dsl()
+      val dsl = CrawlersAppDeploy.dsl(app)
 
       dsl.ext.init(allSessionsContext)
 
+      val ctx = SessionRuntimeContext(
+        dsl.globalTasks, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
+
+      val taskCtx = TaskContext(allSessionsContext, ctx, null)
+
+      taskCtx.play(dsl.globalTasks)
+
+      // START SESSIONS
       arrayOf("vpn1")
         .map { Host(it) }
         .map { host ->
@@ -86,11 +66,13 @@ object DeployFast {
             val ssh = sshImpl.connect()
 
             val rootSessionContext = SessionRuntimeContext(
-              "", dsl.tasks, ssh, allSessionsContext, null)
+              Task.root, null, "", allSessionsContext, host, ssh)
 
-            allSessionsContext.contexts[host.address] = rootSessionContext
+            val rootTaskContext = TaskContext(allSessionsContext, rootSessionContext, null)
 
-            rootSessionContext.play(dsl)
+            allSessionsContext.sessions[host.address] = rootTaskContext
+
+            rootTaskContext.play(dsl)
           }
         }.forEachIndexed { index, job ->
           println("awaiting for job ${index + 1}...")
