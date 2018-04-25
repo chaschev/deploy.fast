@@ -5,20 +5,33 @@ import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 
-data class TaskResult(
-  val ok: Boolean = true,
-  val modified: Boolean = true,
-  val stdout: String = "",
-  val stderr: String? = null,
-  val code: Int = 0,
-  val comment: String? = null
-) {
-  operator fun times(other: TaskResult): TaskResult {
+interface ITaskResult{
+  val ok: Boolean
+  val modified: Boolean
+
+  operator fun times(other: ITaskResult): ITaskResult {
     return TaskResult(
       ok && other.ok,
       modified || other.modified
     )
   }
+}
+
+open class TaskResultAdapter(
+  override val ok: Boolean,
+  override val modified: Boolean
+) : ITaskResult {
+
+}
+
+data class TaskResult(
+  override val ok: Boolean = true,
+  override val modified: Boolean = true,
+  val stdout: String = "",
+  val stderr: String? = null,
+  val code: Int = 0,
+  val comment: String? = null
+) : ITaskResult {
 
   companion object {
     val ok = TaskResult()
@@ -30,11 +43,11 @@ interface ITask {
   val desc: String?
   val extension: DeployFastExtension<ExtensionConfig>?
 
-  suspend fun play(taskContext: TaskContext): TaskResult
+  suspend fun play(taskContext: TaskContext): ITaskResult
 
   val before: TaskSet
   val after: TaskSet
-  suspend fun doIt(context: TaskContext): TaskResult
+  suspend fun doIt(context: TaskContext): ITaskResult
 }
 
 open class Task(
@@ -48,11 +61,11 @@ open class Task(
   /** Each task definition belongs to exactly one extension */
 
 
-  override suspend final fun play(context: TaskContext): TaskResult {
+  override suspend final fun play(context: TaskContext): ITaskResult {
     return context.play(this)
   }
 
-  override suspend fun doIt(context: TaskContext): TaskResult {
+  override suspend fun doIt(context: TaskContext): ITaskResult {
     TODO("not implemented")
   }
 
@@ -64,24 +77,24 @@ open class Task(
 /**
  * Extension task creates it's own context which corresponds to extension function
  */
-class ExtensionTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>, block: suspend (TaskContext) -> TaskResult)
+class ExtensionTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>, block: suspend (TaskContext) -> ITaskResult)
   : LambdaTask(name, desc, extension, block) {
   fun asTask(): Task {
     return LambdaTask(name, desc, extension, block)
   }
 }
 
-open class LambdaTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>? = null, val block: suspend (TaskContext) -> TaskResult)
+open class LambdaTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>? = null, val block: suspend (TaskContext) -> ITaskResult)
   : Task(name, desc, extension) {
 
   constructor(
     name: String,
     extension: DeployFastExtension<ExtensionConfig>?,
-    block: suspend (TaskContext) -> TaskResult
+    block: suspend (TaskContext) -> ITaskResult
   )
     : this(name, null, extension, block)
 
-  override suspend fun doIt(context: TaskContext): TaskResult {
+  override suspend fun doIt(context: TaskContext): ITaskResult {
     return block.invoke(context)
   }
 }
@@ -101,8 +114,8 @@ class TaskSet(
 
   fun tasks(): List<Task> = tasks
 
-  override suspend fun doIt(context: TaskContext): TaskResult {
-    var r = TaskResult.ok
+  override suspend fun doIt(context: TaskContext): ITaskResult {
+    var r: ITaskResult = TaskResult.ok
 
     for (task in tasks) {
       r *= task.play(context)
@@ -125,6 +138,8 @@ class TaskSet(
 
 open class NamedExtTasks(val extension: DeployFastExtension<ExtensionConfig>) {
 //  lateinit var extension: DeployFastExtension<ExtensionConfig>
+ open suspend fun getStatus(): ExtensionTask = TODO()
+
 }
 
 enum class RunningStatus {
@@ -139,7 +154,7 @@ data class ServiceStatus(
   val installation: InstalledStatus,
   val running: RunningStatus = RunningStatus.notApplicable,
   val pid: Int? = null
-) {
+) : TaskResultAdapter(true, false) {
   companion object {
     val installed = ServiceStatus(InstalledStatus.installed)
     val notInstalled = ServiceStatus(InstalledStatus.notInstalled)
@@ -159,7 +174,7 @@ class TasksDSL {
 
   fun init(block: () -> Unit) = block.invoke()
 
-  fun task(name: String = "", block: suspend TaskContext.() -> TaskResult): Unit {
+  fun task(name: String = "", block: suspend TaskContext.() -> ITaskResult): Unit {
     taskSet.append(LambdaTask(name, null, block))
   }
 

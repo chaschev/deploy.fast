@@ -27,17 +27,18 @@ class TaskContext
 
   // job is required for cancellation and coordination between tasks
   @Volatile
-  private var job: Deferred<TaskResult>? = null
+  private var job: Deferred<ITaskResult>? = null
 
   /**
    * Api to play a Task
    *
    * That's the only entry point for playing tasks!
    */
-  private suspend fun playOneTask(childTask: Task): TaskResult {
+  private suspend fun playOneTask(childTask: Task): ITaskResult {
     job = asyncNoisy {
       val childContext = newChildContext(childTask)
-       childTask.doIt(childContext)
+      val doIt = childTask.doIt(childContext)
+      doIt
     }
 
     return job!!.await()
@@ -67,16 +68,16 @@ class TaskContext
     return childContext
   }
 
-  suspend fun playExtensionTask(task: ExtensionTask): TaskResult {
+  suspend fun playExtensionTask(task: ExtensionTask): ITaskResult {
     val childCtx = newChildContext(task)
     return childCtx.play(task.asTask())
   }
 
-  suspend fun play(childTask: Task): TaskResult {
+  suspend fun play(childTask: Task): ITaskResult {
     // TODO apply interceptors here (modify tasks)
     if(childTask is ExtensionTask) return playExtensionTask(childTask)
 
-    var result = ok
+    var result: ITaskResult = ok
 
     with(childTask) {
       if (before.size() > 0) {

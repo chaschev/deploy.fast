@@ -13,9 +13,7 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
 
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension(app, {
-    VagrantConfig(
-      app.inventory["vm"].hosts
-    )
+    VagrantConfig(app.hosts)
   })
 
   val openJdk = OpenJdkExtension(app, {
@@ -23,10 +21,6 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
       pack = "openjdk-8-jdk"
     )
   })
-
-//  ssh {
-//
-//  }
 
   companion object {
     fun dsl(app: AppContext) = DeployFastDSL.deployFast(CrawlersAppDeploy(app)) {
@@ -47,12 +41,6 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
 
       globalTasksBeforePlay {
         task("update_vagrantfile") {
-          //TODO vagrant extension context should be created here
-          //TODO tasks(...) should actually prepare a new task with vagrant config & context
-          //TODO remove context from tasks()
-          //TODO updateFile() should return a wrapper, which will create it's own context + context based on
-          //normally, new extension context are not initialized
-          //"Vagrant extension": "we want to create our own context and then run tasks
           ext.vagrant.tasks(this).updateFile().play(this)
         }
       }

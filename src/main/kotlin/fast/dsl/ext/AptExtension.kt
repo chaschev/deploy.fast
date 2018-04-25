@@ -6,8 +6,9 @@ import fast.runtime.TaskContext
 import fast.ssh.command.Regexes
 import fast.ssh.runAndWait
 
-class AptTasks(aptExtension: AptExtension) : NamedExtTasks(aptExtension as DeployFastExtension<ExtensionConfig>) {
+class AptTasks(val ext: AptExtension) : NamedExtTasks(ext as DeployFastExtension<ExtensionConfig>) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String>? {
+//    return ExtensionTask()
     TODO()
     /*return context.ssh.runAndWait(timeoutMs, "apt list --installed | grep $filter",
       process = {

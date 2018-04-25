@@ -50,7 +50,7 @@ class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>) : NamedExtTa
   }
 
   /* Don't really implement this */
-  fun vagrantUp(): TaskResult {
+  fun vagrantUp(): ITaskResult {
     TODO()
   }
 
@@ -60,6 +60,8 @@ class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>) : NamedExtTa
 
 //  val config by lazy { _config as VagrantConfig}
 }
+
+//TODO: copy defaults from VagrantConfig
 
 data class VagrantHost(
   val host: Host,
