@@ -1,14 +1,13 @@
 package fast.ssh
 
 class KnownHostsConfig(
-  val knownHostsPath: String,
-  val keyPath: String? = null,
-  val keyPassword: String? = null,
+  var knownHostsPath: String = "${System.getenv("HOME")}/.ssh/known_hosts",
+  var keyPath: String? = null,
+  var keyPassword: String? = null,
 
-  override val address: String,
-  override val authUser: String,
-  override val authPassword: String? = null
-)
-
-    : SshConfig(address, authUser, authPassword) {
+  address: String,
+  authUser: String,
+  authPassword: String? = null,
+  port: Int = 22
+)  : SshConfig(address, authUser, authPassword) {
 }

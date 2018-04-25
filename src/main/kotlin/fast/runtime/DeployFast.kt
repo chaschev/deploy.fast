@@ -15,7 +15,9 @@ import mu.KLogging
 class AppContext(
   val inventory: Inventory,
   val globalRuntime: AllSessionsRuntimeContext
-)
+) {
+  lateinit var hosts: List<Host>
+}
 
 object DeployFast : KLogging() {
   fun runIt() {
@@ -46,9 +48,15 @@ object DeployFast : KLogging() {
       )
     )
 
+    inventory.init()
+
+    val runAt = "vm"
+
     runBlocking {
       val allSessionsContext = AllSessionsRuntimeContext(inventory)
       val app = AppContext(inventory, allSessionsContext)
+
+      app.hosts = inventory.asOneGroup.getHostsForName(runAt)
 
       val dsl = CrawlersAppDeploy.dsl(app)
 
@@ -62,25 +70,20 @@ object DeployFast : KLogging() {
       taskCtx.play(dsl.globalTasks)
 
       // START SESSIONS
-      arrayOf("192.168.5.10")
-        .map { Host(it) }
-        .map { host ->
+      app.hosts.map { host ->
           asyncNoisy {
             //TODO provide hosts to vagrant plugin
 
-            val sshImpl = GenericSshProvider(
-              KnownHostsConfig(
-              knownHostsPath = "${System.getenv("HOME")}/.ssh/known_hosts",
-                keyPath = "${System.getenv("HOME")}/.vagrant.d/insecure_private_key",
-                address = host.address,
-                authUser = "vagrant")
-            )
+            val sshConfig = dsl.ssh!!.forHost(host)
+            val sshImpl = GenericSshProvider(sshConfig)
 
             val ssh = sshImpl.connect()
 
             val x = ssh.runSimple().ls("/")
 
             println(x)
+
+            println(ssh.runSimple().pwd())
 
             val rootSessionContext = SessionRuntimeContext(
               Task.root, null, "", allSessionsContext, host, ssh)

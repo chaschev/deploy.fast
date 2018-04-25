@@ -1,7 +1,9 @@
 package fast.dsl
 
+import fast.inventory.Host
 import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.TaskContext
+import fast.ssh.KnownHostsConfig
 
 data class TaskResult(
   val ok: Boolean = true,
@@ -44,7 +46,6 @@ open class Task(
   override val after by lazy { TaskSet("after") }
 
   /** Each task definition belongs to exactly one extension */
-
 
 
   override suspend final fun play(context: TaskContext): TaskResult {
@@ -169,6 +170,55 @@ inline fun <T> Any?.ifNotNull(block: () -> T): T {
   return block.invoke()
 }
 
+class SshDSL {
+  val configs = LinkedHashMap<String, (Host) -> KnownHostsConfig>()
+
+  infix fun String.with(block: (Host) -> KnownHostsConfig) {
+    configs[this] = block
+  }
+
+  fun privateKey(host: Host, user: String = "root", block: (KnownHostsConfig.() -> Unit)? = null): KnownHostsConfig {
+    val config = KnownHostsConfig(address = host.address, authUser = user)
+
+    return (if (block != null) config.apply(block) else config)
+  }
+
+  fun password(
+    host: Host, user: String, password: String,
+    block: (KnownHostsConfig.() -> Unit)? = null
+  ): KnownHostsConfig {
+    val config = KnownHostsConfig(address = host.address, authUser = user, authPassword = password)
+
+    return (if (block != null) config.apply(block) else config)
+  }
+
+  fun forHost(host: Host): KnownHostsConfig {
+    /*for (group in host.groups) {
+      val myConfig  = configs[group.name]
+    }*/
+
+    val configLambda = {
+      // match by a group name
+      val myGroup = host.groups.find { configs[it.name] != null }
+
+      when {
+        myGroup != null -> configs[myGroup.name]!!
+
+      // match by a host name
+        configs[host.name] != null -> configs[host.name]!!
+
+      // check 'other'
+        else -> configs["other"]
+          ?: throw Exception("none of the hosts matched ssh configuration and 'other' ssh group is missing")
+      }
+    }()
+
+    return configLambda(host)
+  }
+
+
+}
+
 /**
  * TODO: rename ext into i.e. extensions,
  */
@@ -176,6 +226,7 @@ class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
   val ext: EXT
 ) {
   internal var info: InfoDSL? = null
+  internal var ssh: SshDSL? = null
 
   val tasks: TaskSet = TaskSet(ext.name, "Tasks of extension ${ext.name}", ext as DeployFastExtension<ExtensionConfig>)
   val globalTasks: TaskSet = TaskSet("${ext.name}.global", "Global Tasks for Extension $ext", ext as DeployFastExtension<ExtensionConfig>)
@@ -188,6 +239,10 @@ class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
 
   private var beforeGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
   private var afterGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
+
+  fun ssh(block: SshDSL.() -> Unit) {
+    ssh = SshDSL().apply(block)
+  }
 
   fun globalTasksBeforePlay(block: TasksDSL.() -> Unit) {
     globalTasks.addAll(TasksDSL().apply(block).taskSet)

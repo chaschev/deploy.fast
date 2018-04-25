@@ -12,13 +12,17 @@ import fast.dsl.ext.VagrantExtension
 class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
 
   /* TODO: convert to method invocation API */
-  val vagrant = VagrantExtension(app, {VagrantConfig(
-    app.inventory["vm"].hosts
-  )})
+  val vagrant = VagrantExtension(app, {
+    VagrantConfig(
+      app.inventory["vm"].hosts
+    )
+  })
 
-  val openJdk = OpenJdkExtension(app, {OpenJdkConfig(
-    pack = "openjdk-8-jdk"
-  )})
+  val openJdk = OpenJdkExtension(app, {
+    OpenJdkConfig(
+      pack = "openjdk-8-jdk"
+    )
+  })
 
 //  ssh {
 //
@@ -29,6 +33,16 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
       info {
         name = "Vagrant Extension"
         author = "Andrey Chaschev"
+      }
+
+      ssh {
+        "vm" with {
+          privateKey(it, "vagrant") {
+            keyPath = "${"HOME".env()}/.vagrant.d/insecure_private_key"
+          }
+        }
+
+        "other" with { privateKey(it)  }
       }
 
       globalTasksBeforePlay {
@@ -53,3 +67,6 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
     }
   }
 }
+
+
+ fun String.env() = System.getenv(this)
