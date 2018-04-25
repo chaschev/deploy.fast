@@ -8,52 +8,65 @@ import java.io.*
 
 
 class GenericSshProvider(
-    val config: SshConfig)
-    : SshProvider {
+  val config: SshConfig)
+  : SshProvider {
 
-    companion object : KLogging()
+  companion object : KLogging()
 
-    internal lateinit var sshClient: SSHClient
+  internal lateinit var sshClient: SSHClient
 
-    override fun connect(): SshProvider {
-        if (config is KnownHostsConfig) {
-            try {
-                val ssh = SSHClient()
+  override fun connect(): SshProvider {
+    if (config is KnownHostsConfig) {
+      try {
+        val ssh = SSHClient()
 
-                logger.info { "connecting to ${config.address}" }
+        logger.info { "connecting to ${config.address}" }
 
-                ssh.loadKnownHosts(File(config.path))
-                ssh.addHostKeyVerifier(PromiscuousVerifier())
+        ssh.loadKnownHosts(File(config.knownHostsPath))
 
-                ssh.connect(config.address)
+        val keyProvider = if (config.keyPath != null) {
+          if (config.keyPassword == null)
+            ssh.loadKeys(config.keyPath)
+          else
+            ssh.loadKeys(config.keyPath, config.keyPassword)
+        } else null
 
-                logger.info { "connected" }
+        ssh.addHostKeyVerifier(PromiscuousVerifier())
 
-                if(config.authPassword == null){
-                    ssh.authPublickey(config.authUser)
-                } else {
-                    ssh.authPassword(config.authUser, config.authPassword)
-                }
+        ssh.connect(config.address)
 
-                logger.info { "authenticated" }
+        logger.info { "connected" }
 
-                sshClient = ssh
-                //ssh.authPassword(sshAddress.authUser, sshAddress.authPassword)
-            } catch (e: TransportException) {
-                throw e
-            }
+        val location = "${System.getenv("HOME")}/.vagrant.d/insecure_private_key"
+
+        if (config.authPassword == null) {
+          if(keyProvider == null)
+            ssh.authPublickey(config.authUser)
+          else
+            ssh.authPublickey(config.authUser, location)
         } else {
-            TODO()
+          ssh.authPassword(config.authUser, config.authPassword)
         }
 
-        return this
+        logger.info { "authenticated" }
+
+        sshClient = ssh
+        //ssh.authPassword(sshAddress.authUser, sshAddress.authPassword)
+      } catch (e: TransportException) {
+        throw e
+      }
+    } else {
+      TODO()
     }
 
-    override fun createSession(): GenericSshSession = GenericSshSession(this)
+    return this
+  }
 
-    override fun withSession(block: (session: GenericSshSession) -> Unit) =
-        createSession().use(block)
+  override fun createSession(): GenericSshSession = GenericSshSession(this)
 
-    override fun close() = sshClient.close()
+  override fun withSession(block: (session: GenericSshSession) -> Unit) =
+    createSession().use(block)
+
+  override fun close() = sshClient.close()
 }
 

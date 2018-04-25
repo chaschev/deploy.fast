@@ -31,6 +31,13 @@ object DeployFast : KLogging() {
     val inventory = Inventory(
       listOf(
         Group(
+          name = "vpn",
+          hosts = listOf(
+            Host("vpn1"),
+            Host("vpn2")
+          )
+        ),
+        Group(
           name = "vm",
           hosts = listOf(
             Host("192.168.5.10")
@@ -55,19 +62,25 @@ object DeployFast : KLogging() {
       taskCtx.play(dsl.globalTasks)
 
       // START SESSIONS
-      arrayOf("vpn1")
+      arrayOf("192.168.5.10")
         .map { Host(it) }
         .map { host ->
           asyncNoisy {
             //TODO provide hosts to vagrant plugin
 
-            val sshImpl = GenericSshProvider(KnownHostsConfig(
-              path = "${System.getenv("HOME")}/ssh/.known_hosts",
-              address = host.address,
-              authUser = "root")
+            val sshImpl = GenericSshProvider(
+              KnownHostsConfig(
+              knownHostsPath = "${System.getenv("HOME")}/.ssh/known_hosts",
+                keyPath = "${System.getenv("HOME")}/.vagrant.d/insecure_private_key",
+                address = host.address,
+                authUser = "vagrant")
             )
 
             val ssh = sshImpl.connect()
+
+            val x = ssh.runSimple().ls("/")
+
+            println(x)
 
             val rootSessionContext = SessionRuntimeContext(
               Task.root, null, "", allSessionsContext, host, ssh)

@@ -16,8 +16,8 @@ class VagrantTemplate(
 # Managed by Deploy.Fast
 
 Vagrant.configure(2) do |config|
-#config.ssh.forward_agent = true
-#config.ssh.insert_key = false
+    config.ssh.forward_agent = true
+    config.ssh.insert_key = false
     config.vm.synced_folder ".", "/vagrant", disabled: true
 
     ${hostConfigs.joinToString("\n") {

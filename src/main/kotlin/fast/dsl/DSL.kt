@@ -101,29 +101,13 @@ class TaskSet(
   fun tasks(): List<Task> = tasks
 
   override suspend fun doIt(context: TaskContext): TaskResult {
-    //       //TODO: update result
+    var r = TaskResult.ok
 
     for (task in tasks) {
-      task.play(context)
+      r *= task.play(context)
     }
 
-    /*
-    TODO: Running a composite task
-     Run each task one after other in a normal way through session context
-
-     After: combine results
-
-    TODO: running a task
-   thisNode.session = ..., context=... , startMs =
-   add a named task to task tree, set tree.currentRunNode = thisNode
-   run
-    save & log output
-    get task result, record time
-    (lazy evaluation) apply task result to
-     session's global result
-     parent task result
-*/
-    TODO("combine results")
+    return r
   }
 
   fun addAll(taskSet: TaskSet) {

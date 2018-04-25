@@ -20,6 +20,10 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
     pack = "openjdk-8-jdk"
   )})
 
+//  ssh {
+//
+//  }
+
   companion object {
     fun dsl(app: AppContext) = DeployFastDSL.deployFast(CrawlersAppDeploy(app)) {
       info {
