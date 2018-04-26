@@ -24,7 +24,7 @@ abstract class DeployFastExtension<CONF: ExtensionConfig>(
   val config: (TaskContext) -> CONF
 ) {
   /* Named extension tasks */
-  open val tasks: (TaskContext) -> NamedExtTasks = {NamedExtTasks(it as DeployFastExtension<ExtensionConfig>)}
+  open val tasks: (TaskContext) -> NamedExtTasks = { NamedExtTasks(it as DeployFastExtension<ExtensionConfig>) }
 
   val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties

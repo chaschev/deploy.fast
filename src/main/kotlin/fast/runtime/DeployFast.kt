@@ -4,215 +4,77 @@ import fast.dsl.*
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
-import fast.ssh.GenericSshProvider
-import fast.ssh.SshProvider
-import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.Deferred
+import fast.runtime.DeployFastDI.FAST
 import kotlinx.coroutines.experimental.runBlocking
-import mu.KLogging
+import org.kodein.di.*
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.singleton
 
 
 class AppContext(
-  runAt: String,
-  val global: AllSessionsRuntimeContext
+//  runAt: String,
+//  val global: AllSessionsRuntimeContext,
+//  override val dkodein: DKodein
 ) {
-  val inventory = global.inventory
+  val runAt: String by FAST.instance(tag = "runAt")
+
+  val inventory: Inventory by FAST.instance()
 
   val hosts: List<Host> = inventory.asOneGroup.getHostsForName(runAt)
 }
 
-class DeployFastMain {
-  companion object : KLogging() {
-    @JvmStatic
-    fun main(args: Array<String>) {
-      logger.warn { "warn" }
-      logger.info { "info" }
-      logger.debug { "debug" }
-
-      val inventory = Inventory(
-        listOf(
-          Group(
-            name = "vpn",
-            hosts = listOf(
-              Host("vpn1"),
-              Host("vpn2")
-            )
-          ),
-          Group(
-            name = "vm",
-            hosts = listOf(
-              Host("192.168.5.10")
-            )
-          )
-        )
-      )
-
-      inventory.init()
-
-
-      val scheduler = DeployFastScheduler({ CrawlersAppDeploy.dsl(it) }, "vm", inventory)
-
-      runBlocking {
-        scheduler.doIt()
-      }
-    }
+object DeployFastDI {
+  var FAST = Kodein {
+    bind<AppContext>() with singleton { AppContext() }
   }
+    set(value) {
+      FASTD = value.direct
+      field = value
+    }
+
+  var FASTD = FAST.direct
 }
 
-class DeployFastScheduler<APP : DeployFastApp>(
-  dslLambda: (AppContext) -> DeployFastAppDSL<APP>,
-  val runAt: String,
-  val inventory: Inventory
-) {
-  val allSessionsContext = AllSessionsRuntimeContext(inventory)
-
-  val app = AppContext(runAt, allSessionsContext)
-
-  val dsl = dslLambda(app)
+object CrawlersAppDI {
 
   init {
-    require(inventory.initialised(), { "inventory has not been initialized with init()" })
-  }
+    DeployFastDI.FAST = Kodein {
+      extend(FAST)
 
-
-  suspend fun doIt() {
-    playGlobalTasks()
-
-    val jobs = startSessions()
-
-    await(jobs)
-  }
-
-  private suspend fun await(jobs: List<Deferred<ITaskResult>>) {
-    println("awaiting for ${jobs.size} to finish")
-
-    jobs.forEachIndexed { index, job ->
-      println("awaiting for job ${index + 1}...")
-      val result = job.await()
-      println("got result from a job ${index + 1}: $result")
-    }
-  }
-
-  suspend fun playGlobalTasks() {
-    val ctx = SessionRuntimeContext(
-      dsl.globalTasks, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
-
-    val taskCtx = TaskContext(dsl.globalTasks, allSessionsContext, ctx, null)
-
-    taskCtx.play(dsl.globalTasks)
-  }
-
-  suspend fun startSessions(): List<Deferred<ITaskResult>> {
-    return app.hosts.map { host ->
-      asyncNoisy {
-        val ssh = connect(host)
-
-        val rootTaskContext = createRootSessionContext(host, ssh)
-
-        rootTaskContext.play(dsl)
+      bind<Inventory>() with singleton {
+        Inventory(
+          listOf(
+            Group(
+              name = "vpn",
+              hosts = listOf(
+                Host("vpn1"),
+                Host("vpn2")
+              )
+            ),
+            Group(
+              name = "vm",
+              hosts = listOf(
+                Host("192.168.5.10")
+              )
+            )
+          )
+        ).init()
       }
+
+      bind("dsl") from singleton { CrawlersFastApp.dsl() }
+
+      bind("runAt") from singleton { "vm" }
     }
   }
-
-  private fun connect(host: Host): SshProvider {
-    val sshConfig = dsl.ssh!!.forHost(host)
-    val sshImpl = GenericSshProvider(sshConfig)
-
-    return sshImpl.connect()
-  }
-
-  private fun createRootSessionContext(host: Host, ssh: SshProvider): TaskContext {
-    val rootSessionContext = SessionRuntimeContext(
-      Task.root, null, "", allSessionsContext, host, ssh)
-
-    val rootTaskContext = TaskContext(dsl.tasks, allSessionsContext, rootSessionContext, null)
-
-    allSessionsContext.sessions[host.address] = rootTaskContext
-    return rootTaskContext
-  }
-
-
-}
-
-/*
-object DeployFast : KLogging() {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    logger.warn { "warn" }
-    logger.info { "info" }
-    logger.debug { "debug" }
-
-    val inventory = Inventory(
-      listOf(
-        Group(
-          name = "vpn",
-          hosts = listOf(
-            Host("vpn1"),
-            Host("vpn2")
-          )
-        ),
-        Group(
-          name = "vm",
-          hosts = listOf(
-            Host("192.168.5.10")
-          )
-        )
-      )
-    )
-
-    inventory.init()
-
-    val runAt = "vm"
+    val scheduler = DeployFastScheduler<DeployFastApp>()
 
     runBlocking {
-      val allSessionsContext = AllSessionsRuntimeContext(inventory)
-      val app = AppContext(inventory, allSessionsContext)
-
-      app.hosts = inventory.asOneGroup.getHostsForName(runAt)
-
-      val dsl = CrawlersAppDeploy.dsl(app)
-
-      dsl.ext.init(allSessionsContext)
-
-      val ctx = SessionRuntimeContext(
-        dsl.globalTasks, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
-
-      val taskCtx = TaskContext(dsl.globalTasks, allSessionsContext, ctx, null)
-
-      taskCtx.play(dsl.globalTasks)
-
-      // START SESSIONS
-      app.hosts.map { host ->
-        asyncNoisy {
-          //TODO provide hosts to vagrant plugin
-
-          val sshConfig = dsl.ssh!!.forHost(host)
-          val sshImpl = GenericSshProvider(sshConfig)
-
-          val ssh = sshImpl.connect()
-
-          val x = ssh.runSimple().ls("/")
-
-          println(x)
-
-          println(ssh.runSimple().pwd())
-
-          val rootSessionContext = SessionRuntimeContext(
-            Task.root, null, "", allSessionsContext, host, ssh)
-
-          val rootTaskContext = TaskContext(dsl.tasks, allSessionsContext, rootSessionContext, null)
-
-          allSessionsContext.sessions[host.address] = rootTaskContext
-
-          rootTaskContext.play(dsl)
-        }
-      }.forEachIndexed { index, job ->
-        println("awaiting for job ${index + 1}...")
-        val ls = job.await()
-        println("done awaiting for baby")
-      }
+      scheduler.doIt()
     }
-
   }
-}*/
+}
+

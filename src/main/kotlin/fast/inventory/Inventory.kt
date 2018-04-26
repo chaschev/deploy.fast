@@ -20,12 +20,14 @@ class Inventory(
 
   operator fun get(name: String) = group(name)
 
-  fun init() {
+  fun init(): Inventory {
     asOneGroup.forEachGroup { group ->
       group.hosts.forEach { it._groups += group }
     }
 
     initialised = true
+
+    return this
   }
 
   fun initialised() = initialised
