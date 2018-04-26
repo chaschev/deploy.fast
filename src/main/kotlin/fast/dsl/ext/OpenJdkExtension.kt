@@ -1,7 +1,6 @@
 package fast.dsl.ext
 
 import fast.dsl.*
-import fast.runtime.AppContext
 import fast.runtime.TaskContext
 
 data class OpenJdkConfig(
@@ -25,7 +24,6 @@ class OpenJDKTasks(val ext: OpenJdkExtension) : NamedExtTasks(ext as DeployFastE
       else
       ServiceStatus.installed
     }
-
   }
 }
 
@@ -33,12 +31,11 @@ class OpenJDKTasks(val ext: OpenJdkExtension) : NamedExtTasks(ext as DeployFastE
  * This extension will generate vagrant project file.
  */
 class OpenJdkExtension(
-  app: AppContext,
   config: (TaskContext) -> OpenJdkConfig
 ) : DeployFastExtension<OpenJdkConfig>(
   "openjdk", config
 ) {
-  val apt = AptExtension(app, {AptExtensionConfig()})
+  val apt = AptExtension({AptExtensionConfig()})
 
   override val tasks = {_:TaskContext -> OpenJDKTasks(this)}
 }

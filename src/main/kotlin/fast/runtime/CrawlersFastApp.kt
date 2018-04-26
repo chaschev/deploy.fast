@@ -17,7 +17,7 @@ class CrawlersFastApp(app: AppContext) : DeployFastApp("crawlers") {
     VagrantConfig(app.hosts)
   })
 
-  val openJdk = OpenJdkExtension(app, {
+  val openJdk = OpenJdkExtension({
     OpenJdkConfig(
       pack = "openjdk-8-jdk"
     )

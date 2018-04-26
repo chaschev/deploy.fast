@@ -2,9 +2,11 @@ package fast.runtime
 
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
+import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import mu.KLogging
+import org.kodein.di.generic.instance
 
 
 //User accesses Task Context
@@ -12,13 +14,12 @@ import mu.KLogging
 class TaskContext
 (
   val task: Task,
-  val global: AllSessionsRuntimeContext,
   val session: SessionRuntimeContext,
   val parent: TaskContext?
 ) {
-  constructor(task: Task, session: SessionRuntimeContext, parent: TaskContext) : this(task, parent.global, session, parent)
-
   val ssh = session.ssh
+
+  val global: AllSessionsRuntimeContext by FAST.instance()
 
   lateinit var config: ExtensionConfig
   lateinit var extension: DeployFastExtension<ExtensionConfig>

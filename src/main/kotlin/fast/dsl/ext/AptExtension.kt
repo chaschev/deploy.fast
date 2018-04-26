@@ -1,7 +1,6 @@
 package fast.dsl.ext
 
 import fast.dsl.*
-import fast.runtime.AppContext
 import fast.runtime.TaskContext
 import fast.ssh.command.Regexes
 import fast.ssh.runAndWait
@@ -45,7 +44,6 @@ class AptExtensionConfig: ExtensionConfig
  * This extension will generate vagrant project file.
  */
 class AptExtension(
-  app: AppContext,
   config: (TaskContext) -> AptExtensionConfig
 ) : DeployFastExtension<AptExtensionConfig>("apt", config) {
   override val tasks: (TaskContext) -> AptTasks = {AptTasks(this@AptExtension)}

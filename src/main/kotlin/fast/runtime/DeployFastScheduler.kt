@@ -47,7 +47,7 @@ class DeployFastScheduler<APP : DeployFastApp> {
     val ctx = SessionRuntimeContext(
       dsl.globalTasks, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
 
-    val taskCtx = TaskContext(dsl.globalTasks, allSessionsContext, ctx, null)
+    val taskCtx = TaskContext(dsl.globalTasks, ctx, null)
 
     taskCtx.play(dsl.globalTasks)
   }
@@ -75,7 +75,7 @@ class DeployFastScheduler<APP : DeployFastApp> {
     val rootSessionContext = SessionRuntimeContext(
       Task.root, null, "", allSessionsContext, host, ssh)
 
-    val rootTaskContext = TaskContext(dsl.tasks, allSessionsContext, rootSessionContext, null)
+    val rootTaskContext = TaskContext(dsl.tasks, rootSessionContext, null)
 
     allSessionsContext.sessions[host.address] = rootTaskContext
     return rootTaskContext
