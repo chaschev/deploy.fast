@@ -25,7 +25,7 @@ abstract class DeployFastExtension<CONF: ExtensionConfig>(
 ) {
   /* Named extension tasks */
   open val tasks: (TaskContext) -> NamedExtTasks = {
-    NamedExtTasks(this as DeployFastExtension<ExtensionConfig>)
+    NamedExtTasks(this as DeployFastExtension<ExtensionConfig>, it)
   }
 
   val app: AppContext by FAST.instance()

@@ -5,8 +5,10 @@ import fast.runtime.TaskContext
 import fast.ssh.command.Regexes
 import fast.ssh.runAndWait
 
-class AptTasks(val ext: AptExtension) : NamedExtTasks(ext as DeployFastExtension<ExtensionConfig>) {
-  suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): ExtensionTask {
+class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
+  ext as DeployFastExtension<ExtensionConfig>, taskCtx
+) {
+  suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
     val task = ExtensionTask("listInstalledPackages", extension = extension) {
       val value = it.ssh.runAndWait(timeoutMs, "apt list --installed | grep $filter",
         process = {
@@ -31,7 +33,7 @@ class AptTasks(val ext: AptExtension) : NamedExtTasks(ext as DeployFastExtension
       return@ExtensionTask TaskValueResult<Set<String>?>(value)
     }
 
-    return task
+    return (taskCtx.play(task) as TaskValueResult<Set<String>?>).value!!
   }
 
 }
@@ -46,7 +48,7 @@ class AptExtensionConfig: ExtensionConfig
 class AptExtension(
   config: (TaskContext) -> AptExtensionConfig
 ) : DeployFastExtension<AptExtensionConfig>("apt", config) {
-  override val tasks: (TaskContext) -> AptTasks = {AptTasks(this@AptExtension)}
+  override val tasks: (TaskContext) -> AptTasks = {AptTasks(this@AptExtension, it)}
 
 }
 

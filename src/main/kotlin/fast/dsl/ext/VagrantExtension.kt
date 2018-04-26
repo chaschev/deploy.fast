@@ -20,7 +20,8 @@ inline fun <T> nullForException(
 }
 
 
-class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>) : NamedExtTasks(extension) {
+class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>, taskCtx: TaskContext)
+  : NamedExtTasks(extension, taskCtx) {
   fun updateFile(): Task {
     //TODO: finish
     /*
@@ -86,7 +87,9 @@ class VagrantConfig(
 class VagrantExtension(
   config: (TaskContext) -> VagrantConfig
 ) : DeployFastExtension<VagrantConfig>("vagrant", config) {
-  override val tasks: (TaskContext) -> VagrantTasks = {VagrantTasks(this as DeployFastExtension<ExtensionConfig>)}
+  override val tasks: (TaskContext) -> VagrantTasks = {
+    VagrantTasks(this as DeployFastExtension<ExtensionConfig>, it)
+  }
 }
 
 

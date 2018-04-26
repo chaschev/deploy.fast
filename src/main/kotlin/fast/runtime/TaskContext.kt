@@ -48,10 +48,18 @@ class TaskContext
     return job!!.await()
   }
 
-  internal fun newChildContext(childTask: Task): TaskContext {
+  /**
+   * custom names are for new extension context, i.e.
+   * task1.task2.apt::listPackages
+   *             ^-- that is the custom name
+   */
+  internal fun newChildContext(childTask: Task, customName: String? = null): TaskContext {
     val childSession = session.newChildContext(childTask)
 
     val childContext = TaskContext(childTask, childSession, this@TaskContext)
+
+    if(customName != null)
+      childContext.session.path = "${session.path}.$customName"
 
     children += childContext
 
@@ -73,7 +81,7 @@ class TaskContext
   }
 
   suspend fun playExtensionTask(task: ExtensionTask): ITaskResult {
-    val childCtx = newChildContext(task)
+    val childCtx = newChildContext(task, task.extension!!.name)
     return childCtx.play(task.asTask())
   }
 

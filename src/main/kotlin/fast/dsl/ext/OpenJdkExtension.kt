@@ -7,7 +7,9 @@ data class OpenJdkConfig(
   var pack: String = "openjdk-8-jdk"
 ) : ExtensionConfig
 
-class OpenJDKTasks(val ext: OpenJdkExtension) : NamedExtTasks(ext as DeployFastExtension<ExtensionConfig>) {
+class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTasks(
+  ext as DeployFastExtension<ExtensionConfig>, taskCtx
+) {
   open fun getInstalledState(): Boolean = TODO()
 
   // there can be several installations and running instances
@@ -15,11 +17,11 @@ class OpenJDKTasks(val ext: OpenJdkExtension) : NamedExtTasks(ext as DeployFastE
 
   override suspend fun getStatus(): ExtensionTask {
     return ExtensionTask("getStatus", extension = extension) {
-      val installed = ext.apt.tasks(it).listInstalled("openjdk").play(it) as TaskValueResult<Set<String>?>
+      val installed = ext.apt.tasks(it).listInstalled("openjdk")
 
-      println("installed jdk packages: ${installed.value}")
+      println("installed jdk packages: $installed")
 
-      if (installed.value!!.isEmpty())
+      if (installed.isEmpty())
         ServiceStatus.notInstalled
       else
       ServiceStatus.installed
@@ -37,7 +39,7 @@ class OpenJdkExtension(
 ) {
   val apt = AptExtension({AptExtensionConfig()})
 
-  override val tasks = {_:TaskContext -> OpenJDKTasks(this)}
+  override val tasks = {ctx:TaskContext -> OpenJDKTasks(this, ctx)}
 }
 
 

@@ -147,7 +147,10 @@ class TaskSet(
 
 }
 
-open class NamedExtTasks(val extension: DeployFastExtension<ExtensionConfig>) {
+open class NamedExtTasks(
+  val extension: DeployFastExtension<ExtensionConfig>,
+  val taskCtx: TaskContext
+) {
 //  lateinit var extension: DeployFastExtension<ExtensionConfig>
  open suspend fun getStatus(): ExtensionTask = TODO()
 
