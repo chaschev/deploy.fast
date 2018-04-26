@@ -234,10 +234,16 @@ class SshDSL {
 
 }
 
+
+class DeployFastAppDSL<APP: DeployFastApp>(ext: APP)
+  : DeployFastDSL<NoConfig, APP>(ext) {
+
+}
+
 /**
  * TODO: rename ext into i.e. extensions,
  */
-class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
+open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
   val ext: EXT
 ) {
   internal var info: InfoDSL? = null
@@ -286,11 +292,22 @@ class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
 
 
   companion object {
-    fun <CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>> deployFast(
+    fun <CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>> createExtDsl(
       ext: EXT, block: DeployFastDSL<CONF, EXT>.() -> Unit
 
     ): DeployFastDSL<CONF, EXT> {
       val deployFastDSL = DeployFastDSL(ext)
+
+      deployFastDSL.apply(block)
+
+      return deployFastDSL
+    }
+
+    fun <APP : DeployFastApp> createAppDsl(
+      app: APP, block: DeployFastAppDSL<APP>.() -> Unit
+
+    ): DeployFastAppDSL<APP> {
+      val deployFastDSL = DeployFastAppDSL(app)
 
       deployFastDSL.apply(block)
 

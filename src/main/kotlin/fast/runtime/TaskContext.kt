@@ -94,9 +94,9 @@ class TaskContext
     return result
   }
 
-  suspend fun play(dsl: DeployFastDSL<*, *>) {
+  suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult {
     //that will go TaskSet/Task -> play -> iterate -> play each child
-    play(dsl.tasks)
+    return play(dsl.tasks)
   }
 
 /*

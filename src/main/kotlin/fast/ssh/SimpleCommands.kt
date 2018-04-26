@@ -3,6 +3,7 @@ package fast.ssh
 import fast.ssh.command.ConsoleCommand
 import fast.ssh.command.JavaVersion
 
+/* todo: check runAndWait */
 class SimpleCommands(val ssh: SshProvider) {
   suspend fun ls(folder: String, timeoutMs: Int = 5000): List<String>? =
     _helper(timeoutMs, { it.ls(folder) })

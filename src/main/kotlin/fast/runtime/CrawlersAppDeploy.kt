@@ -2,7 +2,6 @@ package fast.runtime
 
 import fast.dsl.DeployFastApp
 import fast.dsl.DeployFastDSL
-import fast.dsl.TaskResult
 import fast.dsl.TaskResult.Companion.ok
 import fast.dsl.ext.OpenJdkConfig
 import fast.dsl.ext.OpenJdkExtension
@@ -23,7 +22,7 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
   })
 
   companion object {
-    fun dsl(app: AppContext) = DeployFastDSL.deployFast(CrawlersAppDeploy(app)) {
+    fun dsl(app: AppContext) = DeployFastDSL.createAppDsl(CrawlersAppDeploy(app)) {
       info {
         name = "Vagrant Extension"
         author = "Andrey Chaschev"
@@ -47,7 +46,7 @@ class CrawlersAppDeploy(app: AppContext) : DeployFastApp("crawlers", app) {
 
       play {
         task {
-          println("jdk installation status:" + ext.openJdk.getStatus())
+          println("jdk installation status:" + ext.openJdk.tasks(this).getStatus())
 
           ok
         }

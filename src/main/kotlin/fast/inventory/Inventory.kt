@@ -7,6 +7,10 @@ class Inventory(
 ) {
   val asOneGroup = CompositeGroup("inventory")
 
+  private var initialised = false
+
+
+
   init {
     asOneGroup.groups.addAll(groups)
   }
@@ -20,9 +24,11 @@ class Inventory(
     asOneGroup.forEachGroup { group ->
       group.hosts.forEach { it._groups += group }
     }
+
+    initialised = true
   }
 
-
+  fun initialised() = initialised
 }
 
 data class Host(

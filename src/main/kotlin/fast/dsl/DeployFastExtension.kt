@@ -26,16 +26,6 @@ abstract class DeployFastExtension<CONF: ExtensionConfig>(
   /* Named extension tasks */
   open val tasks: (TaskContext) -> NamedExtTasks = {NamedExtTasks(it as DeployFastExtension<ExtensionConfig>)}
 
-  lateinit var global: AllSessionsRuntimeContext
-
-  internal fun init(allContext: AllSessionsRuntimeContext) {
-    global = allContext
-
-    for (ext in extensions) {
-      ext.init(allContext)
-    }
-  }
-
   val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties
 
