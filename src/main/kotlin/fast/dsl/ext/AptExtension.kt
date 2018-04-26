@@ -35,9 +35,6 @@ class AptTasks(val ext: AptExtension) : NamedExtTasks(ext as DeployFastExtension
     return task
   }
 
-  class TaskValueResult<T>(val value: T, ok: Boolean = true, modified: Boolean = false) : TaskResultAdapter(ok, modified) {
-
-  }
 }
 
 
@@ -50,7 +47,7 @@ class AptExtensionConfig: ExtensionConfig
 class AptExtension(
   app: AppContext,
   config: (TaskContext) -> AptExtensionConfig
-) : DeployFastExtension<AptExtensionConfig>("apt", app, config) {
+) : DeployFastExtension<AptExtensionConfig>("apt", config) {
   override val tasks: (TaskContext) -> AptTasks = {AptTasks(this@AptExtension)}
 
 }

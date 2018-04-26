@@ -10,10 +10,10 @@ import fast.dsl.ext.VagrantConfig
 import fast.dsl.ext.VagrantExtension
 import org.kodein.di.generic.instance
 
-class CrawlersFastApp(app: AppContext) : DeployFastApp("crawlers", app) {
+class CrawlersFastApp(app: AppContext) : DeployFastApp("crawlers") {
 
   /* TODO: convert to method invocation API */
-  val vagrant = VagrantExtension(app, {
+  val vagrant = VagrantExtension({
     VagrantConfig(app.hosts)
   })
 
@@ -50,8 +50,8 @@ class CrawlersFastApp(app: AppContext) : DeployFastApp("crawlers", app) {
         }
 
         play {
-          task {
-            println("jdk installation status:" + ext.openJdk.tasks(this).getStatus())
+          task("check_java") {
+            println("jdk installation status:" + ext.openJdk.tasks(this).getStatus().play(this))
 
             ok
           }

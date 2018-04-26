@@ -25,7 +25,6 @@ class DeployFastScheduler<APP : DeployFastApp> {
     require(inventory.initialised(), { "inventory has not been initialized with init()" })
   }
 
-
   suspend fun doIt() {
     playGlobalTasks()
 

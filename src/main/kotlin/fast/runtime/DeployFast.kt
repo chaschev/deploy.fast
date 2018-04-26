@@ -12,11 +12,7 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 
 
-class AppContext(
-//  runAt: String,
-//  val global: AllSessionsRuntimeContext,
-//  override val dkodein: DKodein
-) {
+class AppContext() {
   val runAt: String by FAST.instance(tag = "runAt")
 
   val inventory: Inventory by FAST.instance()

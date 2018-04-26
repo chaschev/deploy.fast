@@ -1,8 +1,9 @@
 package fast.dsl
 
-import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.AppContext
+import fast.runtime.DeployFastDI.FAST
 import fast.runtime.TaskContext
+import org.kodein.di.generic.instance
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.defaultType
@@ -16,15 +17,18 @@ class NoConfig: ExtensionConfig {
 
 }
 
-abstract class DeployFastApp(name: String, app: AppContext) : DeployFastExtension<NoConfig>(name, app, {NoConfig()})
+abstract class DeployFastApp(name: String) : DeployFastExtension<NoConfig>(name, {NoConfig()})
 
 abstract class DeployFastExtension<CONF: ExtensionConfig>(
   val name: String,
-  val app: AppContext,
   val config: (TaskContext) -> CONF
 ) {
   /* Named extension tasks */
-  open val tasks: (TaskContext) -> NamedExtTasks = { NamedExtTasks(it as DeployFastExtension<ExtensionConfig>) }
+  open val tasks: (TaskContext) -> NamedExtTasks = {
+    NamedExtTasks(this as DeployFastExtension<ExtensionConfig>)
+  }
+
+  val app: AppContext by FAST.instance()
 
   val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties

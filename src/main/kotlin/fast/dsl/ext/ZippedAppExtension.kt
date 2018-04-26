@@ -56,6 +56,6 @@ class ZippedAppConfig(
 class ZippedAppExtension(
   app: AppContext,
   config: (TaskContext) -> ZippedAppConfig
-): DeployFastExtension<ZippedAppConfig>("zippedApp", app, config) {
+): DeployFastExtension<ZippedAppConfig>("zippedApp", config) {
   override val tasks: (TaskContext) -> ZippedAppTasks = {ZippedAppTasks(this@ZippedAppExtension)}
 }

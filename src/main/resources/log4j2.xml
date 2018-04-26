@@ -15,7 +15,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="net.schmizz" level="info" />
+        <Logger name="net.schmizz" level="warn" />
+        <Logger name="net.schmizz.sshj.DefaultConfig" level="error" />
 
         <Logger name="fast" level="debug" additivity="false">
             <AppenderRef ref="RollingFile" />

@@ -3,7 +3,6 @@ package fast.dsl.ext
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
-import fast.runtime.AppContext
 import fast.runtime.TaskContext
 import mu.KLogging
 import java.io.File
@@ -85,9 +84,8 @@ class VagrantConfig(
  * This extension will generate vagrant project file.
  */
 class VagrantExtension(
-  app: AppContext,
   config: (TaskContext) -> VagrantConfig
-) : DeployFastExtension<VagrantConfig>("vagrant", app, config) {
+) : DeployFastExtension<VagrantConfig>("vagrant", config) {
   override val tasks: (TaskContext) -> VagrantTasks = {VagrantTasks(this as DeployFastExtension<ExtensionConfig>)}
 }
 

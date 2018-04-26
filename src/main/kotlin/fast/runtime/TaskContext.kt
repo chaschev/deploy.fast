@@ -4,7 +4,7 @@ import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.Job
+import mu.KLogging
 
 
 //User accesses Task Context
@@ -37,6 +37,9 @@ class TaskContext
   private suspend fun playOneTask(childTask: Task): ITaskResult {
     job = asyncNoisy {
       val childContext = newChildContext(childTask)
+
+      logger.info { "playing task: ${childContext.session.path}" }
+
       val doIt = childTask.doIt(childContext)
       doIt
     }
@@ -78,25 +81,33 @@ class TaskContext
     if(childTask is ExtensionTask) return playExtensionTask(childTask)
 
     var result: ITaskResult = ok
+    var taskResult: ITaskResult? = null
 
     with(childTask) {
       if (before.size() > 0) {
-        result *= play(before)
+        taskResult = play(before)
+        result *= taskResult!!
       }
 
-      result *= playOneTask(this)
+      taskResult = playOneTask(this)
+
+      result *= taskResult!!
 
       if (after.size() > 0) {
         result *= play(after)
       }
     }
 
-    return result
+    return if (result.ok) taskResult!! else result
   }
 
   suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult {
     //that will go TaskSet/Task -> play -> iterate -> play each child
     return play(dsl.tasks)
+  }
+
+  companion object: KLogging() {
+
   }
 
 /*

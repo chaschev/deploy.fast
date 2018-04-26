@@ -38,6 +38,17 @@ data class TaskResult(
   }
 }
 
+class TaskValueResult<T>(
+  val value: T,
+  ok: Boolean = true,
+  modified: Boolean = false) : TaskResultAdapter(ok, modified) {
+
+  override fun toString(): String {
+    return """Result(ok=$ok, modified=$modified, value=$value)"""
+  }
+}
+
+
 interface ITask {
   val name: String
   val desc: String?
