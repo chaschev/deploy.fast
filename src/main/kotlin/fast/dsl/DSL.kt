@@ -5,7 +5,7 @@ import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 
-interface ITaskResult{
+interface ITaskResult {
   val ok: Boolean
   val modified: Boolean
 
@@ -88,7 +88,12 @@ open class Task(
 /**
  * Extension task creates it's own context which corresponds to extension function
  */
-class ExtensionTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>, block: suspend (TaskContext) -> ITaskResult)
+class ExtensionTask(
+  name: String,
+  extension: DeployFastExtension<ExtensionConfig>,
+  desc: String? = null,
+  block: suspend TaskContext.() -> ITaskResult
+)
   : LambdaTask(name, desc, extension, block) {
   fun asTask(): Task {
     return LambdaTask(name, desc, extension, block)
@@ -151,8 +156,8 @@ open class NamedExtTasks(
   val extension: DeployFastExtension<ExtensionConfig>,
   val taskCtx: TaskContext
 ) {
-//  lateinit var extension: DeployFastExtension<ExtensionConfig>
- open suspend fun getStatus(): ExtensionTask = TODO()
+  //  lateinit var extension: DeployFastExtension<ExtensionConfig>
+  open suspend fun getStatus(): ExtensionTask = TODO()
 
 }
 
@@ -249,7 +254,7 @@ class SshDSL {
 }
 
 
-class DeployFastAppDSL<APP: DeployFastApp>(ext: APP)
+class DeployFastAppDSL<APP : DeployFastApp>(ext: APP)
   : DeployFastDSL<NoConfig, APP>(ext) {
 
 }

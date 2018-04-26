@@ -32,7 +32,7 @@ class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>, taskCtx: Tas
     need to pass proper extension to a task
     coordinate tasks and contexts and extensions
      */
-    return ExtensionTask("updateFile", null, extension, { ctx ->
+    return ExtensionTask("updateFile", extension, null, { ctx ->
       logger.info { "updating Vagrantfile" }
       val vagrantFile = File("Vagrantfile")
 
