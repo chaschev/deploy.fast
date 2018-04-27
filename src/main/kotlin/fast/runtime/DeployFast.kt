@@ -50,7 +50,7 @@ class CrawlersFastApp : DeployFastApp("crawlers") {
   })
 
   companion object {
-    fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
+    fun dsl(): DeployFastAppDSL {
       return DeployFastDSL.createAppDsl(CrawlersFastApp()) {
         info {
           name = "Vagrant Extension"

@@ -1,5 +1,6 @@
 package fast.dsl
 
+import fast.runtime.AnyTaskContext
 import fast.runtime.AppContext
 import fast.runtime.DeployFastDI.FAST
 import fast.runtime.TaskContext
@@ -17,20 +18,28 @@ class NoConfig: ExtensionConfig {
 
 }
 
-abstract class DeployFastApp(name: String) : DeployFastExtension<NoConfig>(name, {NoConfig()})
+typealias ChildTaskContext<EXT, CONF> = TaskContext<Any, EXT, CONF>
 
-abstract class DeployFastExtension<CONF: ExtensionConfig>(
+abstract class AnyExtension<CONF: ExtensionConfig>(name: String, conf: CONF) : DeployFastExtension<AnyExtension<CONF>, CONF>(name, {conf})
+
+abstract class DeployFastApp(name: String) : DeployFastExtension<DeployFastApp, NoConfig>(name, {NoConfig()})
+
+abstract class DeployFastExtension<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig>(
   val name: String,
-  val config: (TaskContext) -> CONF
+  val config: (ChildTaskContext<EXT, CONF>) -> CONF  // child task will have any return argument
 ) {
-  /* Named extension tasks */
-  open val tasks: (TaskContext) -> NamedExtTasks = {
-    NamedExtTasks(this as DeployFastExtension<ExtensionConfig>, it)
+  /**
+   * Named extension tasks
+   * Each call will create a child context from parent for executing extension's tasks
+    *
+   * */
+  open val tasks: (AnyTaskContext) -> NamedExtTasks<EXT, CONF> = {
+    NamedExtTasks(this as EXT, it)
   }
 
   val app: AppContext by FAST.instance()
 
-  val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
+  /*val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties
 
     properties
@@ -40,12 +49,9 @@ abstract class DeployFastExtension<CONF: ExtensionConfig>(
       .map { prop ->
         (prop as KProperty1<DeployFastExtension<CONF>, DeployFastExtension<ExtensionConfig>>).get(this)
       }
-  }
+  }*/
 
   /* Has state means extension represents a ONE process run on the host which state can be changed */
   open val hasState = true
   open val hasFacts = false
-
-
-  fun play(): ITaskResult = TODO()
 }

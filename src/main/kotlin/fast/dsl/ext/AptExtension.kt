@@ -1,19 +1,35 @@
 package fast.dsl.ext
 
 import fast.dsl.*
-import fast.runtime.TaskContext
+import fast.runtime.AnyTaskContext
 import fast.ssh.ConsoleProcessing
 import fast.ssh.command.Regexes
 import fast.ssh.process.Console
 import fast.ssh.runAndWait
 import fast.ssh.runAndWaitInteractive
 
-class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
-  ext as DeployFastExtension<ExtensionConfig>, taskCtx
+class AptConfig : ExtensionConfig
+
+typealias AptTask<R> = ExtensionTask<R, AptExtension, AptConfig>
+typealias AptTaskContext = ChildTaskContext<AptExtension, AptConfig>
+
+class AptExtension(
+  config: (AptTaskContext) -> AptConfig
+) : DeployFastExtension<AptExtension, AptConfig>(
+  "apt", config
+) {
+  override val tasks = { ctx: AnyTaskContext ->
+    AptTasks(this@AptExtension, ctx)
+  }
+}
+
+
+class AptTasks(ext: AptExtension, parentCtx: AnyTaskContext) :
+  NamedExtTasks<AptExtension, AptConfig>(
+  ext, parentCtx
 ) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
-    val task = ExtensionTask("listInstalledPackages", extension) {
-
+    val task = AptTask("listInstalledPackages", extension) {
       val value = ssh.runAndWait(cmd = "apt list --installed | grep $filter",
         process = { console ->
           val items = cutAfterCLIInterface(console)
@@ -24,25 +40,24 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
         },
         processErrors = { emptySet<String>() },
         timeoutMs = timeoutMs
-      ).value!!
+      ).value
 
       TaskValueResult(value)
     }
 
-    return (taskCtx.play(task) as TaskValueResult<Set<String>>).value!!
+    return task.play(extCtx).value
   }
-
 
   suspend fun install(
     pack: String,
     options: InstallOptions = InstallOptions.DEFAULT,
     timeoutMs: Int = 600 * 1000
-  ): ITaskResult {
-    return (ExtensionTask("install", extension) {
+  ): ITaskResult<Boolean> {
+    return (AptTask("install", extension) {
       //flag for non-interactive mode https://stackoverflow.com/questions/33370297/apt-get-update-non-interactive/33370375#33370375
       ssh.runAndWaitInteractive(timeoutMs, "sudo apt-get install  -o \"Dpkg::Options::=--force-confold\" -y ${options.asString()} $pack",
         ConsoleProcessing(
-          process = { "ok" },
+          process = { true },
           consoleHandler = {
             val newText = it.newText()
 
@@ -52,9 +67,8 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
           }
         )
       ).toFast(true)
-    }.play(taskCtx))
+    }.play(extCtx))
   }
-
 
   suspend fun update(
     options: InstallOptions = InstallOptions.DEFAULT,
@@ -68,7 +82,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
       )
         .toFast(true)
 
-    }.play(taskCtx)
+    }.play(extCtx)
 
 
 
@@ -80,7 +94,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
         timeoutMs = timeoutMs
       ).toFast(true)
 
-    }.play(taskCtx)
+    }.play(extCtx)
 
 
 
@@ -92,7 +106,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
         timeoutMs = timeoutMs
       ).toFast(true)
 
-    }.play(taskCtx)
+    }.play(extCtx)
 
 
   data class InstallOptions(
@@ -115,7 +129,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
     val desc: String
   )
 
-  suspend fun dPkgList(filter: String, timeoutMs: Int = 10000) =
+  suspend fun dPkgList(filter: String, timeoutMs: Int = 10000): ITaskResult<List<DPkgPackageInfo>> =
     ExtensionTask("dPkgList", extension) {
       ssh.runAndWait(
         cmd = "dpkg --list *$filter*",
@@ -134,15 +148,16 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
               }
 
           rows
-        }
-      ).toFast(true)
+        },
+        processErrors = { emptyList()}
+      ).toFast(true).mapValue { it }
 
-    }.play(taskCtx) as TaskValueResult<List<DPkgPackageInfo>>
+    }.play(extCtx)
 
 
 
   suspend fun dpkgListInstalled(filter: String, timeoutMs: Int = 10000) =
-    (dPkgList(filter, timeoutMs) ).mapValue { it.filter { it.installed } }
+    (dPkgList(filter, timeoutMs) ).mapValue { it?.filter { it.installed } }
 
 
   private fun cutAfterCLIInterface(console: Console): List<String> {
@@ -160,17 +175,5 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
 
 }
 
-
-class AptExtensionConfig : ExtensionConfig
-
-/**
- * This extension will generate vagrant project file.
- */
-class AptExtension(
-  config: (TaskContext) -> AptExtensionConfig
-) : DeployFastExtension<AptExtensionConfig>("apt", config) {
-  override val tasks: (TaskContext) -> AptTasks = { AptTasks(this@AptExtension, it) }
-
-}
 
 

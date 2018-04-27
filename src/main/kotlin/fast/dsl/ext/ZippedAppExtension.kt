@@ -4,6 +4,7 @@ import fast.dsl.*
 import fast.runtime.AppContext
 import fast.runtime.TaskContext
 
+/*
 
 class ZippedAppTasks(ext: ZippedAppExtension, taskCtx: TaskContext) : NamedExtTasks(
   ext as DeployFastExtension<ExtensionConfig>, taskCtx
@@ -60,4 +61,4 @@ class ZippedAppExtension(
   config: (TaskContext) -> ZippedAppConfig
 ): DeployFastExtension<ZippedAppConfig>("zippedApp", config) {
   override val tasks: (TaskContext) -> ZippedAppTasks = {ZippedAppTasks(this@ZippedAppExtension, it)}
-}
+}*/

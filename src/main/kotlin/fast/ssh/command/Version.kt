@@ -1,5 +1,6 @@
 package fast.ssh.command
 
+import fast.dsl.ext.nullForException
 import fast.ssh.tryFind
 
 /*
@@ -24,18 +25,21 @@ data class JavaVersion(
     val JAVA_REGEX1 = """1.(\d+).\d+_(\d+)""".toRegex()
 
 
-    internal fun parseJavaVersion(s: String): JavaVersion {
+    internal fun parseJavaVersion(s: String): JavaVersion? {
       val isOpenJDK = s.contains("openjdk")
 
       val g = JAVA_REGEX1.tryFind(s)
 
-      val version = if (g != null) {
-        listOf(g[1], g[2])
-      } else {
-        val major = """version "(\d+)""".toRegex().tryFind(s)!![1]
-        val build = """build (\d+)""".toRegex().tryFind(s)!![1]
-        listOf(major, build)
-      }.map { it.toInt() }
+      val version =
+        nullForException {
+          if (g != null) {
+            listOf(g[1], g[2])
+          } else {
+            val major = """version "(\d+)""".toRegex().tryFind(s)!![1]
+            val build = """build (\d+)""".toRegex().tryFind(s)!![1]
+            listOf(major, build)
+          }.map { it.toInt() }
+        } ?: return null
 
       return JavaVersion(isOpenJDK, SimpleVersion(version as List<Comparable<Any>>))
     }

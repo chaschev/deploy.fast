@@ -7,35 +7,39 @@ import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import mu.KLogging
 import org.kodein.di.generic.instance
+import java.security.cert.Extension
 
+
+typealias AnyTaskContext =
+  TaskContext<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
 
 //User accesses Task Context
 //TODO consider another abstraction level: separate user context from logic
-class TaskContext
+class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
 (
-  val task: Task,
+  val task: Task<R, EXT, EXT_CONF>,
   val session: SessionRuntimeContext,
-  val parent: TaskContext?
+  val parent: AnyTaskContext?
 ) {
   val ssh = session.ssh
 
   val global: AllSessionsRuntimeContext by FAST.instance()
 
-  lateinit var config: ExtensionConfig
-  lateinit var extension: DeployFastExtension<ExtensionConfig>
+  lateinit var config: EXT_CONF
+  lateinit var extension: EXT
 
-  private val children = ArrayList<TaskContext>()
+  private val children = ArrayList<TaskContext<R, EXT, EXT_CONF>>()
 
   // job is required for cancellation and coordination between tasks
   @Volatile
-  private var job: Deferred<ITaskResult>? = null
+  private var job: Deferred<ITaskResult<Any>>? = null
 
   /**
    * Api to play a Task
    *
    * That's the only entry point for playing tasks!
    */
-  private suspend fun playOneTask(childTask: Task): ITaskResult {
+  private suspend fun playOneTask(childTask: AnyTask): ITaskResult<Any> {
     job = asyncNoisy {
       val childContext = newChildContext(childTask)
 
@@ -53,10 +57,12 @@ class TaskContext
    * task1.task2.apt::listPackages
    *             ^-- that is the custom name
    */
-  internal fun newChildContext(childTask: Task, customName: String? = null): TaskContext {
+  internal fun newChildContext(childTask: AnyTask, customName: String? = null): AnyTaskContext {
     val childSession = session.newChildContext(childTask)
 
-    val childContext = TaskContext(childTask, childSession, this@TaskContext)
+    val childContext = AnyTaskContext(
+      childTask, childSession, this@TaskContext as AnyTaskContext
+    )
 
     if(customName != null)
       childContext.session.path = "${session.path}.$customName"
@@ -80,21 +86,27 @@ class TaskContext
     return childContext
   }
 
-  suspend fun playExtensionTask(task: ExtensionTask): ITaskResult {
+  /*
+  EXTENSION PLAY CHANGE!
+  suspend fun playExtensionTask(task: AnyExtensionTask): ITaskResult<Any> {
     val childCtx = newChildContext(task, task.extension!!.name)
     return childCtx.play(task.asTask())
+  }*/
+
+  suspend fun play(task: Task<R, EXT, EXT_CONF>): ITaskResult<R> {
+    return playChildTask(task as AnyTask) as ITaskResult<R>
   }
 
-  suspend fun play(childTask: Task): ITaskResult {
+  suspend fun playChildTask(childTask: AnyTask): ITaskResult<Any> {
     // TODO apply interceptors here (modify tasks)
-    if(childTask is ExtensionTask) return playExtensionTask(childTask)
+//    if(childTask is ExtensionTask) return playExtensionTask(childTask)
 
-    var result: ITaskResult = ok
-    var taskResult: ITaskResult? = null
+    var result: ITaskResult<Any> = ok as ITaskResult<Any>
+    var taskResult: ITaskResult<Any>? = null
 
     with(childTask) {
       if (before.size() > 0) {
-        taskResult = play(before)
+        taskResult = playChildTask(before)
         result *= taskResult!!
       }
 
@@ -103,16 +115,16 @@ class TaskContext
       result *= taskResult!!
 
       if (after.size() > 0) {
-        result *= play(after)
+        result *= playChildTask(after)
       }
     }
 
     return if (result.ok == taskResult?.ok) taskResult!! else result
   }
 
-  suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult {
+  suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult<Any> {
     //that will go TaskSet/Task -> play -> iterate -> play each child
-    return play(dsl.tasks)
+    return playChildTask(dsl.tasks)
   }
 
   companion object: KLogging() {

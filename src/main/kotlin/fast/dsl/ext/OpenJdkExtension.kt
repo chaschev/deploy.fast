@@ -1,34 +1,49 @@
 package fast.dsl.ext
 
 import fast.dsl.*
-import fast.runtime.TaskContext
+import fast.runtime.AnyTaskContext
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version
 import fast.ssh.runAndWait
 import mu.KLogging
+
+class OpenJdkExtension(
+  config: (OpenJDKTaskContext) -> OpenJdkConfig
+) : DeployFastExtension<OpenJdkExtension, OpenJdkConfig>(
+  "openjdk", config
+) {
+  val apt = AptExtension({ AptConfig() })
+
+  override val tasks = { ctx: AnyTaskContext -> OpenJDKTasks(this, ctx) }
+}
+
 
 data class OpenJdkConfig(
   var version: Int = 8,
   var pack: String = "openjdk-$version-jdk"
 ) : ExtensionConfig
 
-class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTasks(
-  ext as DeployFastExtension<ExtensionConfig>, taskCtx
-) {
+typealias OpenJDKTask<R> = ExtensionTask<R, OpenJdkExtension, OpenJdkConfig>
+typealias OpenJDKTaskContext = ChildTaskContext<OpenJdkExtension, OpenJdkConfig>
+
+class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: AnyTaskContext) :
+  NamedExtTasks<OpenJdkExtension, OpenJdkConfig>(
+    ext, parentCtx
+  ) {
+
   // there can be several installations and running instances
   // each extension instance corresponds to ONE such process
-
   override suspend fun getStatus(): ServiceStatus {
-    val result = ExtensionTask("getStatus", extension = extension) {
+    val result = OpenJDKTask("getStatus", extension) {
       val installed = ext.apt.tasks(this).listInstalled("openjdk")
 
       println("installed jdk packages: $installed")
 
       if (installed.isEmpty())
-        ServiceStatus.notInstalled
+        TaskResult(ok = false, value = ServiceStatus.notInstalled)
       else
-        ServiceStatus.installed
-    }.play(taskCtx)
+        TaskResult(ok = true, value = ServiceStatus.installed)
+    }.play(extCtx)
 
     return (result as ServiceStatus)
   }
@@ -76,7 +91,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
       val installed2 = apt.tasks(this).dpkgListInstalled("openjdk").value
 
       return@ExtensionTask TaskValueResult(installed1.isEmpty() && installed2.isEmpty())
-    }.play(taskCtx) as TaskValueResult<Boolean>).value
+    }.play(extCtx)).value
   }
 
   suspend fun javaVersion(): JavaVersion? =
@@ -87,18 +102,18 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
 
           version
         }).toFast()
-    }.play(taskCtx) as TaskValueResult<JavaVersion?>).value
+    }.play(extCtx)).value
 
 
   suspend fun javacVersion(): JavaVersion? =
-    (ExtensionTask("javacVersion", extension) {
+    (OpenJDKTask("javacVersion", extension) {
       ssh.runAndWait("javac -version",
         process = { console ->
           val version = JavaVersion.parseJavacVersion(console.stdout.toString())
 
           version
         }).toFast()
-    }.play(taskCtx) as TaskValueResult<JavaVersion?>).value
+    }.play(extCtx)).value
 
   data class JavaInstallOptions(
     val force: Boolean = false,
@@ -112,9 +127,9 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
 
   suspend fun installJava(
     options: JavaInstallOptions = JavaInstallOptions.DEFAULT
-  ) =
+  ): ITaskResult<Boolean> {
+    val openJDKTask = OpenJDKTask("javacVersion", extension) {
 
-    (ExtensionTask("javacVersion", extension) {
       val apt = ext.apt
 
       val javaVersion = javaVersion()
@@ -126,7 +141,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
 
       logger.info { "found java $javaVersion, javac $javacVersion" }
 
-      if (options.force
+      val result = if (options.force
         || javaVersion ?: Version.ZERO < requiredJavaVersion
         || javacVersion ?: Version.ZERO < requiredJavaVersion) {
 
@@ -159,25 +174,16 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
         logger.info { "there is no need for java update, sir" }
         TaskResult.ok
       }
-    }).play(taskCtx)
+
+      result as ITaskResult<Boolean>
+    }
+    return openJDKTask.play(extCtx)
+  }
 
 
   companion object : KLogging() {
 
   }
-}
-
-/**
- * This extension will generate vagrant project file.
- */
-class OpenJdkExtension(
-  config: (TaskContext) -> OpenJdkConfig
-) : DeployFastExtension<OpenJdkConfig>(
-  "openjdk", config
-) {
-  val apt = AptExtension({ AptExtensionConfig() })
-
-  override val tasks = { ctx: TaskContext -> OpenJDKTasks(this, ctx) }
 }
 
 

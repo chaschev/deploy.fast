@@ -14,23 +14,25 @@ import fast.ssh.process.Console
  *   Customized newCommand result.
  */
 
-interface ICommandResult<T>{
-//    val exitCode: Int?
+interface ICommandResult<T> {
+  //    val exitCode: Int?
 //    val isTimeout: Boolean
 //    val timeMs: Int?
-    val console: Console
-    val value: T?
+  val console: Console
 
-    /**
-     * Found errors when parsing. If exited with error and didn't parse, should be false
-     */
-    val hasOutputErrors: Boolean
+  /* var because can be null */
+  var value: T
 
-    fun isOk(): Boolean = !hasOutputErrors && (console.result?.isOk() ?: false)
+  /**
+   * Found errors when parsing. If exited with error and didn't parse, should be false
+   */
+  val hasOutputErrors: Boolean
 
-    fun parsedErrorsConcise(): List<String> = TODO()
-    fun parsedErrorsFull(): List<String>  = TODO()
-    fun cuteOutput(): String = TODO()
+  fun isOk(): Boolean = !hasOutputErrors && (console.result?.isOk() ?: false)
+
+  fun parsedErrorsConcise(): List<String> = TODO()
+  fun parsedErrorsFull(): List<String> = TODO()
+  fun cuteOutput(): String = TODO()
 
 //    fun asTextObject(filter: TextFilter): TextObject = TODO()
 }

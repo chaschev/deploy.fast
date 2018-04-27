@@ -3,6 +3,7 @@ package fast.dsl.ext
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
+import fast.runtime.AnyTaskContext
 import fast.runtime.TaskContext
 import mu.KLogging
 import java.io.File
@@ -19,39 +20,43 @@ inline fun <T> nullForException(
   }
 }
 
+typealias VagrantTask<R> = ExtensionTask<R, VagrantExtension, VagrantConfig>
+typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>
 
-class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>, taskCtx: TaskContext)
-  : NamedExtTasks(extension, taskCtx) {
-  fun updateFile(): Task {
-    //TODO: finish
-    /*
-    updateFile requires
-      extension
-      config
-      if it is called from outside, a new task must be created
-    need to pass proper extension to a task
-    coordinate tasks and contexts and extensions
-     */
-    return ExtensionTask("updateFile", extension, null, {
+class VagrantExtension(
+  config: (VagrantTaskContext) -> VagrantConfig
+) : DeployFastExtension<VagrantExtension, VagrantConfig>(
+  "vagrant", config
+) {
+  override val tasks = { ctx: AnyTaskContext ->
+    VagrantTasks(this@VagrantExtension, ctx)
+  }
+}
+
+
+class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
+  : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
+
+  suspend fun updateFile(): Boolean {
+    val task = VagrantTask("updateFile", extension) {
       logger.info { "updating Vagrantfile" }
       val vagrantFile = File("Vagrantfile")
 
-      val text = nullForException {vagrantFile.readText()}
+      val text = nullForException { vagrantFile.readText() }
 
-      if(text == null || !text.substring(200).contains("Managed by ")) {
-        VagrantTemplate(config as VagrantConfig).writeToFile(vagrantFile)
+      if (text == null || !text.substring(200).contains("Managed by ")) {
+        //probable IDEA bug: extension here is AnyExtension
+
+        VagrantTemplate(extension.config(extCtx as ChildTaskContext<AnyExtension<ExtensionConfig>, ExtensionConfig>) as VagrantConfig)
+          .writeToFile(vagrantFile)
       } else {
         throw Exception("can't write to $vagrantFile: it already exists and not ours!")
       }
 
-       ok
-    })
+      ok
+    }
 
-  }
-
-  /* Don't really implement this */
-  fun vagrantUp(): ITaskResult {
-    TODO()
+    return task.play(extCtx).value
   }
 
   companion object : KLogging() {
@@ -84,12 +89,5 @@ class VagrantConfig(
 /**
  * This extension will generate vagrant project file.
  */
-class VagrantExtension(
-  config: (TaskContext) -> VagrantConfig
-) : DeployFastExtension<VagrantConfig>("vagrant", config) {
-  override val tasks: (TaskContext) -> VagrantTasks = {
-    VagrantTasks(this as DeployFastExtension<ExtensionConfig>, it)
-  }
-}
 
 

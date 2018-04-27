@@ -2,145 +2,192 @@ package fast.dsl
 
 import fast.inventory.Host
 import fast.runtime.AllSessionsRuntimeContext
+import fast.runtime.AnyTaskContext
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 import fast.ssh.command.CommandResult
 
-interface ITaskResult {
+data class AggregatedValue(
+  val list: ArrayList<Any> = ArrayList()
+) {
+  constructor(vararg items: Any) : this(items.toCollection(ArrayList()))
+}
+
+typealias AnyResult = ITaskResult<Any>
+typealias BooleanResult = ITaskResult<Boolean>
+
+interface ITaskResult<R> {
   val ok: Boolean
   val modified: Boolean
+  val value: R
 
-  operator fun times(other: ITaskResult): ITaskResult {
+  operator fun times(other: ITaskResult<Any>): ITaskResult<Any> {
     return TaskResult(
       ok && other.ok,
-      modified || other.modified
+      modified || other.modified,
+      mergeValue(other)
     )
   }
+
+  // merges into an aggregated value
+  fun mergeValue(other: ITaskResult<Any>): Any {
+    val v = value
+
+    return if(v is AggregatedValue) {
+      v.list.add(other.value)
+      v
+    } else {
+      AggregatedValue(v as Any, other.value)
+    }
+  }
+
+
+
+  fun <O> mapValue(block: (R) -> O) =
+    TaskValueResult(block(value), this.ok, this.modified)
 }
 
-open class TaskResultAdapter(
+open class TaskResultAdapter<R>(
   override val ok: Boolean,
-  override val modified: Boolean
-) : ITaskResult {
+  override val modified: Boolean,
+  override val value: R
+) : ITaskResult<R> {
 
 }
 
-data class TaskResult(
+data class TaskResult<R>(
   override val ok: Boolean = true,
   override val modified: Boolean = true,
+  override val value: R,
   val stdout: String = "",
   val stderr: String? = null,
   val code: Int = 0,
   val comment: String? = null
-) : ITaskResult {
+) : ITaskResult<R> {
 
   companion object {
-    val ok = TaskResult()
+    val ok = TaskResult(value = true)
   }
 }
 
 class TaskValueResult<T>(
-  val value: T,
+  override val value: T,
   ok: Boolean = true,
-  modified: Boolean = false) : TaskResultAdapter(ok, modified) {
+  modified: Boolean = false) : TaskResultAdapter<T>(ok, modified, value) {
 
   override fun toString(): String {
     return """Result(ok=$ok, modified=$modified, value=$value)"""
   }
-
-  inline fun <R> mapValue(block: (T) -> R) =
-    TaskValueResult(block(value), this.ok, this.modified)
 }
 
-fun <T> CommandResult<T>.toFast(modified: Boolean = false): TaskValueResult<T?> {
+fun <T> CommandResult<T>.toFast(modified: Boolean = false): TaskValueResult<T> {
   return TaskValueResult(
     value, this.console.result.isOk(), modified
   )
 }
 
-interface ITask {
+interface ITask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> {
   val name: String
   val desc: String?
-  val extension: DeployFastExtension<ExtensionConfig>?
+  val extension: EXT?
 
-  suspend fun play(taskContext: TaskContext): ITaskResult
+  suspend fun play(context: TaskContext<Any, EXT, EXT_CONF>) : ITaskResult<R>
 
   val before: TaskSet
   val after: TaskSet
-  suspend fun doIt(context: TaskContext): ITaskResult
+  suspend fun doIt(context: AnyTaskContext): ITaskResult<R>
 }
 
-open class Task(
+
+
+open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   override val name: String,
   override val desc: String? = null,
-  override val extension: DeployFastExtension<ExtensionConfig>? = null
-) : ITask {
+  override val extension: EXT? = null
+) : ITask<R, EXT, EXT_CONF> {
   override val before by lazy { TaskSet("before") }
   override val after by lazy { TaskSet("after") }
 
   /** Each task definition belongs to exactly one extension */
 
-
-  override suspend final fun play(context: TaskContext): ITaskResult {
-    return context.play(this)
+  suspend final fun playChild(context: AnyTaskContext): ITaskResult<Any> {
+    return context.play(this as AnyTask)
   }
 
-  override suspend fun doIt(context: TaskContext): ITaskResult {
+  override suspend final fun play(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
+    return context.play(this as Task<Any, EXT, EXT_CONF>) as ITaskResult<R>
+  }
+
+  override suspend fun doIt(context: AnyTaskContext): ITaskResult<R> {
     TODO("not implemented")
   }
 
   companion object {
-    val root = LambdaTask("root", null, { TaskResult.ok })
+    val root = AnyLambdaTask("root", null, { TaskResult.ok  as AnyResult })
+    val dummy = AnyLambdaTask("dummy", null, { TaskResult.ok  as AnyResult })
   }
 }
 
 /**
  * Extension task creates it's own context which corresponds to extension function
  */
-class ExtensionTask(
+class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   name: String,
-  extension: DeployFastExtension<ExtensionConfig>,
+  extension: EXT,
   desc: String? = null,
-  block: suspend TaskContext.() -> ITaskResult
-)
-  : LambdaTask(name, desc, extension, block) {
-  fun asTask(): Task {
+  block: suspend AnyTaskContext.() -> ITaskResult<R>
+) : LambdaTask<R, EXT, EXT_CONF>(name, desc, extension, block) {
+  suspend final fun playExt(context: AnyTaskContext): ITaskResult<R> {
+    return context.play(this as AnyTask) as ITaskResult<R>
+  }
+
+  fun asTask(): Task<R, EXT, EXT_CONF> {
     return LambdaTask(name, desc, extension, block)
   }
 }
 
-open class LambdaTask(name: String, desc: String? = null, extension: DeployFastExtension<ExtensionConfig>? = null, val block: suspend (TaskContext) -> ITaskResult)
-  : Task(name, desc, extension) {
+typealias AnyLambdaTask = LambdaTask<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+
+open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+  name: String,
+  desc: String? = null,
+  extension: EXT? = null,
+  val block: suspend (AnyTaskContext) -> ITaskResult<R>
+)
+  : Task<R, EXT, EXT_CONF>(name, desc, extension) {
 
   constructor(
     name: String,
-    extension: DeployFastExtension<ExtensionConfig>?,
-    block: suspend (TaskContext) -> ITaskResult
+    extension: EXT?,
+    block: suspend (AnyTaskContext) -> ITaskResult<R>
   )
     : this(name, null, extension, block)
 
-  override suspend fun doIt(context: TaskContext): ITaskResult {
+  override suspend fun doIt(context: AnyTaskContext): ITaskResult<R> {
     return block.invoke(context)
   }
 }
+
+typealias AnyTask = Task<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+typealias AnyExtensionTask = ExtensionTask<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
 
 // TODO: consider - can be a composite task
 class TaskSet(
   name: String = "default",
   desc: String? = null,
-  extension: DeployFastExtension<ExtensionConfig>? = null
-) : Task(name, desc, extension), Iterable<Task> {
+  extension: AnyExtension<ExtensionConfig>? = null
+) : AnyTask(name, desc, extension), Iterable<AnyTask> {
 
-  private val tasks = ArrayList<Task>()
+  private val tasks = ArrayList<AnyTask>()
 
-  fun append(task: Task) = tasks.add(task)
+  fun append(task: AnyTask) = tasks.add(task)
 
-  fun insertFirst(task: Task) = tasks.add(0, task)
+  fun insertFirst(task: AnyTask) = tasks.add(0, task)
 
-  fun tasks(): List<Task> = tasks
+  fun tasks(): List<AnyTask> = tasks
 
-  override suspend fun doIt(context: TaskContext): ITaskResult {
-    var r: ITaskResult = TaskResult.ok
+  override suspend fun doIt(context: AnyTaskContext): AnyResult {
+    var r: AnyResult = TaskResult.ok as AnyResult
 
     for (task in tasks) {
       r *= task.play(context)
@@ -153,7 +200,7 @@ class TaskSet(
     tasks.addAll(taskSet.tasks)
   }
 
-  override fun iterator(): Iterator<Task> {
+  override fun iterator(): Iterator<AnyTask> {
     return tasks.iterator()
   }
 
@@ -161,13 +208,13 @@ class TaskSet(
 
 }
 
-open class NamedExtTasks(
-  val extension: DeployFastExtension<ExtensionConfig>,
-  val taskCtx: TaskContext
+open class NamedExtTasks<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+  val extension: EXT,
+  parentCtx: AnyTaskContext
 ) {
+  val extCtx = parentCtx.newChildContext(Task.dummy, extension.name) as ChildTaskContext<EXT, EXT_CONF>
   //  lateinit var extension: DeployFastExtension<ExtensionConfig>
   open suspend fun getStatus(): ServiceStatus = TODO()
-
 }
 
 enum class RunningStatus {
@@ -182,7 +229,7 @@ data class ServiceStatus(
   val installation: InstalledStatus,
   val running: RunningStatus = RunningStatus.notApplicable,
   val pid: Int? = null
-) : TaskResultAdapter(true, false) {
+)  {
   companion object {
     val installed = ServiceStatus(InstalledStatus.installed)
     val notInstalled = ServiceStatus(InstalledStatus.notInstalled)
@@ -202,7 +249,10 @@ class TasksDSL {
 
   fun init(block: () -> Unit) = block.invoke()
 
-  fun task(name: String = "", block: suspend TaskContext.() -> ITaskResult): Unit {
+  fun task(
+    name: String = "",
+    block: suspend AnyTaskContext.() -> ITaskResult<Any>
+  ): Unit {
     taskSet.append(LambdaTask(name, null, block))
   }
 
@@ -258,27 +308,29 @@ class SshDSL {
 
     return configLambda(host)
   }
-
-
 }
 
 
-class DeployFastAppDSL<APP : DeployFastApp>(ext: APP)
-  : DeployFastDSL<NoConfig, APP>(ext) {
+
+class DeployFastAppDSL(ext: DeployFastApp)
+  : DeployFastDSL<NoConfig, DeployFastApp>(ext) {
 
 }
 
 /**
  * TODO: rename ext into i.e. extensions,
  */
-open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>>(
+open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, CONF>>(
   val ext: EXT
 ) {
   internal var info: InfoDSL? = null
   internal var ssh: SshDSL? = null
 
-  val tasks: TaskSet = TaskSet(ext.name, "Tasks of extension ${ext.name}", ext as DeployFastExtension<ExtensionConfig>)
-  val globalTasks: TaskSet = TaskSet("${ext.name}.global", "Global Tasks for Extension $ext", ext as DeployFastExtension<ExtensionConfig>)
+  val tasks: TaskSet = TaskSet(ext.name, "Tasks of extension ${ext.name}", ext as AnyExtension<ExtensionConfig>)
+  val globalTasks: TaskSet = TaskSet("${ext.name}.global",
+    "Global Tasks for Extension $ext",
+    ext as AnyExtension<ExtensionConfig>
+  )
 
   fun autoInstall(): Unit = TODO()
 
@@ -320,7 +372,7 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>
 
 
   companion object {
-    fun <CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>> createExtDsl(
+    fun <CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, CONF>> createExtDsl(
       ext: EXT, block: DeployFastDSL<CONF, EXT>.() -> Unit
 
     ): DeployFastDSL<CONF, EXT> {
@@ -332,9 +384,9 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<CONF>
     }
 
     fun <APP : DeployFastApp> createAppDsl(
-      app: APP, block: DeployFastAppDSL<APP>.() -> Unit
+      app: APP, block: DeployFastAppDSL.() -> Unit
 
-    ): DeployFastAppDSL<APP> {
+    ): DeployFastAppDSL {
       val deployFastDSL = DeployFastAppDSL(app)
 
       deployFastDSL.apply(block)
