@@ -18,7 +18,7 @@ interface ConsoleProvider : Closeable {
 
 suspend fun ConsoleProvider.runAndWaitCustom(timeoutMs: Int,
                                              cmd: String): CommandResult<Console> =
-    runAndWait(timeoutMs, cmd, { it })
+    runAndWait(cmd, { it }, timeoutMs = timeoutMs)
 
 data class ConsoleProcessing<T>(
     val process: (Console) -> T,
@@ -27,17 +27,17 @@ data class ConsoleProcessing<T>(
 )
 
 suspend fun <T> ConsoleProvider.runAndWait(
-    timeoutMs: Int,
-    cmd: String,
-    process: (Console) -> T,
-    processErrors: ((Console) -> T)? = null
+  cmd: String,
+  process: (Console) -> T = { "ok" as T },
+  processErrors: ((Console) -> T )? = null,
+  timeoutMs: Int = 60000
 ): CommandResult<T> =
     runAndWaitInteractive(timeoutMs, cmd, ConsoleProcessing(process, processErrors))
 
 suspend fun <T> ConsoleProvider.runAndWait(
-    timeoutMs: Int,
-    cmd: String,
-    processing: ConsoleProcessing<T>
+  cmd: String,
+  processing: ConsoleProcessing<T>,
+  timeoutMs: Int = 60000
 ): CommandResult<T>
     = runAndWaitInteractive(timeoutMs, cmd, processing)
 

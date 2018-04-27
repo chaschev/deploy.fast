@@ -4,6 +4,7 @@ import fast.inventory.Host
 import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
+import fast.ssh.command.CommandResult
 
 interface ITaskResult {
   val ok: Boolean
@@ -46,8 +47,16 @@ class TaskValueResult<T>(
   override fun toString(): String {
     return """Result(ok=$ok, modified=$modified, value=$value)"""
   }
+
+  inline fun <R> mapValue(block: (T) -> R) =
+    TaskValueResult(block(value), this.ok, this.modified)
 }
 
+fun <T> CommandResult<T>.toFast(modified: Boolean = false): TaskValueResult<T?> {
+  return TaskValueResult(
+    value, this.console.result!!.isOk(), modified
+  )
+}
 
 interface ITask {
   val name: String
@@ -157,7 +166,7 @@ open class NamedExtTasks(
   val taskCtx: TaskContext
 ) {
   //  lateinit var extension: DeployFastExtension<ExtensionConfig>
-  open suspend fun getStatus(): ExtensionTask = TODO()
+  open suspend fun getStatus(): ServiceStatus = TODO()
 
 }
 

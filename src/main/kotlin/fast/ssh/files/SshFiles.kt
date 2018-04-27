@@ -2,7 +2,6 @@ package fast.ssh.files
 
 import net.schmizz.sshj.xfer.FileSystemFile
 import fast.ssh.*
-import fast.ssh.command.CommandResult
 import java.io.File
 import java.time.Duration
 import java.time.Instant
@@ -10,9 +9,9 @@ import java.time.Instant
 
 open class SshFiles(override val provider: ConsoleProvider) : Files {
   override suspend fun mkdirs(vararg paths: String): Boolean {
-    return provider.runAndWait(5 * 1000, "mkdir -p ${paths.joinToString(" ")}",
-      { true },
-      { it.stdout.contains("exists") }).value!!
+    return provider.runAndWait("mkdir -p ${paths.joinToString(" ")}", { true },
+      { it.stdout.contains("exists") },
+      5 * 1000).value!!
 
   }
 
@@ -21,7 +20,7 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
   }
 
   override suspend fun ls(path: String): List<RemoteFile> {
-    return provider.runAndWait(5 * 1000, "ls -ltra $path", { console ->
+    return provider.runAndWait("ls -ltra $path", { console ->
       val list = console.stdout.split('\n')
       val rows =
         if (list.isNotEmpty() && list[0].contains("total "))
@@ -47,7 +46,7 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
       }
 
       files
-    }).value!!
+    }, timeoutMs = 5 * 1000).value!!
 
   }
 
@@ -133,21 +132,21 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
   }
 
   override suspend fun chmod(vararg paths: String, mod: String, recursive: Boolean): Boolean {
-    return provider.runAndWait(5 * 1000,
-      "chmod ${if (recursive) "-R" else ""} $mod ${paths.joinToString(" ")}",
-      { true }).value == true
+    return provider.runAndWait("chmod ${if (recursive) "-R" else ""} $mod ${paths.joinToString(" ")}",
+      { true },
+      timeoutMs = 5 * 1000).value == true
   }
 
   override suspend fun chown(vararg paths: String, owner: String, recursive: Boolean): Boolean {
-    return provider.runAndWait(5 * 1000,
-      "chown ${if (recursive) "-R" else ""} $owner ${paths.joinToString(" ")}",
-      { true }).value == true
+    return provider.runAndWait("chown ${if (recursive) "-R" else ""} $owner ${paths.joinToString(" ")}",
+      { true },
+      timeoutMs = 5 * 1000).value == true
   }
 
   override suspend fun ln(existingPath: String, linkPath: String): Boolean {
-    return provider.runAndWait(5 * 1000,
-      "ln -s $existingPath $linkPath",
-      { true }).value == true
+    return provider.runAndWait("ln -s $existingPath $linkPath",
+      { true },
+      timeoutMs = 5 * 1000).value == true
   }
 
 }
