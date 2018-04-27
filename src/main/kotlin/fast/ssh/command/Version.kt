@@ -2,6 +2,9 @@ package fast.ssh.command
 
 import fast.ssh.tryFind
 
+/*
+TODO: copy parse version information info from geerlingguy, if he has it. check others or F it
+ */
 data class JavaVersion(
   val isOpenJDK: Boolean,
   val version: Version
