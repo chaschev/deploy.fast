@@ -40,7 +40,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
   ): ITaskResult {
     return (ExtensionTask("install", extension) {
       //flag for non-interactive mode https://stackoverflow.com/questions/33370297/apt-get-update-non-interactive/33370375#33370375
-      ssh.runAndWaitInteractive(timeoutMs, "apt-get install  -o \"Dpkg::Options::=--force-confold\" -y ${options.asString()} $pack",
+      ssh.runAndWaitInteractive(timeoutMs, "sudo apt-get install  -o \"Dpkg::Options::=--force-confold\" -y ${options.asString()} $pack",
         ConsoleProcessing(
           process = { "ok" },
           consoleHandler = {
@@ -75,7 +75,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
   suspend fun remove(pack: String, timeoutMs: Int = 600 * 1000)  =
     ExtensionTask("update", extension) {
       ssh.runAndWait(
-        "apt-get remove -y $pack",
+        "sudo apt-get remove -y $pack",
         { "ok" },
         timeoutMs = timeoutMs
       ).toFast(true)
@@ -87,7 +87,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
   suspend fun dpkgRemove(pack: String, timeoutMs: Int = 600 * 1000) =
     ExtensionTask("update", extension) {
       ssh.runAndWait(
-        "dpkg --remove $pack",
+        "sudo dpkg --remove $pack",
         { "ok" },
         timeoutMs = timeoutMs
       ).toFast(true)
@@ -116,7 +116,7 @@ class AptTasks(val ext: AptExtension, taskCtx: TaskContext) : NamedExtTasks(
   )
 
   suspend fun dPkgList(filter: String, timeoutMs: Int = 10000) =
-    ExtensionTask("update", extension) {
+    ExtensionTask("dPkgList", extension) {
       ssh.runAndWait(
         cmd = "dpkg --list *$filter*",
         timeoutMs = timeoutMs,

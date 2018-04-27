@@ -18,20 +18,29 @@ data class JavaVersion(
     "${if (isOpenJDK) "openjdk" else "oraclejdk"} version ${version.asString()}"
 
   companion object {
+    val JAVA_REGEX1 = """1.(\d+).\d+_(\d+)""".toRegex()
+
+
     internal fun parseJavaVersion(s: String): JavaVersion {
       val isOpenJDK = s.contains("openjdk")
 
-      val g = "version\\s\"1.(\\d+).\\d+_(\\d+)\"".toRegex().tryFind(s)
+      val g = JAVA_REGEX1.tryFind(s)
 
       val version = if (g != null) {
         listOf(g[1], g[2])
       } else {
-        val major = "version \"(\\d+)".toRegex().tryFind(s)!![1]
-        val build = "build (\\d+)".toRegex().tryFind(s)!![1]
+        val major = """version "(\d+)""".toRegex().tryFind(s)!![1]
+        val build = """build (\d+)""".toRegex().tryFind(s)!![1]
         listOf(major, build)
       }.map { it.toInt() }
 
       return JavaVersion(isOpenJDK, SimpleVersion(version as List<Comparable<Any>>))
+    }
+
+    internal fun parseJavacVersion(s: String): JavaVersion? {
+      val myS = JAVA_REGEX1.tryFind(s) ?: return null
+
+      return JavaVersion(true, Version.of(myS[1].toInt(), myS[2].toInt()))
     }
   }
 }
@@ -46,6 +55,8 @@ interface Version : Comparable<Version> {
       SimpleVersion(s.split(REGEX).map {
         (it.toIntOrNull() ?: it) as Comparable<Any>
       })
+
+    fun <T:Any> of(vararg numbers: Comparable<T>) = SimpleVersion(numbers.asList() as List<Comparable<Any>>)
   }
 
 

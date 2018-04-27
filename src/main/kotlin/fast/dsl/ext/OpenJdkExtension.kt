@@ -3,11 +3,8 @@ package fast.dsl.ext
 import fast.dsl.*
 import fast.runtime.TaskContext
 import fast.ssh.command.JavaVersion
-import fast.ssh.command.JavaVersionCommand
-import fast.ssh.command.JavaVersionCommand.Companion.javaVersion
 import fast.ssh.command.Version
 import fast.ssh.runAndWait
-import fast.ssh.tryFind
 import mu.KLogging
 
 data class OpenJdkConfig(
@@ -93,15 +90,15 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
     }.play(taskCtx) as TaskValueResult<JavaVersion?>).value
 
 
-  suspend fun javacVersion(): Int? =
+  suspend fun javacVersion(): JavaVersion? =
     (ExtensionTask("javacVersion", extension) {
       ssh.runAndWait("javac -version",
         process = { console ->
-          val version = "(\\d+)".toRegex().tryFind(console.stdout.toString())?.get(1)?.toInt()
+          val version = JavaVersion.parseJavacVersion(console.stdout.toString())
 
           version
         }).toFast()
-    }.play(taskCtx) as TaskValueResult<Int?>).value
+    }.play(taskCtx) as TaskValueResult<JavaVersion?>).value
 
   data class JavaInstallOptions(
     val force: Boolean = false,
@@ -131,7 +128,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
 
       if (options.force
         || javaVersion ?: Version.ZERO < requiredJavaVersion
-        || javacVersion ?: 0 < requiredJavaVersion[0]) {
+        || javacVersion ?: Version.ZERO < requiredJavaVersion) {
 
         if (options.force)
           logger.info { "java installation is forced" }
