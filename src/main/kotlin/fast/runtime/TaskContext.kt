@@ -107,7 +107,7 @@ class TaskContext
       }
     }
 
-    return if (result.ok) taskResult!! else result
+    return if (result.ok == taskResult?.ok) taskResult!! else result
   }
 
   suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult {

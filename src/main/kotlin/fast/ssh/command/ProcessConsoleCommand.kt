@@ -16,7 +16,7 @@ class ProcessConsoleCommand<T>(
         return if (processErrors == null) {
             super.processError()
         } else {
-            CommandResult(process.console, processErrors!!(process.console))
+            CommandResult(process.console, processErrors!!.invoke(process.console))
         }
     }
 }

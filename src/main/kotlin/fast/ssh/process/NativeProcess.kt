@@ -27,7 +27,7 @@ class NativeProcess(val job: Job, internal val process: Process) : BasicProcess,
             if(process.isAlive) null else process.exitValue(),
             !process.isAlive,
             isTimeout,
-            (System.currentTimeMillis() - startedAtMs).toInt()
+            System.currentTimeMillis() - startedAtMs
             )
     }
 }

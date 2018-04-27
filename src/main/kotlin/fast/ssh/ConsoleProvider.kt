@@ -48,7 +48,9 @@ suspend fun <T> ConsoleProvider.runAndWaitInteractive(
 ): CommandResult<T> =
     createSession().use { session ->
         ProcessConsoleCommand(
-          session.plainCmd(cmd), processing.process, processing.processErrors)
-            .runBlocking(timeoutMs, processing.consoleHandler)
+          process = session.plainCmd(cmd),
+          processResult = processing.process,
+          processErrors = processing.processErrors
+        ).runBlocking(timeoutMs, processing.consoleHandler)
     }
 

@@ -21,7 +21,7 @@ interface IConsoleProcess : Cancellable {
 }
 
 /**
- * Medium-level object representing a running command in ssh or locally. It is holding:
+ * Medium-level object representing a running newCommand in ssh or locally. It is holding:
  *
  *  job - a corresponding job, monitoring the state of the process
  *  console - i/o interaction and work done by the process
@@ -39,12 +39,15 @@ open class ConsoleProcess(
   override var result: ConsoleCommandResult? = null
 
   override val startedAt = System.currentTimeMillis()
+
   private lateinit var process: BasicProcess
+
   override lateinit var job: Deferred<IConsoleProcess>
   override lateinit var console: Console
 
   override fun start(timeoutMs: Int, callback: ((console: Console) -> Unit)?): ConsoleProcess {
-    logger.debug { "starting a new job: ${mom.toString().cuteCut(30)} with timeout ${timeoutMs}ms" }
+    logger.debug { "starting a new job: ${describeMe()} with timeout ${timeoutMs}ms" }
+
     job = asyncNoisy {
       process = mom.giveBirth(job)
 
@@ -66,7 +69,7 @@ open class ConsoleProcess(
             callback(console)
           }
 
-          delay(100)
+          delay(20)
         }
       }
 
@@ -78,13 +81,16 @@ open class ConsoleProcess(
             callback(console)
           }
 
-          delay(100)
+          delay(20)
         }
       }
 
       while (isActive) {
-        if (System.currentTimeMillis() - startedAt > timeoutMs) {
+        val timeMs = System.currentTimeMillis() - startedAt
+        if (timeMs > timeoutMs) {
           logger.info { "timeout ${timeoutMs}ms for '$mom'" }
+
+          result = ConsoleCommandResult(console = console, isTimeout = true, timeMs = timeMs)
 
           try {
             process.cancel()
@@ -97,11 +103,18 @@ open class ConsoleProcess(
 
         if (process.isEOF() || !process.isAlive()) {
           result = process.getResult(console)
-          logger.info { "reached end: $result for command ```${mom.toString().cuteSubstring(0, 40)}```" }
+
+          logger.info { "reached end: $result for newCommand ```${mom.toString().cuteSubstring(0, 40)}```" }
+
           break
         }
 
         delay(100)
+      }
+
+      if(result == null) {
+        logger.warn { "some unknown error occurred for ${describeMe()}" }
+        result = ConsoleCommandResult(console, null, false, false)
       }
 
       readJob1.cancel()
@@ -111,13 +124,17 @@ open class ConsoleProcess(
         process.cancel()
       }
 
+      console.result = result!!
+
       this@ConsoleProcess
     }
 
-    logger.debug { "job started: ${mom.toString().cuteCut(30)}" }
+    logger.debug { "job started: ${describeMe()}" }
 
     return this
   }
+
+  private fun describeMe() = mom.toString().cuteCut(30)
 
   override fun cancel() {
     job.cancel()

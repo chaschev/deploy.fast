@@ -9,7 +9,7 @@ import java.io.File
 interface ConsoleSession : Closeable {
     companion object {
         fun sshCommand(cmd: String, session: GenericSshSession): IConsoleProcess
-            = SshjProcessMom.command(cmd, session)
+            = SshjProcessMom.newCommand(cmd, session)
 
         fun command(cmd: String, folder: File? = null): IConsoleProcess
             = NativeProcessMom.command(cmd.split(" ").toList(), folder)

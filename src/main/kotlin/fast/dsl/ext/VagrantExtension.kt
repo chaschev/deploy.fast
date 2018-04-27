@@ -32,14 +32,14 @@ class VagrantTasks(extension: DeployFastExtension<ExtensionConfig>, taskCtx: Tas
     need to pass proper extension to a task
     coordinate tasks and contexts and extensions
      */
-    return ExtensionTask("updateFile", extension, null, { ctx ->
+    return ExtensionTask("updateFile", extension, null, {
       logger.info { "updating Vagrantfile" }
       val vagrantFile = File("Vagrantfile")
 
       val text = nullForException {vagrantFile.readText()}
 
       if(text == null || !text.substring(200).contains("Managed by ")) {
-        VagrantTemplate(ctx.config as VagrantConfig).writeToFile(vagrantFile)
+        VagrantTemplate(config as VagrantConfig).writeToFile(vagrantFile)
       } else {
         throw Exception("can't write to $vagrantFile: it already exists and not ours!")
       }

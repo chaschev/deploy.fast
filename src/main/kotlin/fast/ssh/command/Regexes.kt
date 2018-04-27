@@ -2,7 +2,7 @@ package fast.ssh.command
 
 object Regexes {
     val NEW_LINE = "(\r\n|\n|\r)".toRegex()
-    val ERRORS = "(error|warn|critical|can't|could|fail)".toRegex(
+    val ERRORS = "(error|warn|critical|can't|could|fail|not found)".toRegex(
         setOf(
             RegexOption.MULTILINE,
             RegexOption.IGNORE_CASE

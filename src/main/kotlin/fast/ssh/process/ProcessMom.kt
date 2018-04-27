@@ -11,7 +11,7 @@ interface ProcessMom {
 
 class SshjProcessMom(val cmd: String, val session: GenericSshSession) : ProcessMom {
     companion object {
-        fun command(cmd: String, session: GenericSshSession): ConsoleProcess =
+        fun newCommand(cmd: String, session: GenericSshSession): ConsoleProcess =
             ConsoleProcess(SshjProcessMom(cmd, session))
     }
 

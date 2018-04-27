@@ -22,14 +22,14 @@ class LsCommand(override val process: IConsoleProcess) : ConsoleCommand<List<Str
 data class LsResult(
   override val console: Console,
   override val value: List<String>?
-) : CommandResult<List<String>>(console)
+) : CommandResult<List<String>>(console, value)
 
 
 
 data class PwdResult(
   override val console: Console,
   override val value: String?
-) : CommandResult<String>(console)
+) : CommandResult<String>(console, value)
 
 
 class PwdCommand(override val process: IConsoleProcess): ConsoleCommand<String>(process) {

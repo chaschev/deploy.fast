@@ -22,7 +22,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
   // each extension instance corresponds to ONE such process
 
   override suspend fun getStatus(): ServiceStatus {
-    return (ExtensionTask("getStatus", extension = extension) {
+    val result = ExtensionTask("getStatus", extension = extension) {
       val installed = ext.apt.tasks(this).listInstalled("openjdk")
 
       println("installed jdk packages: $installed")
@@ -31,7 +31,9 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
         ServiceStatus.notInstalled
       else
         ServiceStatus.installed
-    }.play(taskCtx) as TaskValueResult<ServiceStatus>).value
+    }.play(taskCtx)
+
+    return (result as ServiceStatus)
   }
 
   suspend fun uninstall(): Boolean {
@@ -112,7 +114,6 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
   }
 
   suspend fun installJava(
-    requiredJavaVersion: Version = Version.parse("9.9"),
     options: JavaInstallOptions = JavaInstallOptions.DEFAULT
   ) =
 
@@ -121,6 +122,10 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
 
       val javaVersion = javaVersion()
       val javacVersion = javacVersion()
+
+      val conf = config as OpenJdkConfig
+
+      val requiredJavaVersion: Version = Version.parse(conf.version.toString())
 
       logger.info { "found java $javaVersion, javac $javacVersion" }
 
@@ -139,7 +144,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
           }
         }
 
-        logger.info { "installing java $requiredJavaVersion" }
+        logger.info { "installing java ${requiredJavaVersion.asString()}" }
 
         val r = apt.tasks(this).install(
           pack = (config as OpenJdkConfig).pack,
@@ -157,7 +162,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, taskCtx: TaskContext) : NamedExtTa
         logger.info { "there is no need for java update, sir" }
         TaskResult.ok
       }
-    })
+    }).play(taskCtx)
 
 
   companion object : KLogging() {

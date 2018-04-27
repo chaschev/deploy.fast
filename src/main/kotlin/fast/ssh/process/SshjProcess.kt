@@ -32,7 +32,7 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
             command.exitStatus,
             command.isEOF,
             isTimeout,
-            (System.currentTimeMillis() - startedAtMs).toInt())
+            System.currentTimeMillis() - startedAtMs)
     }
 
     override fun cancel()  {
@@ -41,7 +41,7 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
     }
 
 //    override fun close(completionHandler: Handler<AsyncResult<Void>>?) {
-//        command.tryClose()
+//        newCommand.tryClose()
 //    }
 }
 

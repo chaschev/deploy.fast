@@ -5,7 +5,7 @@ data class ConsoleCommandResult(
     val exitCode: Int? = null,
     val isEOF: Boolean = true,
     val isTimeout: Boolean = false,
-    var timeMs: Int = 0
+    var timeMs: Long = 0
 ) {
     fun isOk(): Boolean = exitCode == 0 && !isTimeout
 

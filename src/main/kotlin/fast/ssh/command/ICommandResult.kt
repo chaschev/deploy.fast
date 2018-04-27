@@ -4,14 +4,14 @@ import fast.ssh.process.Console
 
 /**
  * Be able to
- *  LS: sync&async. Run `ls` and get a fast readable response: file names, sizes, dirs. Know if command failed
+ *  LS: sync&async. Run `ls` and get a fast readable response: file names, sizes, dirs. Know if newCommand failed
  *  gradle build. Customize waiting time
  *
  *  Therefor:
- *   Explicit timeout for each command. Timeout is a failure
+ *   Explicit timeout for each newCommand. Timeout is a failure
  *   Explicit ok/not ok
  *
- *   Customized command result.
+ *   Customized newCommand result.
  */
 
 interface ICommandResult<T>{

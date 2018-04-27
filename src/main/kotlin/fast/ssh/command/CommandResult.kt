@@ -4,7 +4,7 @@ import fast.ssh.process.Console
 
 open class CommandResult<T>(
     override val console: Console,
-    override val value: T? = null,
+    override val value: T?,
     override val hasOutputErrors: Boolean = false
 ) : ICommandResult<T> {
     var errors: MutableList<String>? = null

@@ -54,7 +54,7 @@ class TaskValueResult<T>(
 
 fun <T> CommandResult<T>.toFast(modified: Boolean = false): TaskValueResult<T?> {
   return TaskValueResult(
-    value, this.console.result!!.isOk(), modified
+    value, this.console.result.isOk(), modified
   )
 }
 

@@ -1,6 +1,10 @@
 package fast.runtime
 
 import fast.dsl.*
+import fast.dsl.ext.OpenJdkConfig
+import fast.dsl.ext.OpenJdkExtension
+import fast.dsl.ext.VagrantConfig
+import fast.dsl.ext.VagrantExtension
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
@@ -12,7 +16,7 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 
 
-class AppContext() {
+class AppContext {
   val runAt: String by FAST.instance(tag = "runAt")
 
   val inventory: Inventory by FAST.instance()
@@ -31,6 +35,60 @@ object DeployFastDI {
 
   var FASTD = FAST.direct
 }
+
+class CrawlersFastApp : DeployFastApp("crawlers") {
+
+  /* TODO: convert to method invocation API */
+  val vagrant = VagrantExtension({
+    VagrantConfig(app.hosts)
+  })
+
+  val openJdk = OpenJdkExtension({
+    OpenJdkConfig(
+      pack = "openjdk-8-jdk"
+    )
+  })
+
+  companion object {
+    fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
+      return DeployFastDSL.createAppDsl(CrawlersFastApp()) {
+        info {
+          name = "Vagrant Extension"
+          author = "Andrey Chaschev"
+        }
+
+        ssh {
+          "vm" with {
+            privateKey(it, "vagrant") {
+              keyPath = "${"HOME".env()}/.vagrant.d/insecure_private_key"
+            }
+          }
+
+          "other" with { privateKey(it)  }
+        }
+
+        globalTasksBeforePlay {
+          task("update_vagrantfile") {
+            ext.vagrant.tasks(this).updateFile().play(this)
+          }
+        }
+
+        play {
+          task("check_java") {
+            println("jdk installation status:" + ext.openJdk.tasks(this).getStatus())
+
+            TaskResult.ok
+          }
+
+          task("install_java") {
+            ext.openJdk.tasks(this).installJava()
+          }
+        }
+      }
+    }
+  }
+}
+
 
 object CrawlersAppDI {
 

@@ -4,11 +4,10 @@ import mu.KLogging
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.xfer.FileSystemFile
 import fast.ssh.process.*
-import fast.ssh.process.SshjProcessMom.Companion.command
+import fast.ssh.process.SshjProcessMom.Companion.newCommand
 import java.io.File
 import java.time.Duration
 import java.time.Instant
-import java.time.temporal.Temporal
 
 class GenericSshSession(override val provider: GenericSshProvider) : SshSession {
     companion object : KLogging()
@@ -27,18 +26,6 @@ class GenericSshSession(override val provider: GenericSshProvider) : SshSession 
 
     override fun simpleCommand(cmd: String): IConsoleProcess =
         ConsoleSession.sshCommand(cmd, this)
-
-    internal fun runCommand(
-        cmd: String,
-        callback: (console: Console) -> Unit = {},
-        timeoutMs: Int = 60000
-    ): IConsoleProcess {
-        logger.info { "running ```${cmd.cuteCut(30)}```" }
-
-        val command = command(cmd, this)
-
-        return run(command, timeoutMs, callback)
-    }
 
     override fun close() {
         nativeSession.close()
