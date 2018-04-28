@@ -3,11 +3,13 @@ package fast.dsl
 import fast.inventory.Host
 import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.AnyTaskContext
+import fast.runtime.DeployFastDI.FAST
+import fast.runtime.DeployFastDI.FASTD
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 import fast.ssh.command.CommandResult
 import org.apache.logging.log4j.core.appender.ConsoleAppender
-
+import org.kodein.di.generic.instance
 
 
 data class AggregatedValue(
@@ -106,15 +108,15 @@ interface ITask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
 open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   override val name: String,
   override val desc: String? = null,
-  override val extension: EXT? = null
+  override val extension: EXT
 ) : ITask<R, EXT, EXT_CONF> {
   override val before by lazy { TaskSet("before") }
   override val after by lazy { TaskSet("after") }
 
   /** Each task definition belongs to exactly one extension */
 
-  suspend final fun playChild(context: AnyTaskContext): ITaskResult<Any> {
-    return context.play(this as AnyTask)
+  suspend final fun playChild(context: TaskContext<R, EXT, EXT_CONF>): ITaskResult<Any> {
+    return context.play(this) as ITaskResult<Any>
   }
 
   override suspend final fun play(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
@@ -125,9 +127,13 @@ open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
     TODO("not implemented")
   }
 
+  class DummyApp: DeployFastApp<DummyApp>("dummy")
+
   companion object {
-    val root = AnyLambdaTask("root", null, { TaskResult.ok  as AnyResult })
-    val dummy = AnyLambdaTask("dummy", null, { TaskResult.ok  as AnyResult })
+    val rootExtension by FAST.instance<DeployFastApp<*>>()
+    val dummyApp = DummyApp()
+    val root = LambdaTask("root", dummyApp, { TaskResult.ok  as AnyResult })
+    val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok  as AnyResult })
   }
 }
 
@@ -138,31 +144,32 @@ class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Extens
   name: String,
   extension: EXT,
   desc: String? = null,
+  /* TODO: change this context to real task context */
   block: suspend AnyTaskContext.() -> ITaskResult<R>
 ) : LambdaTask<R, EXT, EXT_CONF>(name, desc, extension, block) {
-  suspend final fun playExt(context: AnyTaskContext): ITaskResult<R> {
-    return context.play(this as AnyTask) as ITaskResult<R>
-  }
+  /*suspend final fun playExt(context: AnyTaskContext): ITaskResult<R> {
+    return context.play(this) as ITaskResult<R>
+  }*/
 
   fun asTask(): Task<R, EXT, EXT_CONF> {
     return LambdaTask(name, desc, extension, block)
   }
 }
 
-typealias AnyLambdaTask = LambdaTask<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+typealias AnyLambdaTask = LambdaTask<Any, *, ExtensionConfig>
 
 open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   name: String,
   desc: String? = null,
-  extension: EXT? = null,
-  val block: suspend (AnyTaskContext) -> ITaskResult<R>
+  extension: EXT,
+  val block: suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<R>
 )
   : Task<R, EXT, EXT_CONF>(name, desc, extension) {
 
   constructor(
     name: String,
-    extension: EXT?,
-    block: suspend (AnyTaskContext) -> ITaskResult<R>
+    extension: EXT,
+    block: suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<R>
   )
     : this(name, null, extension, block)
 
@@ -171,7 +178,7 @@ open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Exte
   }
 }
 
-typealias AnyTask = Task<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+typealias AnyTask = Task<Any, *, ExtensionConfig>
 typealias AnyTaskExt<EXT> = Task<Any, EXT, ExtensionConfig>
 typealias AnyExtensionTask<EXT> = ExtensionTask<Any, EXT, ExtensionConfig>
 
@@ -189,16 +196,6 @@ class TaskSet(
 
   fun tasks(): List<AnyTask> = tasks
 
-  suspend fun doIt(context: AnyTaskContext): AnyResult {
-    var r: AnyResult = TaskResult.ok as AnyResult
-
-    for (task in tasks) {
-      r *= task.play(context)
-    }
-
-    return r
-  }
-
   fun addAll(taskSet: TaskSet) {
     tasks.addAll(taskSet.tasks)
   }
@@ -215,9 +212,14 @@ open class NamedExtTasks<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Exte
   val extension: EXT,
   parentCtx: AnyTaskContext
 ) {
-  val extCtx = parentCtx.newChildContext(Task.dummy, extension.name) as ChildTaskContext<EXT, EXT_CONF>
+  val extCtx: ChildTaskContext<EXT, EXT_CONF>
   //  lateinit var extension: DeployFastExtension<ExtensionConfig>
-  open suspend fun getStatus(): ServiceStatus = TODO()
+
+  init {
+    extCtx = parentCtx.newChildContext(extension.asTask, extension.name) as ChildTaskContext<EXT, EXT_CONF>
+  }
+
+  open suspend fun getStatus(): ITaskResult<ServiceStatus> = TODO()
 }
 
 enum class RunningStatus {
@@ -246,9 +248,11 @@ class InfoDSL(
   var description: String = ""
 }
 
-class TasksDSL {
+class TasksDSL<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig> {
   //  private val tasks = ArrayList<Task>()
   internal val taskSet = TaskSet()
+
+  val app = FASTD.instance<DeployFastApp<*>>() as EXT
 
   fun init(block: () -> Unit) = block.invoke()
 
@@ -256,7 +260,7 @@ class TasksDSL {
     name: String = "",
     block: suspend AnyTaskContext.() -> AnyAnyResult
   ): Unit {
-    taskSet.append(LambdaTask(name, null, block as suspend (AnyTaskContext) -> AnyResult))
+    taskSet.append(LambdaTask<Any, EXT, CONF>(name, app  , block as suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<Any>) as AnyTask)
   }
 
 //  infix fun String.task(block: TaskContext.() -> TaskResult) = task(this, block)
@@ -350,8 +354,8 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
     ssh = SshDSL().apply(block)
   }
 
-  fun globalTasksBeforePlay(block: TasksDSL.() -> Unit) {
-    globalTasks.addAll(TasksDSL().apply(block).taskSet)
+  fun globalTasksBeforePlay(block: TasksDSL<EXT, CONF>.() -> Unit) {
+    globalTasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
   }
 
 
@@ -363,8 +367,8 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
     afterGlobalTasks = block
   }*/
 
-  fun play(block: TasksDSL.() -> Unit) {
-    tasks.addAll(TasksDSL().apply(block).taskSet)
+  fun play(block: TasksDSL<EXT, CONF>.() -> Unit) {
+    tasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
   }
 
 //  fun beforePlay(block: TasksDSL.() -> Unit) {

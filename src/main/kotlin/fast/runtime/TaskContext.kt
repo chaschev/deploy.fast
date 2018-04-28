@@ -11,7 +11,7 @@ import java.security.cert.Extension
 
 
 typealias AnyTaskContext =
-  TaskContext<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+  TaskContext<Any, *, ExtensionConfig>
 
 typealias AnyTaskContextExt<EXT> =
   TaskContext<*, EXT, *>
@@ -63,7 +63,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
    * task1.task2.apt::listPackages
    *             ^-- that is the custom name
    */
-  internal fun newChildContext(childTask: AnyTaskExt<*>, customName: String? = null): TaskContext<Any, EXT, EXT_CONF> {
+  internal fun newChildContext(childTask: Task<*, *, *>, customName: String? = null): TaskContext<Any, EXT, EXT_CONF> {
     val childSession = session.newChildContext(childTask)
 
     // we only need to create it
@@ -89,7 +89,8 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
       childContext.config = extension1!!.config(childContext)
       childContext.extension = childTask.extension!!
     } else {
-      childContext.config = config as EXT_CONF
+      println("no extension: " + childContext.session.path)
+      childContext.config = config
     }
 
     // TODO apply interceptors here (to change config variables)

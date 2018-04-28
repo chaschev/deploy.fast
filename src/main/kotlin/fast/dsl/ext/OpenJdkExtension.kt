@@ -33,7 +33,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: AnyTaskContext) :
 
   // there can be several installations and running instances
   // each extension instance corresponds to ONE such process
-  override suspend fun getStatus(): ServiceStatus {
+  override suspend fun getStatus(): ITaskResult<ServiceStatus> {
     val result = OpenJDKTask("getStatus", extension) {
       val installed = ext.apt.tasks(this).listInstalled("openjdk")
 
@@ -45,7 +45,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: AnyTaskContext) :
         TaskResult(ok = true, value = ServiceStatus.installed)
     }.play(extCtx)
 
-    return (result as ServiceStatus)
+    return (result)
   }
 
   suspend fun uninstall(): Boolean {

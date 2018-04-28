@@ -3,6 +3,7 @@ package fast.runtime
 import fast.dsl.*
 import fast.inventory.Host
 import fast.inventory.Inventory
+import fast.runtime.DeployFastDI.FASTD
 import fast.ssh.GenericSshProvider
 import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
@@ -12,7 +13,7 @@ import org.kodein.di.generic.instance
 class DeployFastScheduler<APP : DeployFastApp<APP>> {
   val allSessionsContext = AllSessionsRuntimeContext()
 
-  val app: AppContext by DeployFastDI.FAST.instance()
+  val appCtx: AppContext by DeployFastDI.FAST.instance()
 
   val dsl = DeployFastDI.FASTD.instance<Any>("dsl") as DeployFastAppDSL<APP>
 
@@ -46,23 +47,37 @@ class DeployFastScheduler<APP : DeployFastApp<APP>> {
     taskCtx.play(dsl.globalTasks)
   }
 
-  private fun rootContext(): TaskContext<Any, AnyExtension<ExtensionConfig>, ExtensionConfig> {
+  private fun rootContext(): TaskContext<Any, *, ExtensionConfig> {
     val ctx = SessionRuntimeContext(
-      Task.root, null, "", allSessionsContext, Host("local"), SshProvider.dummy)
+      Task.root as AnyTaskExt<*>,
+      null,
+      "",
+      allSessionsContext,
+      Host("local"),
+      SshProvider.dummy
+    )
 
-    val taskCtx = TaskContext(Task.root, ctx, null)
+    val session = ctx
+    val taskCtx = TaskContext(
+      Task.root as LambdaTask<Any, Task.DummyApp, NoConfig>, //must be a bug in idea?!
+      session,
+      null
+    )
 
     taskCtx.config = NoConfig()
 
-    return taskCtx
+    return taskCtx as TaskContext<Any, *, ExtensionConfig>
   }
 
   suspend fun startSessions(): List<Deferred<AnyAnyResult>> {
-    return app.hosts.map { host ->
+
+    val rootDeployApp = FASTD.instance<DeployFastApp<*>>() as APP
+
+    return appCtx.hosts.map { host ->
       asyncNoisy {
         val ssh = connect(host)
 
-        val rootTaskContext = createRootSessionContext(host, ssh)
+        val rootTaskContext = rootDeployApp.createRootSessionContext(host, ssh)
 
         rootTaskContext.play(dsl)
       }
@@ -76,15 +91,25 @@ class DeployFastScheduler<APP : DeployFastApp<APP>> {
     return sshImpl.connect()
   }
 
-  private fun createRootSessionContext(host: Host, ssh: SshProvider): AnyTaskContext {
-    val rootSessionContext = SessionRuntimeContext(
-      Task.root, null, "", allSessionsContext, host, ssh)
+  private fun <APP: DeployFastApp<APP>> DeployFastApp<APP>.createRootSessionContext(host: Host, ssh: SshProvider): TaskContext<*, *, *> {
 
-    val rootTaskContext = TaskContext(Task.root, rootSessionContext, null)
+    val rootDeployApp = FASTD.instance<DeployFastApp<*>>()
+
+    val task = rootDeployApp.asTask
+
+    val rootSessionContext = SessionRuntimeContext(
+      task, null, "", allSessionsContext, host, ssh)
+
+    val rootTaskContext = TaskContext<Any, APP, NoConfig>(task as Task<Any, APP, NoConfig>, rootSessionContext, null)
 
     allSessionsContext.sessions[host.address] = rootTaskContext
+
     return rootTaskContext
   }
+
+
+
+
 
 
 }

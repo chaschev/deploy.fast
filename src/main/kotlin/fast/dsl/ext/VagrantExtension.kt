@@ -20,7 +20,6 @@ inline fun <T> nullForException(
   }
 }
 
-typealias VagrantTask<R> = ExtensionTask<R, VagrantExtension, VagrantConfig>
 typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>
 
 class VagrantExtension(
@@ -38,7 +37,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
   suspend fun updateFile(): ITaskResult<Boolean> {
-    val task = VagrantTask("updateFile", extension) {
+    val task = LambdaTask("updateFile", extension) {
       logger.info { "updating Vagrantfile" }
       val vagrantFile = File("Vagrantfile")
 
@@ -47,7 +46,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
       if (text == null || !text.substring(200).contains("Managed by ")) {
         //probable IDEA bug: extension here is AnyExtension
 
-        VagrantTemplate(extension.config(extCtx as ChildTaskContext<AnyExtension<ExtensionConfig>, ExtensionConfig>) as VagrantConfig)
+        VagrantTemplate(extension.config(it as VagrantTaskContext))
           .writeToFile(vagrantFile)
       } else {
         throw Exception("can't write to $vagrantFile: it already exists and not ours!")

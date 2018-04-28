@@ -3,25 +3,24 @@ package fast.ssh.command
 import fast.dsl.ext.nullForException
 import fast.ssh.logger
 import fast.ssh.process.Console
+import java.lang.reflect.Field
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaField
 
-class InitLater
-(val finalize: Boolean = true) {
-  operator fun <T> getValue(obj: Any, property: KProperty<*>): T {
-    val x = property.javaField?.get(obj)
+class InitLater(val finalize: Boolean = true) {
+  private var value: Any? = null
 
-    return x as? T ?: throw Exception("property $property is not initialized")
+  operator fun <T> getValue(obj: Any, property: KProperty<*>): T {
+    if(value == null) throw Exception("property $property is not initialized")
+    return value!! as T
   }
 
   operator fun <T> setValue(obj: Any, property: KProperty<*>, value: T) {
     if(finalize) {
-      val currentValue = property.javaField?.get(obj)
-
-      require(currentValue == null, {"value is already set for property $property"})
+      require(this.value == null, {"value is already set for property $property"})
     }
 
-    property.javaField!!.set(obj, value)
+    this.value = value
   }
 }
 
@@ -62,8 +61,7 @@ open class CommandResult<T>(
       this.value = value()
     } catch (e: Exception) {
       logger.warn("exception during parsing result", e)
-      withError("exception during parsing result, ${e.message}")
-    }
+      withError("exception during parsing result, ${e.message}") }
     return this
   }
 

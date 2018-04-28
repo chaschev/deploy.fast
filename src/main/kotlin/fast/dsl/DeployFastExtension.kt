@@ -14,12 +14,15 @@ interface ExtensionConfig {
 }
 
 class NoConfig: ExtensionConfig {
-
+  companion object {
+    val noConfig = NoConfig()
+  }
 }
 
 typealias ChildTaskContext<EXT, CONF> = TaskContext<Any, EXT, CONF>
 
-abstract class AnyExtension<CONF: ExtensionConfig>(name: String, conf: CONF) : DeployFastExtension<AnyExtension<CONF>, CONF>(name, {conf})
+//abstract class AnyExtension<CONF: ExtensionConfig>(name: String, conf: CONF) : DeployFastExtension<AnyExtension<CONF>, CONF>(name, {conf})
+typealias AnyExtension<CONF> = DeployFastExtension<*, CONF>
 
 abstract class DeployFastApp<APP: DeployFastExtension<APP, NoConfig>>(name: String) : DeployFastExtension<APP, NoConfig>(name, {NoConfig()})
 
@@ -37,6 +40,10 @@ abstract class DeployFastExtension<EXT: DeployFastExtension<EXT, CONF>, CONF: Ex
   }
 
   val app: AppContext by FAST.instance()
+
+  val asTask by lazy {
+    Task<Any, EXT, CONF>(name, extension = this as EXT)
+  }
 
   /*val extensions: List<DeployFastExtension<ExtensionConfig>> by lazy {
     val properties = this::class.declaredMemberProperties

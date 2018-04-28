@@ -9,6 +9,7 @@ import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
+import fast.runtime.DeployFastDI.FASTD
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
 import org.kodein.di.generic.bind
@@ -51,7 +52,9 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
   companion object {
     fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
-      return DeployFastDSL.createAppDsl(CrawlersFastApp()) {
+      val app by FAST.instance<DeployFastApp<*>>()
+
+      return DeployFastDSL.createAppDsl(app as CrawlersFastApp) {
         info {
           name = "Vagrant Extension"
           author = "Andrey Chaschev"
@@ -115,6 +118,8 @@ object CrawlersAppDI {
           )
         ).init()
       }
+
+      bind<DeployFastApp<*>>() with singleton { CrawlersFastApp() }
 
       bind("dsl") from singleton { CrawlersFastApp.dsl() }
 
