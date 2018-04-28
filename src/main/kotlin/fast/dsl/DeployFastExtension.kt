@@ -22,7 +22,7 @@ typealias ChildTaskContext<EXT, CONF> = TaskContext<Any, EXT, CONF>
 
 abstract class AnyExtension<CONF: ExtensionConfig>(name: String, conf: CONF) : DeployFastExtension<AnyExtension<CONF>, CONF>(name, {conf})
 
-abstract class DeployFastApp(name: String) : DeployFastExtension<DeployFastApp, NoConfig>(name, {NoConfig()})
+abstract class DeployFastApp<APP: DeployFastExtension<APP, NoConfig>>(name: String) : DeployFastExtension<APP, NoConfig>(name, {NoConfig()})
 
 abstract class DeployFastExtension<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig>(
   val name: String,

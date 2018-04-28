@@ -18,7 +18,7 @@ class JavaVersionCommand(override val process: IConsoleProcess) : ConsoleCommand
 
 
     override fun parseConsole(console: Console): CommandResult<JavaVersion> =
-        CommandResult(console, parseJavaVersion(console.stdout.toString()))
+        CommandResult<JavaVersion>(console).withValue({parseJavaVersion(console.stdout.toString())})
 
     internal fun parseJavaVersion(s: String): JavaVersion {
         val isOpenJDK = s.contains("openjdk")

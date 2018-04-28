@@ -26,9 +26,9 @@ interface ICommandResult<T> {
   /**
    * Found errors when parsing. If exited with error and didn't parse, should be false
    */
-  val hasOutputErrors: Boolean
+  val hasErrors: Boolean
 
-  fun isOk(): Boolean = !hasOutputErrors && (console.result?.isOk() ?: false)
+  fun isOk(): Boolean = !hasErrors && (console.result?.isOk() ?: false)
 
   fun parsedErrorsConcise(): List<String> = TODO()
   fun parsedErrorsFull(): List<String> = TODO()

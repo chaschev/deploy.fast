@@ -36,7 +36,7 @@ object DeployFastDI {
   var FASTD = FAST.direct
 }
 
-class CrawlersFastApp : DeployFastApp("crawlers") {
+class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension({
@@ -50,7 +50,7 @@ class CrawlersFastApp : DeployFastApp("crawlers") {
   })
 
   companion object {
-    fun dsl(): DeployFastAppDSL {
+    fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
       return DeployFastDSL.createAppDsl(CrawlersFastApp()) {
         info {
           name = "Vagrant Extension"
@@ -69,7 +69,7 @@ class CrawlersFastApp : DeployFastApp("crawlers") {
 
         globalTasksBeforePlay {
           task("update_vagrantfile") {
-            ext.vagrant.tasks(this).updateFile().play(this)
+            ext.vagrant.tasks(this).updateFile()
           }
         }
 
@@ -124,7 +124,7 @@ object CrawlersAppDI {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    val scheduler = DeployFastScheduler<DeployFastApp>()
+    val scheduler = DeployFastScheduler<CrawlersFastApp>()
 
     runBlocking {
       scheduler.doIt()

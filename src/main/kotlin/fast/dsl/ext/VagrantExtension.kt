@@ -37,7 +37,7 @@ class VagrantExtension(
 class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
-  suspend fun updateFile(): Boolean {
+  suspend fun updateFile(): ITaskResult<Boolean> {
     val task = VagrantTask("updateFile", extension) {
       logger.info { "updating Vagrantfile" }
       val vagrantFile = File("Vagrantfile")
@@ -56,7 +56,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
       ok
     }
 
-    return task.play(extCtx).value
+    return task.play(extCtx)
   }
 
   companion object : KLogging() {

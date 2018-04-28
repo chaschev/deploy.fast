@@ -1,9 +1,6 @@
 package fast.runtime
 
-import fast.dsl.DeployFastApp
-import fast.dsl.DeployFastAppDSL
-import fast.dsl.ITaskResult
-import fast.dsl.Task
+import fast.dsl.*
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.ssh.GenericSshProvider
@@ -12,7 +9,7 @@ import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import org.kodein.di.generic.instance
 
-class DeployFastScheduler<APP : DeployFastApp> {
+class DeployFastScheduler<APP : DeployFastApp<APP>> {
   val allSessionsContext = AllSessionsRuntimeContext()
 
   val app: AppContext by DeployFastDI.FAST.instance()
@@ -33,7 +30,7 @@ class DeployFastScheduler<APP : DeployFastApp> {
     await(jobs)
   }
 
-  private suspend fun await(jobs: List<Deferred<ITaskResult>>) {
+  private suspend fun await(jobs: List<Deferred<AnyAnyResult>>) {
     println("awaiting for ${jobs.size} to finish")
 
     jobs.forEachIndexed { index, job ->
@@ -52,7 +49,7 @@ class DeployFastScheduler<APP : DeployFastApp> {
     taskCtx.play(dsl.globalTasks)
   }
 
-  suspend fun startSessions(): List<Deferred<ITaskResult>> {
+  suspend fun startSessions(): List<Deferred<AnyAnyResult>> {
     return app.hosts.map { host ->
       asyncNoisy {
         val ssh = connect(host)
@@ -71,7 +68,7 @@ class DeployFastScheduler<APP : DeployFastApp> {
     return sshImpl.connect()
   }
 
-  private fun createRootSessionContext(host: Host, ssh: SshProvider): TaskContext {
+  private fun createRootSessionContext(host: Host, ssh: SshProvider): AnyTaskContext {
     val rootSessionContext = SessionRuntimeContext(
       Task.root, null, "", allSessionsContext, host, ssh)
 

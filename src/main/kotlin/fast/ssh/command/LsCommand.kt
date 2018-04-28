@@ -19,17 +19,21 @@ class LsCommand(override val process: IConsoleProcess) : ConsoleCommand<List<Str
   }
 }
 
-data class LsResult(
+class LsResult(
   override val console: Console,
-  override val value: List<String>?
-) : CommandResult<List<String>>(console, value)
+  value: List<String>
+) : CommandResult<List<String>>(console) {
+  init {withValue { value }}
+}
 
-
-
-data class PwdResult(
+class PwdResult(
   override val console: Console,
-  override val value: String?
-) : CommandResult<String>(console, value)
+  value: String
+) : CommandResult<String>(console) {
+  init {
+    withValue { value }
+  }
+}
 
 
 class PwdCommand(override val process: IConsoleProcess): ConsoleCommand<String>(process) {

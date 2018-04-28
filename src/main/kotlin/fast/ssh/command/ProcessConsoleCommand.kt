@@ -3,20 +3,28 @@ package fast.ssh.command
 import fast.ssh.IConsoleProcess
 import fast.ssh.process.Console
 
+/**
+ * ProcessErrors may throw an exception and it is fine
+ * Otherwise default handler will try to find errors and will add them or an 'empty' error
+ *
+ */
 class ProcessConsoleCommand<T>(
   override val process: IConsoleProcess,
   private val processResult: (Console) -> T,
   private val processErrors: ((Console) -> T)? = null
 ) : ConsoleCommand<T>(process) {
 
-    override fun parseConsole(console: Console): CommandResult<T> =
-        CommandResult(console, processResult(console))
+  override fun parseConsole(console: Console): CommandResult<T> =
+    CommandResult<T>(console).withValue { processResult(console) }
 
-    override fun processError(): CommandResult<T> {
-        return if (processErrors == null) {
-            super.processError()
-        } else {
-            CommandResult(process.console, processErrors!!.invoke(process.console))
-        }
+
+  override fun processError(): CommandResult<T> {
+    return if (processErrors == null) {
+      super.processError()
+    } else {
+      CommandResult<T>(process.console)
+        .withValue { processErrors.invoke(process.console) }
+        .withSomeError()
     }
+  }
 }

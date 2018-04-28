@@ -11,6 +11,8 @@ class Console(
 ) {
   lateinit var result: ConsoleCommandResult
 
+  fun isRunning(): Boolean  {TODO("check if running via session")}
+
   fun closeSession() = session.cancel()
 
   var newIn: String = ""

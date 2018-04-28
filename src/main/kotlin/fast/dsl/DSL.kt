@@ -13,6 +13,8 @@ data class AggregatedValue(
   constructor(vararg items: Any) : this(items.toCollection(ArrayList()))
 }
 
+
+typealias AnyAnyResult = ITaskResult<*>
 typealias AnyResult = ITaskResult<Any>
 typealias BooleanResult = ITaskResult<Boolean>
 
@@ -251,9 +253,9 @@ class TasksDSL {
 
   fun task(
     name: String = "",
-    block: suspend AnyTaskContext.() -> ITaskResult<Any>
+    block: suspend AnyTaskContext.() -> AnyAnyResult
   ): Unit {
-    taskSet.append(LambdaTask(name, null, block))
+    taskSet.append(LambdaTask(name, null, block as suspend (AnyTaskContext) -> AnyResult))
   }
 
 //  infix fun String.task(block: TaskContext.() -> TaskResult) = task(this, block)
@@ -312,8 +314,8 @@ class SshDSL {
 
 
 
-class DeployFastAppDSL(ext: DeployFastApp)
-  : DeployFastDSL<NoConfig, DeployFastApp>(ext) {
+class DeployFastAppDSL<APP: DeployFastApp<APP>>(ext: APP)
+  : DeployFastDSL<NoConfig, APP>(ext) {
 
 }
 
@@ -334,7 +336,7 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
 
   fun autoInstall(): Unit = TODO()
 
-  fun info(block: InfoDSL.() -> Unit): Unit {
+  fun info(block: InfoDSL.() -> Unit) {
     info = InfoDSL().apply(block)
   }
 
@@ -383,10 +385,10 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
       return deployFastDSL
     }
 
-    fun <APP : DeployFastApp> createAppDsl(
-      app: APP, block: DeployFastAppDSL.() -> Unit
+    fun <APP : DeployFastApp<APP>> createAppDsl(
+      app: APP, block: DeployFastAppDSL<APP>.() -> Unit
 
-    ): DeployFastAppDSL {
+    ): DeployFastAppDSL<APP> {
       val deployFastDSL = DeployFastAppDSL(app)
 
       deployFastDSL.apply(block)
