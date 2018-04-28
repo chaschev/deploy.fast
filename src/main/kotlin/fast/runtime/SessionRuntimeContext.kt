@@ -1,20 +1,21 @@
 package fast.runtime
 
 import fast.dsl.AnyTask
+import fast.dsl.AnyTaskExt
 import fast.dsl.Task
 import fast.inventory.Host
 import fast.ssh.SshProvider
 
 /** TaskContext is 1-to-1 with SessionRuntimeContext, so generics can be copied */
 class SessionRuntimeContext(
-  val task: AnyTask,
+  val task: AnyTaskExt<*>,
   val parent: SessionRuntimeContext?,
   var path: String,
   val allSessionsContext: AllSessionsRuntimeContext,
   val host: Host,
   val ssh: SshProvider
 ) {
-  constructor(task: AnyTask, parent: SessionRuntimeContext) :
+  constructor(task: AnyTaskExt<*>, parent: SessionRuntimeContext) :
     this(
       task = task,
       parent = parent,
@@ -37,7 +38,7 @@ class SessionRuntimeContext(
     //todo override config values
   }
 
-  internal fun newChildContext(task: AnyTask): SessionRuntimeContext {
+  internal fun newChildContext(task: AnyTaskExt<*>): SessionRuntimeContext {
     val newChildContext = SessionRuntimeContext(task, this)
 
 //    children += newChildContext

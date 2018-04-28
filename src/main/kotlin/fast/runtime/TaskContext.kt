@@ -13,13 +13,19 @@ import java.security.cert.Extension
 typealias AnyTaskContext =
   TaskContext<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
 
+typealias AnyTaskContextExt<EXT> =
+  TaskContext<*, EXT, *>
+
+typealias AnyAnyTaskContext =
+  TaskContext<*, *, *>
+
 //User accesses Task Context
 //TODO consider another abstraction level: separate user context from logic
 class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
 (
   val task: Task<R, EXT, EXT_CONF>,
   val session: SessionRuntimeContext,
-  val parent: AnyTaskContext?
+  val parent: AnyAnyTaskContext?
 ) {
   val ssh = session.ssh
 
@@ -28,7 +34,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
   lateinit var config: EXT_CONF
   lateinit var extension: EXT
 
-  private val children = ArrayList<TaskContext<R, EXT, EXT_CONF>>()
+  private val children = ArrayList<TaskContext<Any, EXT, EXT_CONF>>()
 
   // job is required for cancellation and coordination between tasks
   @Volatile
@@ -45,7 +51,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
 
       logger.info { "playing task: ${childContext.session.path}" }
 
-      val doIt = childTask.doIt(childContext)
+      val doIt = childTask.doIt(childContext as AnyTaskContext)
       doIt
     }
 
@@ -57,17 +63,20 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
    * task1.task2.apt::listPackages
    *             ^-- that is the custom name
    */
-  internal fun newChildContext(childTask: AnyTask, customName: String? = null): AnyTaskContext {
+  internal fun newChildContext(childTask: AnyTaskExt<*>, customName: String? = null): TaskContext<Any, EXT, EXT_CONF> {
     val childSession = session.newChildContext(childTask)
 
-    val childContext = AnyTaskContext(
-      childTask, childSession, this@TaskContext as AnyTaskContext
+    // we only need to create it
+    // TODO switch to fucking reflection
+
+    val childContext = TaskContext<Any, EXT, EXT_CONF>(
+      childTask as Task<Any, EXT, EXT_CONF>, childSession, this
     )
 
     if(customName != null)
       childContext.session.path = "${session.path}.$customName"
 
-    children += childContext
+    this.children.add(childContext)
 
     // almost everything is initialised before execution
     // now, update vars extension's config
@@ -75,10 +84,12 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
 
 
     if(childTask.extension != null) {
-      childContext.config = childTask.extension!!.config(childContext)
+      val childTask1 = childTask
+      val extension1 = childTask1.extension
+      childContext.config = extension1!!.config(childContext)
       childContext.extension = childTask.extension!!
     } else {
-      childContext.config = config
+      childContext.config = config as EXT_CONF
     }
 
     // TODO apply interceptors here (to change config variables)
@@ -106,7 +117,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
 
     with(childTask) {
       if (before.size() > 0) {
-        taskResult = playChildTask(before)
+        taskResult = play(before)
         result *= taskResult!!
       }
 
@@ -115,7 +126,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
       result *= taskResult!!
 
       if (after.size() > 0) {
-        result *= playChildTask(after)
+        result *= play(after)
       }
     }
 
@@ -124,7 +135,17 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
 
   suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult<Any> {
     //that will go TaskSet/Task -> play -> iterate -> play each child
-    return playChildTask(dsl.tasks)
+    return play(dsl.tasks)
+  }
+
+  suspend fun play(tasks: Iterable<AnyTask>): AnyResult {
+    var r: AnyResult = TaskResult.ok as AnyResult
+
+    for (task in tasks) {
+      r *= playChildTask(task)
+    }
+
+    return r
   }
 
   companion object: KLogging() {

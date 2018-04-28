@@ -6,6 +6,9 @@ import fast.runtime.AnyTaskContext
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 import fast.ssh.command.CommandResult
+import org.apache.logging.log4j.core.appender.ConsoleAppender
+
+
 
 data class AggregatedValue(
   val list: ArrayList<Any> = ArrayList()
@@ -100,8 +103,6 @@ interface ITask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
   suspend fun doIt(context: AnyTaskContext): ITaskResult<R>
 }
 
-
-
 open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   override val name: String,
   override val desc: String? = null,
@@ -171,14 +172,14 @@ open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Exte
 }
 
 typealias AnyTask = Task<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
-typealias AnyExtensionTask = ExtensionTask<Any, AnyExtension<ExtensionConfig>, ExtensionConfig>
+typealias AnyTaskExt<EXT> = Task<Any, EXT, ExtensionConfig>
+typealias AnyExtensionTask<EXT> = ExtensionTask<Any, EXT, ExtensionConfig>
 
 // TODO: consider - can be a composite task
 class TaskSet(
   name: String = "default",
-  desc: String? = null,
-  extension: AnyExtension<ExtensionConfig>? = null
-) : AnyTask(name, desc, extension), Iterable<AnyTask> {
+  desc: String? = null
+) : Iterable<AnyTask> {
 
   private val tasks = ArrayList<AnyTask>()
 
@@ -188,7 +189,7 @@ class TaskSet(
 
   fun tasks(): List<AnyTask> = tasks
 
-  override suspend fun doIt(context: AnyTaskContext): AnyResult {
+  suspend fun doIt(context: AnyTaskContext): AnyResult {
     var r: AnyResult = TaskResult.ok as AnyResult
 
     for (task in tasks) {
@@ -328,10 +329,12 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
   internal var info: InfoDSL? = null
   internal var ssh: SshDSL? = null
 
-  val tasks: TaskSet = TaskSet(ext.name, "Tasks of extension ${ext.name}", ext as AnyExtension<ExtensionConfig>)
+  val tasks: TaskSet = TaskSet(
+    name = ext.name,
+    desc = "Tasks of extension ${ext.name}")
+
   val globalTasks: TaskSet = TaskSet("${ext.name}.global",
-    "Global Tasks for Extension $ext",
-    ext as AnyExtension<ExtensionConfig>
+    "Global Tasks for Extension $ext"
   )
 
   fun autoInstall(): Unit = TODO()
@@ -364,13 +367,13 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
     tasks.addAll(TasksDSL().apply(block).taskSet)
   }
 
-  fun beforePlay(block: TasksDSL.() -> Unit) {
-    tasks.before.addAll(TasksDSL().apply(block).taskSet)
-  }
-
-  fun afterPlay(block: TasksDSL.() -> Unit) {
-    tasks.after.addAll(TasksDSL().apply(block).taskSet)
-  }
+//  fun beforePlay(block: TasksDSL.() -> Unit) {
+//    tasks.before.addAll(TasksDSL().apply(block).taskSet)
+//  }
+//
+//  fun afterPlay(block: TasksDSL.() -> Unit) {
+//    tasks.after.addAll(TasksDSL().apply(block).taskSet)
+//  }
 
 
   companion object {
@@ -396,7 +399,4 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
       return deployFastDSL
     }
   }
-}
-
-fun main(args: Array<String>) {
 }
