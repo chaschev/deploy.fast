@@ -7,7 +7,6 @@ import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import mu.KLogging
 import org.kodein.di.generic.instance
-import java.security.cert.Extension
 
 
 typealias AnyTaskContext =
@@ -44,15 +43,26 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
    * Api to play a Task
    *
    * That's the only entry point for playing tasks!
+   *
+   * RIGHT:
+   *  So we are in Parent Extension, i.e. Java
+   *   we call child task from extension apt, i.e. apt.install('java')
+   *   a new context will be created
+   *   the task will be called inside this new context
+   *
+   * WRONG (current situation):
+   * So we are in Parent Extension, i.e. Java
+   *   we call child task from extension apt, i.e. apt.install('java')
+   *   we don't know fuck about it's types, so it is Task<Any, *, *>
    */
-  private suspend fun playOneTask(childTask: AnyTask): ITaskResult<Any> {
+  private suspend fun playOneTask(childTask: Task<Any, *, ExtensionConfig>): ITaskResult<Any> {
     job = asyncNoisy {
       val childContext = newChildContext(childTask)
 
       logger.info { "playing task: ${childContext.session.path}" }
 
-      val doIt = childTask.doIt(childContext as AnyTaskContext)
-      doIt
+      //types are wrong, but so far I don't know how to replace *
+      (childTask as Task<Any, EXT, EXT_CONF>).doIt(childContext)
     }
 
     return job!!.await()
@@ -82,16 +92,8 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     // now, update vars extension's config
     // and then start
 
-
-    if(childTask.extension != null) {
-      val childTask1 = childTask
-      val extension1 = childTask1.extension
-      childContext.config = extension1!!.config(childContext)
-      childContext.extension = childTask.extension!!
-    } else {
-      println("no extension: " + childContext.session.path)
-      childContext.config = config
-    }
+    childContext.config = childTask.extension.config(childContext)
+    childContext.extension = childTask.extension
 
     // TODO apply interceptors here (to change config variables)
 
@@ -109,12 +111,12 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     return playChildTask(task as AnyTask) as ITaskResult<R>
   }
 
-  suspend fun playChildTask(childTask: AnyTask): ITaskResult<Any> {
+  suspend fun playChildTask(childTask: AnyTask): ITaskResult<*> {
     // TODO apply interceptors here (modify tasks)
 //    if(childTask is ExtensionTask) return playExtensionTask(childTask)
 
-    var result: ITaskResult<Any> = ok as ITaskResult<Any>
-    var taskResult: ITaskResult<Any>? = null
+    var result: ITaskResult<*> = ok as ITaskResult<*>
+    var taskResult: ITaskResult<*>? = null
 
     with(childTask) {
       if (before.size() > 0) {
@@ -134,7 +136,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     return if (result.ok == taskResult?.ok) taskResult!! else result
   }
 
-  suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult<Any> {
+  suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult<*> {
     //that will go TaskSet/Task -> play -> iterate -> play each child
     return play(dsl.tasks)
   }

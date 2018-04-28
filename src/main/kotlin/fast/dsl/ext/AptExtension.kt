@@ -18,13 +18,13 @@ class AptExtension(
 ) : DeployFastExtension<AptExtension, AptConfig>(
   "apt", config
 ) {
-  override val tasks = { ctx: AnyTaskContext ->
+  override val tasks = { ctx: ChildTaskContext<*, *> ->
     AptTasks(this@AptExtension, ctx)
   }
 }
 
 
-class AptTasks(ext: AptExtension, parentCtx: AnyTaskContext) :
+class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
   NamedExtTasks<AptExtension, AptConfig>(
   ext, parentCtx
 ) {

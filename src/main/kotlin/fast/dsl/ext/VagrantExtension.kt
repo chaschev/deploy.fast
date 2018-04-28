@@ -27,13 +27,13 @@ class VagrantExtension(
 ) : DeployFastExtension<VagrantExtension, VagrantConfig>(
   "vagrant", config
 ) {
-  override val tasks = { ctx: AnyTaskContext ->
-    VagrantTasks(this@VagrantExtension, ctx)
+  override val tasks = { parentCtx: ChildTaskContext<*, *> ->
+    VagrantTasks(this@VagrantExtension, parentCtx)
   }
 }
 
 
-class VagrantTasks(ext: VagrantExtension, parentCtx: AnyTaskContext)
+class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
   suspend fun updateFile(): ITaskResult<Boolean> {

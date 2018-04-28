@@ -14,7 +14,7 @@ class OpenJdkExtension(
 ) {
   val apt = AptExtension({ AptConfig() })
 
-  override val tasks = { ctx: AnyTaskContext -> OpenJDKTasks(this, ctx) }
+  override val tasks = { ctx: ChildTaskContext<*, *> -> OpenJDKTasks(this, ctx) }
 }
 
 
@@ -26,7 +26,7 @@ data class OpenJdkConfig(
 typealias OpenJDKTask<R> = ExtensionTask<R, OpenJdkExtension, OpenJdkConfig>
 typealias OpenJDKTaskContext = ChildTaskContext<OpenJdkExtension, OpenJdkConfig>
 
-class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: AnyTaskContext) :
+class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>) :
   NamedExtTasks<OpenJdkExtension, OpenJdkConfig>(
     ext, parentCtx
   ) {

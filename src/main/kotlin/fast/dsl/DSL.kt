@@ -13,14 +13,14 @@ import org.kodein.di.generic.instance
 
 
 data class AggregatedValue(
-  val list: ArrayList<Any> = ArrayList()
+  val list: ArrayList<Any> = ArrayList<Any>()
 ) {
   constructor(vararg items: Any) : this(items.toCollection(ArrayList()))
 }
 
 
 typealias AnyAnyResult = ITaskResult<*>
-typealias AnyResult = ITaskResult<Any>
+typealias AnyResult = ITaskResult<*>
 typealias BooleanResult = ITaskResult<Boolean>
 
 interface ITaskResult<R> {
@@ -28,7 +28,7 @@ interface ITaskResult<R> {
   val modified: Boolean
   val value: R
 
-  operator fun times(other: ITaskResult<Any>): ITaskResult<Any> {
+  operator fun times(other: ITaskResult<*>): ITaskResult<*> {
     return TaskResult(
       ok && other.ok,
       modified || other.modified,
@@ -37,14 +37,14 @@ interface ITaskResult<R> {
   }
 
   // merges into an aggregated value
-  fun mergeValue(other: ITaskResult<Any>): Any {
+  fun mergeValue(other: ITaskResult<*>): Any {
     val v = value
 
     return if(v is AggregatedValue) {
-      v.list.add(other.value)
+      v.list.add(other.value as Any)
       v
     } else {
-      AggregatedValue(v as Any, other.value)
+      AggregatedValue(v as Any, other.value as Any)
     }
   }
 
@@ -102,7 +102,7 @@ interface ITask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
 
   val before: TaskSet
   val after: TaskSet
-  suspend fun doIt(context: AnyTaskContext): ITaskResult<R>
+  suspend fun doIt(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R>
 }
 
 open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
@@ -123,7 +123,7 @@ open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
     return context.play(this as Task<Any, EXT, EXT_CONF>) as ITaskResult<R>
   }
 
-  override suspend fun doIt(context: AnyTaskContext): ITaskResult<R> {
+  override suspend fun doIt(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
     TODO("not implemented")
   }
 
@@ -132,8 +132,8 @@ open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
   companion object {
     val rootExtension by FAST.instance<DeployFastApp<*>>()
     val dummyApp = DummyApp()
-    val root = LambdaTask("root", dummyApp, { TaskResult.ok  as AnyResult })
-    val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok  as AnyResult })
+    val root = LambdaTask("root", dummyApp, { TaskResult.ok   })
+    val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok   })
   }
 }
 
@@ -145,7 +145,7 @@ class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Extens
   extension: EXT,
   desc: String? = null,
   /* TODO: change this context to real task context */
-  block: suspend AnyTaskContext.() -> ITaskResult<R>
+  block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>
 ) : LambdaTask<R, EXT, EXT_CONF>(name, desc, extension, block) {
   /*suspend final fun playExt(context: AnyTaskContext): ITaskResult<R> {
     return context.play(this) as ITaskResult<R>
@@ -156,33 +156,31 @@ class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Extens
   }
 }
 
-typealias AnyLambdaTask = LambdaTask<Any, *, ExtensionConfig>
 
 open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   name: String,
   desc: String? = null,
   extension: EXT,
-  val block: suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<R>
+  val block: suspend (ChildTaskContext<EXT, EXT_CONF>) -> ITaskResult<R>
 )
   : Task<R, EXT, EXT_CONF>(name, desc, extension) {
 
   constructor(
     name: String,
     extension: EXT,
-    block: suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<R>
+    block: suspend (ChildTaskContext<EXT, EXT_CONF>) -> ITaskResult<R>
   )
     : this(name, null, extension, block)
 
-  override suspend fun doIt(context: AnyTaskContext): ITaskResult<R> {
+  override suspend fun doIt(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
     return block.invoke(context)
   }
 }
 
 typealias AnyTask = Task<Any, *, ExtensionConfig>
 typealias AnyTaskExt<EXT> = Task<Any, EXT, ExtensionConfig>
-typealias AnyExtensionTask<EXT> = ExtensionTask<Any, EXT, ExtensionConfig>
 
-// TODO: consider - can be a composite task
+// TODO: consider - can be a composite task FUCK YOU ANDREI
 class TaskSet(
   name: String = "default",
   desc: String? = null
@@ -210,7 +208,7 @@ class TaskSet(
 
 open class NamedExtTasks<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
   val extension: EXT,
-  parentCtx: AnyTaskContext
+  parentCtx: ChildTaskContext<*, *>
 ) {
   val extCtx: ChildTaskContext<EXT, EXT_CONF>
   //  lateinit var extension: DeployFastExtension<ExtensionConfig>
@@ -248,7 +246,7 @@ class InfoDSL(
   var description: String = ""
 }
 
-class TasksDSL<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig> {
+class TasksDSL<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> {
   //  private val tasks = ArrayList<Task>()
   internal val taskSet = TaskSet()
 
@@ -258,9 +256,9 @@ class TasksDSL<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig> {
 
   fun task(
     name: String = "",
-    block: suspend AnyTaskContext.() -> AnyAnyResult
+    block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<*>
   ): Unit {
-    taskSet.append(LambdaTask<Any, EXT, CONF>(name, app  , block as suspend (TaskContext<Any, *, ExtensionConfig>) -> ITaskResult<Any>) as AnyTask)
+    taskSet.append(LambdaTask<Any, EXT, EXT_CONF>(name, app, block as suspend (ChildTaskContext<EXT, EXT_CONF>) -> ITaskResult<Any>) as AnyTask)
   }
 
 //  infix fun String.task(block: TaskContext.() -> TaskResult) = task(this, block)
