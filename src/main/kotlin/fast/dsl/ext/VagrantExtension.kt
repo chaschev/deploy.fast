@@ -3,25 +3,14 @@ package fast.dsl.ext
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
-import fast.runtime.AnyTaskContext
-import fast.runtime.TaskContext
 import mu.KLogging
 import java.io.File
 
-inline fun <T> nullForException(
-  onError: ((Throwable) -> Unit) = { _ -> },
-  block: () -> T): T? {
-
-  return try {
-    block.invoke()
-  } catch (e: Throwable) {
-    onError.invoke(e)
-    null
-  }
-}
-
 typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>
 
+/**
+ * This extension will generate vagrant project file.
+ */
 class VagrantExtension(
   config: (VagrantTaskContext) -> VagrantConfig
 ) : DeployFastExtension<VagrantExtension, VagrantConfig>(
@@ -32,30 +21,28 @@ class VagrantExtension(
   }
 }
 
-
 class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
   suspend fun updateFile(): ITaskResult<Boolean> {
-    val task = LambdaTask("updateFile", extension) {
+    return LambdaTask("updateFile", extension) {
       logger.info { "updating Vagrantfile" }
+
+      val config = extension.config(it)
+
       val vagrantFile = File("Vagrantfile")
 
       val text = nullForException { vagrantFile.readText() }
 
       if (text == null || !text.substring(200).contains("Managed by ")) {
-        //probable IDEA bug: extension here is AnyExtension
-
-        VagrantTemplate(extension.config(it as VagrantTaskContext))
+        VagrantTemplate(config)
           .writeToFile(vagrantFile)
       } else {
         throw Exception("can't write to $vagrantFile: it already exists and not ours!")
       }
 
       ok
-    }
-
-    return task.play(extCtx)
+    }.play(extCtx)
   }
 
   companion object : KLogging() {
@@ -85,8 +72,17 @@ class VagrantConfig(
   val hostConfigs: List<VagrantHost> = hosts.map { VagrantHost(it) }
 ) : ExtensionConfig
 
-/**
- * This extension will generate vagrant project file.
- */
+
+inline fun <T> nullForException(
+  onError: ((Throwable) -> Unit) = { _ -> },
+  block: () -> T): T? {
+
+  return try {
+    block.invoke()
+  } catch (e: Throwable) {
+    onError.invoke(e)
+    null
+  }
+}
 
 
