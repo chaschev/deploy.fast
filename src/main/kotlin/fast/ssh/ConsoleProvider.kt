@@ -1,5 +1,7 @@
 package fast.ssh
 
+import fast.dsl.TaskValueResult
+import fast.dsl.toFast
 import fast.ssh.command.CommandResult
 import fast.ssh.command.ProcessConsoleCommand
 import fast.ssh.files.Files
@@ -40,6 +42,11 @@ suspend fun <T> ConsoleProvider.runAndWait(
   timeoutMs: Int = 60000
 ): CommandResult<T>
     = runAndWaitInteractive(timeoutMs, cmd, processing)
+
+suspend fun ConsoleProvider.run(
+  cmd: String,
+  timeoutMs: Int = 60000
+): TaskValueResult<Boolean> = runAndWait(cmd, {it.result.isOk()}, {false}, timeoutMs = timeoutMs).toFast(false)
 
 suspend fun <T> ConsoleProvider.runAndWaitInteractive(
     timeoutMs: Int,

@@ -45,7 +45,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
         TaskResult(ok = true, value = ServiceStatus.installed)
     }.play(extCtx)
 
-    return (result)
+    return result
   }
 
   suspend fun uninstall(): Boolean {

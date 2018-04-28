@@ -1,5 +1,6 @@
 package fast.dsl
 
+import fast.dsl.ext.ZippedAppTasks
 import fast.inventory.Host
 import fast.runtime.AllSessionsRuntimeContext
 import fast.runtime.AnyTaskContext
@@ -8,8 +9,10 @@ import fast.runtime.DeployFastDI.FASTD
 import fast.runtime.TaskContext
 import fast.ssh.KnownHostsConfig
 import fast.ssh.command.CommandResult
+import fast.ssh.command.Version
 import org.apache.logging.log4j.core.appender.ConsoleAppender
 import org.kodein.di.generic.instance
+import kotlin.reflect.KProperty
 
 
 data class AggregatedValue(
@@ -28,6 +31,15 @@ interface ITaskResult<R> {
   val modified: Boolean
   val value: R
 
+  operator fun plus(other: ITaskResult<Boolean>): TaskResult<Boolean> {
+    return TaskResult(
+      ok && other.ok,
+      modified || other.modified,
+      ok && other.ok
+    )
+  }
+
+
   operator fun times(other: ITaskResult<*>): ITaskResult<*> {
     return TaskResult(
       ok && other.ok,
@@ -40,14 +52,13 @@ interface ITaskResult<R> {
   fun mergeValue(other: ITaskResult<*>): Any {
     val v = value
 
-    return if(v is AggregatedValue) {
+    return if (v is AggregatedValue) {
       v.list.add(other.value as Any)
       v
     } else {
       AggregatedValue(v as Any, other.value as Any)
     }
   }
-
 
 
   fun <O> mapValue(block: (R) -> O) =
@@ -73,7 +84,7 @@ data class TaskResult<R>(
 ) : ITaskResult<R> {
 
   companion object {
-    val ok = TaskResult(value = true)
+    val ok: ITaskResult<Boolean> = TaskResult(value = true)
   }
 }
 
@@ -93,19 +104,19 @@ fun <T> CommandResult<T>.toFast(modified: Boolean = false): TaskValueResult<T> {
   )
 }
 
-interface ITask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> {
+interface ITask<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig> {
   val name: String
   val desc: String?
   val extension: EXT?
 
-  suspend fun play(context: TaskContext<Any, EXT, EXT_CONF>) : ITaskResult<R>
+  suspend fun play(context: TaskContext<Any, EXT, EXT_CONF>): ITaskResult<R>
 
   val before: TaskSet
   val after: TaskSet
   suspend fun doIt(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R>
 }
 
-open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+open class Task<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   override val name: String,
   override val desc: String? = null,
   override val extension: EXT
@@ -127,20 +138,20 @@ open class Task<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionC
     TODO("not implemented")
   }
 
-  class DummyApp: DeployFastApp<DummyApp>("dummy")
+  class DummyApp : DeployFastApp<DummyApp>("dummy")
 
   companion object {
     val rootExtension by FAST.instance<DeployFastApp<*>>()
     val dummyApp = DummyApp()
-    val root = LambdaTask("root", dummyApp, { TaskResult.ok   })
-    val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok   })
+    val root = LambdaTask("root", dummyApp, { TaskResult.ok })
+    val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok })
   }
 }
 
 /**
  * Extension task creates it's own context which corresponds to extension function
  */
-class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+class ExtensionTask<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   name: String,
   extension: EXT,
   desc: String? = null,
@@ -157,18 +168,17 @@ class ExtensionTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Extens
 }
 
 
-open class LambdaTask<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+open class LambdaTask<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   name: String,
   desc: String? = null,
   extension: EXT,
-  val block: suspend (ChildTaskContext<EXT, EXT_CONF>) -> ITaskResult<R>
-)
-  : Task<R, EXT, EXT_CONF>(name, desc, extension) {
+  val block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>
+) : Task<R, EXT, EXT_CONF>(name, desc, extension) {
 
   constructor(
     name: String,
     extension: EXT,
-    block: suspend (ChildTaskContext<EXT, EXT_CONF>) -> ITaskResult<R>
+    block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>
   )
     : this(name, null, extension, block)
 
@@ -206,7 +216,7 @@ class TaskSet(
 
 }
 
-open class NamedExtTasks<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
+open class NamedExtTasks<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   val extension: EXT,
   parentCtx: ChildTaskContext<*, *>
 ) {
@@ -218,6 +228,32 @@ open class NamedExtTasks<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: Exte
   }
 
   open suspend fun getStatus(): ITaskResult<ServiceStatus> = TODO()
+  open suspend fun getVersion(): ITaskResult<Version> = TODO()
+
+  inner class ExtensionTaskDelegate<R>(
+    val initBlock: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>
+  ) {
+
+    @Volatile
+    private var value: LambdaTask<R, EXT, EXT_CONF>? = null
+
+    operator fun getValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>): LambdaTask<R, EXT, EXT_CONF> {
+      if (value == null) {
+        value = LambdaTask("change_name", extension, initBlock)
+      }
+
+      return value!!
+    }
+
+    operator fun setValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>, any: Any) {
+      TODO("not implemented")
+    }
+  }
+
+  fun <R> extensionTask(block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>): ExtensionTaskDelegate<R> {
+    return ExtensionTaskDelegate(block)
+  }
+
 }
 
 enum class RunningStatus {
@@ -232,7 +268,7 @@ data class ServiceStatus(
   val installation: InstalledStatus,
   val running: RunningStatus = RunningStatus.notApplicable,
   val pid: Int? = null
-)  {
+) {
   companion object {
     val installed = ServiceStatus(InstalledStatus.installed)
     val notInstalled = ServiceStatus(InstalledStatus.notInstalled)
@@ -246,7 +282,7 @@ class InfoDSL(
   var description: String = ""
 }
 
-class TasksDSL<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> {
+class TasksDSL<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig> {
   //  private val tasks = ArrayList<Task>()
   internal val taskSet = TaskSet()
 
@@ -316,8 +352,7 @@ class SshDSL {
 }
 
 
-
-class DeployFastAppDSL<APP: DeployFastApp<APP>>(ext: APP)
+class DeployFastAppDSL<APP : DeployFastApp<APP>>(ext: APP)
   : DeployFastDSL<NoConfig, APP>(ext) {
 
 }
