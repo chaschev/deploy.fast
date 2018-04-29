@@ -1,13 +1,11 @@
 package fast.dsl
 
+import fast.api.NamedExtTasks
+import fast.api.Task
 import fast.runtime.*
 import fast.runtime.DeployFastDI.FAST
 import fast.runtime.TaskContext
 import org.kodein.di.generic.instance
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.defaultType
-import kotlin.reflect.full.isSubtypeOf
 
 interface ExtensionConfig {
 //  fun configure(): ExtensionConfig

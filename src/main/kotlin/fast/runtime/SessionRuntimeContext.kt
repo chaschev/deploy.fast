@@ -1,8 +1,6 @@
 package fast.runtime
 
-import fast.dsl.AnyTask
-import fast.dsl.AnyTaskExt
-import fast.dsl.Task
+import fast.api.Task
 import fast.inventory.Host
 import fast.ssh.SshProvider
 

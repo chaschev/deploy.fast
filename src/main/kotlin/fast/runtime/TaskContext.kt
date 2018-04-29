@@ -2,6 +2,8 @@ package fast.runtime
 
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
+import fast.api.ITaskResult
+import fast.api.Task
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred

@@ -1,5 +1,8 @@
 package fast.dsl.ext
 
+import fast.api.ITaskResult
+import fast.api.LambdaTask
+import fast.api.NamedExtTasks
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.ssh.command.Version
@@ -89,7 +92,7 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
   override suspend fun getStatus(): ITaskResult<ServiceStatus> =
     LambdaTask("getStatus", extension) {
 
-      TaskResult(ok = false, value = ServiceStatus.installed)
+      TaskResult(value = ServiceStatus.installed, ok = false)
     }.play(extCtx)
 
 }
@@ -128,7 +131,7 @@ class ZippedAppConfig(
   val baseUrl: String,
   var archiveName: String = "$name-$version.tar.gz",
   var url: String = "$baseUrl/$archiveName",
-  var savedAchivePath: String = "$name-$version/$archiveName",
+//  var savedArchivePath: String = "$name-$version/$archiveName",
   var tempDir: String = "/tmp",
   var appDir: String = "/var/lib",
   var binDir: String = "/usr/local/bin",

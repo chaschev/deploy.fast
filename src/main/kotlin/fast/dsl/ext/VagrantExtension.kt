@@ -1,5 +1,8 @@
 package fast.dsl.ext
 
+import fast.api.ITaskResult
+import fast.api.LambdaTask
+import fast.api.NamedExtTasks
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
@@ -28,7 +31,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
     return LambdaTask("updateFile", extension) {
       logger.info { "updating Vagrantfile" }
 
-      val config = extension.config(it)
+      val config = extension.config(this)
 
       val vagrantFile = File("Vagrantfile")
 

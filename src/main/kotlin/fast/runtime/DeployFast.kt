@@ -10,11 +10,15 @@ import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
 import fast.runtime.DeployFastDI.FASTD
+import fast.ssh.logger
+import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
+import java.time.Duration
+import java.time.Instant
 
 
 class AppContext {
@@ -77,8 +81,20 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
         }
 
         play {
-          task("check_java") {
+          task("check_java_and_speed_test") {
             println("jdk installation status:" + ext.openJdk.tasks(this).getStatus())
+
+            val startedAt = Instant.now()
+            val times = 3
+
+            repeat(times) {
+              val pwd = ssh.run("pwd;pwd")
+              logger.debug { pwd.text()}
+            }
+
+            val duration = Duration.between(Instant.now(), startedAt)
+
+            logger.info { "finished in $duration, which is ${duration.toMillis() / times}ms per operation" }
 
             TaskResult.ok
           }

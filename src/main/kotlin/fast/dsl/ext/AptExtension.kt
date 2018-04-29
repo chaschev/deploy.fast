@@ -1,7 +1,9 @@
 package fast.dsl.ext
 
+import fast.api.ExtensionTask
+import fast.api.ITaskResult
+import fast.api.NamedExtTasks
 import fast.dsl.*
-import fast.runtime.AnyTaskContext
 import fast.ssh.ConsoleProcessing
 import fast.ssh.command.Regexes
 import fast.ssh.process.Console
@@ -30,7 +32,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 ) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
     val task = AptTask("listInstalledPackages", extension) {
-      val value = ssh.runAndWait(cmd = "apt list --installed | grep $filter",
+      ssh.runAndWait(cmd = "apt list --installed | grep $filter",
         process = { console ->
           val items = cutAfterCLIInterface(console)
 
@@ -40,9 +42,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
         },
         processErrors = { emptySet<String>() },
         timeoutMs = timeoutMs
-      ).value
-
-      TaskValueResult(value)
+      ).toFast()
     }
 
     return task.play(extCtx).value
@@ -149,7 +149,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
           rows
         },
-        processErrors = { emptyList()}
+        processErrors = { emptyList() }
       ).toFast(true).mapValue { it }
 
     }.play(extCtx)

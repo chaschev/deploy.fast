@@ -1,7 +1,9 @@
 package fast.dsl.ext
 
+import fast.api.ExtensionTask
+import fast.api.ITaskResult
+import fast.api.NamedExtTasks
 import fast.dsl.*
-import fast.runtime.AnyTaskContext
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version
 import fast.ssh.runAndWait
@@ -40,9 +42,9 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
       println("installed jdk packages: $installed")
 
       if (installed.isEmpty())
-        TaskResult(ok = false, value = ServiceStatus.notInstalled)
+        TaskResult(value = ServiceStatus.notInstalled, ok = false)
       else
-        TaskResult(ok = true, value = ServiceStatus.installed)
+        TaskResult(value = ServiceStatus.installed, ok = true)
     }.play(extCtx)
 
     return result
@@ -90,7 +92,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
       val installed1 = apt.tasks(this).listInstalled("openjdk")
       val installed2 = apt.tasks(this).dpkgListInstalled("openjdk").value
 
-      return@ExtensionTask TaskValueResult(installed1.isEmpty() && installed2.isEmpty())
+      return@ExtensionTask TaskResult(installed1.isEmpty() && installed2.isEmpty())
     }.play(extCtx)).value
   }
 
