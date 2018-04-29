@@ -1,5 +1,8 @@
 package fast.dsl
 
+import fast.api.DeployFastApp
+import fast.api.DeployFastExtension
+import fast.api.ExtensionConfig
 import fast.api.TaskSet
 import fast.runtime.AllSessionsRuntimeContext
 

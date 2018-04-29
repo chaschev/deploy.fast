@@ -1,6 +1,4 @@
-package fast.dsl.ext
-
-import fast.dsl.*
+package fast.api.ext
 
 /*
 class CassandraExtension(): DeployFastExtension() {

@@ -1,7 +1,5 @@
-package fast.dsl
+package fast.api
 
-import fast.api.NamedExtTasks
-import fast.api.Task
 import fast.runtime.*
 import fast.runtime.DeployFastDI.FAST
 import fast.runtime.TaskContext
@@ -22,7 +20,7 @@ typealias ChildTaskContext<EXT, CONF> = TaskContext<Any, EXT, CONF>
 //abstract class AnyExtension<CONF: ExtensionConfig>(name: String, conf: CONF) : DeployFastExtension<AnyExtension<CONF>, CONF>(name, {conf})
 typealias AnyExtension<CONF> = DeployFastExtension<*, CONF>
 
-abstract class DeployFastApp<APP: DeployFastExtension<APP, NoConfig>>(name: String) : DeployFastExtension<APP, NoConfig>(name, {NoConfig()})
+abstract class DeployFastApp<APP: DeployFastExtension<APP, NoConfig>>(name: String) : DeployFastExtension<APP, NoConfig>(name, { NoConfig() })
 
 abstract class DeployFastExtension<EXT: DeployFastExtension<EXT, CONF>, CONF: ExtensionConfig>(
   val name: String,

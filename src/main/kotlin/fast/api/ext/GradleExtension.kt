@@ -1,8 +1,4 @@
-package fast.dsl.ext
-
-import fast.dsl.DeployFastDSL
-import fast.dsl.DeployFastExtension
-import fast.dsl.UserRights
+package fast.api.ext
 
 
 /*

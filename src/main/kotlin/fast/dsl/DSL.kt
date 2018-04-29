@@ -1,7 +1,6 @@
 package fast.dsl
 
-import fast.api.ITaskResult
-import fast.api.Task
+import fast.api.*
 import fast.ssh.command.CommandResult
 
 

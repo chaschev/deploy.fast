@@ -1,8 +1,5 @@
 package fast.api
 
-import fast.dsl.ChildTaskContext
-import fast.dsl.DeployFastExtension
-import fast.dsl.ExtensionConfig
 import fast.dsl.ServiceStatus
 import fast.ssh.command.Version
 import kotlin.reflect.KProperty

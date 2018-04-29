@@ -1,8 +1,6 @@
 package fast.dsl
 
-import fast.api.ITaskResult
-import fast.api.LambdaTask
-import fast.api.TaskSet
+import fast.api.*
 import fast.runtime.DeployFastDI
 import org.kodein.di.generic.instance
 

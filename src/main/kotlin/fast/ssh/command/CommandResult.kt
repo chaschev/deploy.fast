@@ -1,11 +1,9 @@
 package fast.ssh.command
 
-import fast.dsl.ext.nullForException
+import fast.api.ext.nullForException
 import fast.ssh.logger
 import fast.ssh.process.Console
-import java.lang.reflect.Field
 import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.javaField
 
 class InitLater(val finalize: Boolean = true) {
   private var value: Any? = null

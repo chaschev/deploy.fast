@@ -1,8 +1,7 @@
 package fast.runtime
 
+import fast.api.*
 import fast.dsl.*
-import fast.api.LambdaTask
-import fast.api.Task
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FASTD

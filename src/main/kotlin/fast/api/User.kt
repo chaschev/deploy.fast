@@ -1,4 +1,4 @@
-package fast.dsl
+package fast.api
 
 
 data class User(

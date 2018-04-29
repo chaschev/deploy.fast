@@ -1,6 +1,6 @@
 package fast.ssh.command
 
-import fast.dsl.ext.nullForException
+import fast.api.ext.nullForException
 import fast.ssh.tryFind
 
 /*

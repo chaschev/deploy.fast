@@ -1,8 +1,6 @@
-package fast.dsl.ext
+package fast.api.ext
 
-import fast.api.ExtensionTask
-import fast.api.ITaskResult
-import fast.api.NamedExtTasks
+import fast.api.*
 import fast.dsl.*
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version

@@ -1,5 +1,7 @@
 package fast.runtime
 
+import fast.api.DeployFastExtension
+import fast.api.ExtensionConfig
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.api.ITaskResult

@@ -1,8 +1,6 @@
-package fast.dsl.ext
+package fast.api.ext
 
-import fast.api.ITaskResult
-import fast.api.LambdaTask
-import fast.api.NamedExtTasks
+import fast.api.*
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.ssh.command.Version

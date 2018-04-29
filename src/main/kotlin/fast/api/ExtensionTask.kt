@@ -1,9 +1,5 @@
 package fast.api
 
-import fast.dsl.ChildTaskContext
-import fast.dsl.DeployFastExtension
-import fast.dsl.ExtensionConfig
-
 /**
  * Extension task creates it's own context which corresponds to extension function
  */

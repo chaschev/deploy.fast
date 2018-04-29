@@ -1,8 +1,5 @@
 package fast.api
 
-import fast.dsl.ChildTaskContext
-import fast.dsl.DeployFastExtension
-import fast.dsl.ExtensionConfig
 import fast.runtime.TaskContext
 
 interface ITask<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig> {

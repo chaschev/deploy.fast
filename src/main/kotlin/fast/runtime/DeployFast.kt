@@ -1,15 +1,15 @@
 package fast.runtime
 
+import fast.api.DeployFastApp
 import fast.dsl.*
-import fast.dsl.ext.OpenJdkConfig
-import fast.dsl.ext.OpenJdkExtension
-import fast.dsl.ext.VagrantConfig
-import fast.dsl.ext.VagrantExtension
+import fast.api.ext.OpenJdkConfig
+import fast.api.ext.OpenJdkExtension
+import fast.api.ext.VagrantConfig
+import fast.api.ext.VagrantExtension
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
-import fast.runtime.DeployFastDI.FASTD
 import fast.ssh.logger
 import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking

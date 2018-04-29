@@ -1,9 +1,5 @@
 package fast.api
 
-import fast.dsl.ChildTaskContext
-import fast.dsl.DeployFastExtension
-import fast.dsl.ExtensionConfig
-
 open class LambdaTask<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   name: String,
   desc: String? = null,

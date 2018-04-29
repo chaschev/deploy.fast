@@ -28,6 +28,15 @@ data class ConsoleProcessing<T>(
     val consoleHandler: ((console: Console) -> Unit)? = null
 )
 
+suspend fun <T> ConsoleProvider.execute(
+  cmd: String,
+  process: (Console) -> T = { "ok" as T },
+  processErrors: ((Console) -> T )? = null,
+  timeoutMs: Int = 60000
+): CommandResult<T> =
+  runAndWaitInteractive(timeoutMs, cmd, ConsoleProcessing(process, processErrors))
+
+
 suspend fun <T> ConsoleProvider.runAndWait(
   cmd: String,
   process: (Console) -> T = { "ok" as T },
