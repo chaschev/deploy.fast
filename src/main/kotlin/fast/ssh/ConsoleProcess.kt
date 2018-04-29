@@ -62,26 +62,32 @@ open class ConsoleProcess(
 
       // todo: change to non-blocking coroutines
       val readJob1 = launch(CommonPool) {
-        while (isActive && job.isActive) {
+        while (true) {
           console.newIn = tryRead(stdout, console.stdout)
 
           if (callback != null && !console.newIn.isEmpty()) {
             callback(console)
           }
 
-          delay(20)
+          //put it here, so after delay there is additional check for value
+          if(!(isActive && job.isActive)) break
+
+          delay(10)
         }
       }
 
       val readJob2 = launch(CommonPool) {
-        while (isActive && job.isActive) {
+        while (true) {
           console.newErr = tryRead(stderr, console.stderr)
 
           if (callback != null && !console.newErr.isEmpty()) {
             callback(console)
           }
 
-          delay(20)
+          //put it here, so after delay there is additional check for value
+          if(!(isActive && job.isActive)) break
+
+          delay(10)
         }
       }
 
@@ -104,12 +110,12 @@ open class ConsoleProcess(
         if (process.isEOF() || !process.isAlive()) {
           result = process.getResult(console)
 
-          logger.info { "reached end: $result for newCommand ```${mom.toString().cuteSubstring(0, 40)}```" }
+          logger.info { "command finished with result $result  '${mom.toString().cuteSubstring(0, 40)}'" }
 
           break
         }
 
-        delay(100)
+        delay(30)
       }
 
       if(result == null) {
