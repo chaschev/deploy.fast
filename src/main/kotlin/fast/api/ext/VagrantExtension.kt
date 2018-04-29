@@ -45,12 +45,14 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
     }.play(extCtx)
   }
 
-  companion object : KLogging() {
-
-  }
-
-//  val config by lazy { _config as VagrantConfig}
+  companion object : KLogging()
 }
+
+class VagrantConfig(
+  val hosts: List<Host> = ArrayList(),
+  val hostConfigs: List<VagrantHost> = hosts.map { VagrantHost(it) }
+) : ExtensionConfig
+
 
 //TODO: copy defaults from VagrantConfig
 
@@ -67,10 +69,6 @@ data class VagrantHost(
   val password: String = "vagrant"
 )
 
-class VagrantConfig(
-  val hosts: List<Host> = ArrayList(),
-  val hostConfigs: List<VagrantHost> = hosts.map { VagrantHost(it) }
-) : ExtensionConfig
 
 
 inline fun <T> nullForException(

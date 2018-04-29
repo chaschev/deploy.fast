@@ -4,6 +4,8 @@ import fast.dsl.CommandLineResult
 import fast.dsl.toFast
 import fast.ssh.command.CommandResult
 import fast.ssh.command.ProcessConsoleCommand
+import fast.ssh.command.ScriptDsl
+import fast.ssh.command.ShellScript
 import fast.ssh.files.Files
 import fast.ssh.process.Console
 import java.io.Closeable
@@ -18,9 +20,11 @@ interface ConsoleProvider : Closeable {
     fun files(): Files
 }
 
-suspend fun ConsoleProvider.runAndWaitCustom(timeoutMs: Int,
-                                             cmd: String): CommandResult<Console> =
-    runAndWait(cmd, { it }, timeoutMs = timeoutMs)
+suspend fun ConsoleProvider.runAndWaitCustom(
+  timeoutMs: Int,
+  cmd: String
+): CommandResult<Console> =
+  runAndWait(cmd, { it }, timeoutMs = timeoutMs)
 
 data class ConsoleProcessing<T>(
     val process: (Console) -> T,
@@ -29,12 +33,10 @@ data class ConsoleProcessing<T>(
 )
 
 suspend fun <T> ConsoleProvider.execute(
-  cmd: String,
-  process: (Console) -> T = { "ok" as T },
-  processErrors: ((Console) -> T )? = null,
+  dsl: ScriptDsl<T>,
   timeoutMs: Int = 60000
 ): CommandResult<T> =
-  runAndWaitInteractive(timeoutMs, cmd, ConsoleProcessing(process, processErrors))
+  dsl.asScript().execute(this, timeoutMs)
 
 
 suspend fun <T> ConsoleProvider.runAndWait(
@@ -43,14 +45,14 @@ suspend fun <T> ConsoleProvider.runAndWait(
   processErrors: ((Console) -> T )? = null,
   timeoutMs: Int = 60000
 ): CommandResult<T> =
-    runAndWaitInteractive(timeoutMs, cmd, ConsoleProcessing(process, processErrors))
+    runAndWaitInteractive(cmd, ConsoleProcessing(process, processErrors), timeoutMs)
 
 suspend fun <T> ConsoleProvider.runAndWait(
   cmd: String,
   processing: ConsoleProcessing<T>,
   timeoutMs: Int = 60000
 ): CommandResult<T>
-    = runAndWaitInteractive(timeoutMs, cmd, processing)
+    = runAndWaitInteractive(cmd, processing, timeoutMs)
 
 suspend fun ConsoleProvider.run(
   cmd: String,
@@ -58,12 +60,13 @@ suspend fun ConsoleProvider.run(
 ): CommandLineResult<Boolean> = runAndWait(cmd, {it.result.isOk()}, {false}, timeoutMs = timeoutMs).toFast(false)
 
 suspend fun <T> ConsoleProvider.runAndWaitInteractive(
-    timeoutMs: Int,
-    cmd: String,
-    processing: ConsoleProcessing<T>
+  cmd: String,
+  processing: ConsoleProcessing<T>,
+  timeoutMs: Int
 ): CommandResult<T> =
     createSession().use { session ->
-        ProcessConsoleCommand(
+
+      ProcessConsoleCommand(
           process = session.plainCmd(cmd),
           processResult = processing.process,
           processErrors = processing.processErrors

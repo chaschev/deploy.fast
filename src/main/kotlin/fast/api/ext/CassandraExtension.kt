@@ -1,5 +1,132 @@
 package fast.api.ext
 
+import fast.api.*
+import fast.dsl.ServiceStatus
+import fast.dsl.TaskResult
+import fast.dsl.TaskResult.Companion.ok
+import fast.inventory.Host
+import fast.ssh.command.ScriptDsl.Companion.script
+import fast.ssh.execute
+import mu.KLogging
+import java.io.File
+
+typealias CassandraTaskContext = ChildTaskContext<CassandraExtension, CassandraConfig>
+
+
+class CassandraExtension(
+  config: (CassandraTaskContext) -> CassandraConfig
+) :
+  DeployFastExtension<CassandraExtension, CassandraConfig>(
+  "cassandra", config
+) {
+
+  val apt = AptExtension()
+
+  override val tasks = { parentCtx: ChildTaskContext<*, *> ->
+    CassandraTasks(this@CassandraExtension, parentCtx)
+  }
+}
+
+data class CassandraInstallationResult (
+  val status: ServiceStatus,
+  val timeMs: Long
+)
+
+typealias CIR = CassandraInstallationResult
+
+class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
+  : NamedExtTasks<CassandraExtension, CassandraConfig>(ext, parentCtx) {
+  suspend fun install(): ITaskResult<Boolean> {
+    return LambdaTask("install", extension) {
+      script<CIR> {
+        command {
+          tar(
+            file = "/tmp/cassandra/${config.archiveName}"
+          ).extract()
+
+          user("cassandra", "cassandra").add()
+
+          assignRights(
+            dirs = listOf(
+              "/var/lib/cassandra",
+              "/var/log/cassandra"
+            ),
+            rights = {},
+            user = "cassandra",
+            create = true
+          ) {sudo = true; abortOnError = true}
+
+          custom("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra")
+
+          assignRights(
+            dirs = listOf(
+              "nodetool",
+              "cassandra",
+              "cqlsh"
+            ),
+            rights = "u+x"
+          ) {
+            dir = "/var/lib/cassandra/bin"
+            withUser = "cassandra"
+            abortOnError = true
+          }
+
+          symlinks {
+            "cassandra" to "/usr/local/bin/cassandra"
+            "nodetool" to "/usr/local/bin/nodetool"
+            "cqlsh" to "/usr/local/bin/cqlsh"
+          } {
+            dir = "/var/lib/cassandra/bin"
+            withUser = "cassandra"
+          }
+        }
+        CIR(ServiceStatus.installed, 0)
+      }.execute(ssh)
+
+      val cassandraYamlPath = "/var/lib/cassandra/conf/cassandra.yaml"
+
+      val confString: String =  ssh.files().readAsString(cassandraYamlPath)
+
+      /* TODO: EDIT THE DEFAULT CONF */
+
+      ssh.files().writeToString(cassandraYamlPath, confString)
+
+      /*
+       todo change this to apt call to service installation, which not yet exists
+       todo exit with service.state(installed, running)
+         service.install
+         service.ensureState(installed, running)
+         service.ensureConfiguration()
+      */
+      extension.apt.tasks(this@LambdaTask).install()
+
+
+
+      TaskResult.ok
+    }.play(extCtx)
+  }
+
+  companion object : KLogging()
+}
+
+class CassandraConfig(
+  val hosts: List<Host> = ArrayList(),
+  val hostConfigs: List<CassandraHost> = hosts.map { CassandraHost(it) },
+
+) : ExtensionConfig {
+  var version = "3.11.2"
+  val distroName = "apache-cassandra-$version"
+  var archiveName = "apache-cassandra-$version-bin.tar.gz"
+  var archiveUrl = "http://mirror.bit.edu.cn/apache/cassandra/$version/$archiveName"
+
+}
+
+data class CassandraHost(
+  val host: Host,
+  val memory: Int = 1024
+)
+
+
 /*
 class CassandraExtension(): DeployFastExtension() {
   val zippedApp = ZippedAppExtension()

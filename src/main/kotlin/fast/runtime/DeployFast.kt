@@ -71,7 +71,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
             }
           }
 
-          "other" with { privateKey(it)  }
+          "other" with { privateKey(it) }
         }
 
         globalTasksBeforePlay {
@@ -88,7 +88,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
             val times = 3
 
             repeat(times) {
-              val pwd = ssh.run("pwd;pwd")
+              val pwd = ssh.run("pwd; cd /etc; pwd")
               logger.debug { pwd.text()}
             }
 

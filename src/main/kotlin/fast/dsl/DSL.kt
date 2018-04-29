@@ -64,7 +64,6 @@ fun <T> CommandResult<T>.toFast(modified: Boolean = false): CommandLineResult<T>
   )
 }
 
-
 typealias AnyTask = Task<Any, *, ExtensionConfig>
 typealias AnyTaskExt<EXT> = Task<Any, EXT, ExtensionConfig>
 

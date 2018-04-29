@@ -53,17 +53,17 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
   ): ITaskResult<Boolean> {
     return (AptTask("install", extension) {
       //flag for non-interactive mode https://stackoverflow.com/questions/33370297/apt-get-update-non-interactive/33370375#33370375
-      ssh.runAndWaitInteractive(timeoutMs, "sudo apt-get install  -o \"Dpkg::Options::=--force-confold\" -y ${options.asString()} $pack",
-        ConsoleProcessing(
-          process = { true },
-          consoleHandler = {
-            val newText = it.newText()
+      ssh.runAndWaitInteractive("sudo apt-get install  -o \"Dpkg::Options::=--force-confold\" -y ${options.asString()} $pack", ConsoleProcessing(
+        process = { true },
+        consoleHandler = {
+          val newText = it.newText()
 
-            if (newText.contains("What would you like to do about it ?")) {
-              it.writeln("Y")
-            }
+          if (newText.contains("What would you like to do about it ?")) {
+            it.writeln("Y")
           }
-        )
+        }
+      ),
+        timeoutMs
       ).toFast(true)
     }.play(extCtx))
   }
