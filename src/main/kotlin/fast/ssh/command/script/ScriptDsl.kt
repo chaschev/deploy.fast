@@ -1,16 +1,11 @@
 package fast.ssh.command.script
 
-import fast.ssh.ConsoleProcessing
 import fast.ssh.SshProvider
 import fast.ssh.execute
+import fast.ssh.process.Console
 
 class ScriptDsl<R>(val root: ScriptCommandDsl<R>) : ScriptDslSettings() {
-
-  lateinit var processing: ConsoleProcessing<R>
-
-//  fun command(block: ScriptCommandDsl.() -> Unit) {
-//    this.commands.add(ScriptCommandDsl().apply(block))
-//  }
+  lateinit var processing: ((Console, HashMap<String, CaptureHolder>) -> R)
 
   fun asScript() = ShellScript(this)
 

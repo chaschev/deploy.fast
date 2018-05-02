@@ -37,7 +37,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
     return LambdaTask("install", extension) {
       val cassandra = User("cassandra")
       val appPath = "/var/lib/cassandra"
-      val binPath = "$appPath/bin"
+      val appBin = "$appPath/bin"
 
 
       script<CIR> {
@@ -62,9 +62,9 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
 
         rights(
           paths = listOf(
-            "$binPath/nodetool",
-            "$binPath/cassandra",
-            "$binPath/cqlsh"
+            "$appBin/nodetool",
+            "$appBin/cassandra",
+            "$appBin/cqlsh"
           ),
           rights = Rights.userOnlyExecutable
         ) {
@@ -73,9 +73,9 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
         }
 
         symlinks {
-          "cassandra" to "/usr/local/bin/cassandra"
-          "nodetool" to "/usr/local/bin/nodetool"
-          "cqlsh" to "/usr/local/bin/cqlsh"
+          "$appBin/cassandra" to "/usr/local/bin/cassandra"
+          "$appBin/nodetool" to "/usr/local/bin/nodetool"
+          "$appBin/cqlsh" to "/usr/local/bin/cqlsh"
 
           sudo = true
           dir = "/var/lib/cassandra/bin"

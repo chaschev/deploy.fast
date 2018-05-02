@@ -19,9 +19,12 @@ class AddRightsCommandDsl(
       lines += "mkdir -p $filesStr"
     }
 
-    lines += "chown ${if(recursive) "-R" else ""} ${rights.owner.name}:${rights.owner.group} $filesStr"
+    if(!rights.owner.omit())
+      lines += "chown ${if(recursive) "-R" else ""} ${rights.owner.name}:${rights.owner.group} $filesStr"
+
     lines += "chmod ${if(recursive) "-R" else ""} ${rights.access} $filesStr "
 
     return lines;
   }
 }
+

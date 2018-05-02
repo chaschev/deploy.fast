@@ -1,11 +1,8 @@
 package fast.runtime
 
 import fast.api.DeployFastApp
+import fast.api.ext.*
 import fast.dsl.*
-import fast.api.ext.OpenJdkConfig
-import fast.api.ext.OpenJdkExtension
-import fast.api.ext.VagrantConfig
-import fast.api.ext.VagrantExtension
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
@@ -42,7 +39,6 @@ object DeployFastDI {
 }
 
 class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
-
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension({
     VagrantConfig(app.hosts)
@@ -52,6 +48,10 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     OpenJdkConfig(
       pack = "openjdk-8-jdk"
     )
+  })
+
+  val cassandra = CassandraExtension({
+    CassandraConfig(app.hosts)
   })
 
   companion object {
@@ -101,6 +101,10 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
           task("install_java") {
             ext.openJdk.tasks(this).installJava()
+          }
+
+          task("install_cassandra") {
+            ext.cassandra.tasks(this).install()
           }
         }
       }

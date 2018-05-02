@@ -3,7 +3,7 @@ package fast.api
 
 data class User(
   val name: String,
-  val group: String = name,
+  val group: String? = name,
   val password: String? = null
 ) {
 
@@ -13,7 +13,10 @@ data class User(
 //    }
 //  }
 
+  fun omit(): Boolean = name == "omit"
+
   companion object {
     val omit = User("omit")
   }
 }
+

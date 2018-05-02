@@ -4,31 +4,33 @@ import fast.api.User
 import fast.api.UserRights
 import fast.api.ext.SymlinksDSL
 import fast.ssh.process.Console
-import org.bouncycastle.cms.RecipientId.password
 
 open class ScriptCommandDsl<R> : ScriptDslSettings() {
-  val lines = ArrayList<ScriptLines>()
-
-  private val capture = ArrayList<ScriptCommandDsl<*>>()
+  val commands = ArrayList<ScriptDslSettings>()
 
   fun untar(file: String, block: (TarCommandDsl.() -> Unit)? = null) {
     val dsl = TarCommandDsl(file)
 
-    lines += if (block == null) dsl else dsl.apply(block)
+    if (block != null) dsl.apply(block)
+
+    commands += dsl
   }
 
-  fun capture(block: ScriptCommandWithCapture<*>.() -> Unit) {
-    this.capture.add(ScriptCommandWithCapture<Any>().apply(block))
+  fun capture(name: String? = null, block: ScriptCommandWithCapture<*>.() -> Unit) {
+    val dsl = ScriptCommandWithCapture<Any>().apply(block)
+
+    this.commands += dsl
   }
+
 
   open fun addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null) {
-     capture {
-      _addUser(user, block)
+    capture {
+      commands += _addUser(user, block)
 
-      if(user.password != null) {
-        processInput = {
-          if (newIn.contains("UNIX password:"))
-            stdin.write(user.password + "\n")
+      this.processInput = { console, myText ->
+        if (user.password != null) {
+          if (myText.contains("UNIX password:"))
+            console.stdin.write(user.password + "\n")
         }
       }
     }
@@ -47,30 +49,32 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     dsl.create = create
     dsl.recursive = recursive
 
-    lines += if (block == null) dsl else dsl.apply(block)
+    if (block != null) dsl.apply(block)
+
+    commands += dsl
   }
 
   fun sh(command: String, block: (ShellCommandDsl.() -> Unit)? = null) {
     val dsl = ShellCommandDsl(command)
 
-    lines += if (block == null) dsl else dsl.apply(block)
+    if (block != null) dsl.apply(block)
+
   }
 
   fun symlinks(block: (SymlinksDSL.() -> Unit)) {
-    lines += SymlinksDSL().apply(block)
+    commands += SymlinksDSL().apply(block)
   }
 
 }
 
-class ScriptCommandWithCapture<R> : ScriptCommandDsl<R>() {
-  var processInput: (Console.() -> Unit)? = null
+class ScriptCommandWithCapture<R>(val name: String? = null) : ScriptCommandDsl<R>() {
+  lateinit var processInput: (Console, myText: CharSequence) -> Any
 
   internal fun _addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null): AddUserCommandDsl {
     val dsl = AddUserCommandDsl(user)
 
     if (block != null) dsl.apply(block)
 
-    lines += dsl
 
     return dsl
   }
