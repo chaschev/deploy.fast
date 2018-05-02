@@ -4,10 +4,10 @@ import java.io.File
 
 
 data class UserRights(
-  override val name: String,
   val access: String,
   val owner: User = User.omit,
-  val recursive: Boolean = true
+  val recursive: Boolean = true,
+  override val name: String = ""
 ) : Rights(name) {
 
 //  override suspend fun apply(file: File) {
@@ -18,7 +18,14 @@ data class UserRights(
   fun noRecurse() = copy(recursive = false)
 
   companion object {
-    val omit = UserRights("omit", "")
+    val omit = UserRights("", name = "omit")
+
+    fun rights(
+      access: String,
+      owner: User = User.omit,
+      recursive: Boolean = true,
+      name: String = ""
+    ) = UserRights(access, owner, recursive, name)
   }
 }
 
@@ -33,11 +40,14 @@ sealed class Rights(open val name: String) {
 
 
   companion object {
-    val readOnly = UserRights("readOnly", "a=rx")
-    val executable = UserRights("executable", "u+x")
-    val executableAll = UserRights("executable", "a+x")
-    val all = UserRights("all", "a=rwx")
-    val writeProtect = UserRights("writeProtect", "u=rwx,go=rx")
+    val userOnlyReadWrite = UserRights("u=rw,go=", name = "userOnlyReadWrite")
+    val userOnlyExecutable = UserRights("u=rwx,go=", name = "userOnlyExecutable")
+    val userReadWrite = UserRights("u=rw,go=r", name = "userReadWrite")
+    val readOnly = UserRights("a=rx", name = "readOnly")
+    val executable = UserRights("u+x", name = "executable")
+    val executableAll = UserRights("a+x", name = "executable")
+    val all = UserRights("a=rwx", name = "all")
+    val writeProtect = UserRights("u=rwx,go=rx", name = "writeProtect")
   }
 
 }

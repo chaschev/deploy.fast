@@ -4,6 +4,8 @@ import fast.api.*
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.ssh.command.Version
+import fast.ssh.command.script.ScriptDslSettings
+import fast.ssh.command.script.ScriptLines
 import fast.ssh.run
 
 typealias ZippedAppTaskContext = ChildTaskContext<ZippedAppExtension, ZippedAppConfig>
@@ -104,7 +106,7 @@ data class Symlink(
 
 }
 
-class SymlinksDSL {
+class SymlinksDSL : ScriptDslSettings(), ScriptLines {
   val symlinks = ArrayList<Symlink>()
 
   infix fun String.to(appPath: String): Symlink {
@@ -119,6 +121,12 @@ class SymlinksDSL {
 
     return link
 
+  }
+
+  override fun lines(): List<String> {
+    return symlinks.map {
+      "ln -s ${it.sourcePath} ${it.destPath}"
+    }
   }
 }
 

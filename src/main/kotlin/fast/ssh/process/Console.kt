@@ -18,7 +18,6 @@ class Console(
   var newIn: String = ""
   var newErr: String = ""
 
-
   fun newText(): String = newIn + newErr
 
   fun writeln(text: String) = write("$text\n")

@@ -3,7 +3,8 @@ package fast.api
 
 data class User(
   val name: String,
-  val group: String
+  val group: String = name,
+  val password: String? = null
 ) {
 
 //  suspend fun apply(file: File, recursive: Boolean = true) {
@@ -13,6 +14,6 @@ data class User(
 //  }
 
   companion object {
-    val omit = User("omit", "")
+    val omit = User("omit")
   }
 }

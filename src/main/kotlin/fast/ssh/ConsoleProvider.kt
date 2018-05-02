@@ -4,8 +4,7 @@ import fast.dsl.CommandLineResult
 import fast.dsl.toFast
 import fast.ssh.command.CommandResult
 import fast.ssh.command.ProcessConsoleCommand
-import fast.ssh.command.ScriptDsl
-import fast.ssh.command.ShellScript
+import fast.ssh.command.script.ScriptDsl
 import fast.ssh.files.Files
 import fast.ssh.process.Console
 import java.io.Closeable

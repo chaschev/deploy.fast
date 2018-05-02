@@ -3,12 +3,9 @@ package fast.api.ext
 import fast.api.*
 import fast.dsl.ServiceStatus
 import fast.dsl.TaskResult
-import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
-import fast.ssh.command.ScriptDsl.Companion.script
-import fast.ssh.execute
+import fast.ssh.command.script.ScriptDsl.Companion.script
 import mu.KLogging
-import java.io.File
 
 typealias CassandraTaskContext = ChildTaskContext<CassandraExtension, CassandraConfig>
 
@@ -17,17 +14,17 @@ class CassandraExtension(
   config: (CassandraTaskContext) -> CassandraConfig
 ) :
   DeployFastExtension<CassandraExtension, CassandraConfig>(
-  "cassandra", config
-) {
+    "cassandra", config
+  ) {
 
-  val apt = AptExtension()
+  val apt = AptExtension({  AptConfig() })
 
   override val tasks = { parentCtx: ChildTaskContext<*, *> ->
     CassandraTasks(this@CassandraExtension, parentCtx)
   }
 }
 
-data class CassandraInstallationResult (
+data class CassandraInstallationResult(
   val status: ServiceStatus,
   val timeMs: Long
 )
@@ -38,54 +35,59 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<CassandraExtension, CassandraConfig>(ext, parentCtx) {
   suspend fun install(): ITaskResult<Boolean> {
     return LambdaTask("install", extension) {
+      val cassandra = User("cassandra")
+      val appPath = "/var/lib/cassandra"
+      val binPath = "$appPath/bin"
+
+
       script<CIR> {
-        command {
-          tar(
-            file = "/tmp/cassandra/${config.archiveName}"
-          ).extract()
+        untar(
+          file = "/tmp/cassandra/${config.archiveName}"
+        )
 
-          user("cassandra", "cassandra").add()
+        addUser(cassandra)
 
-          assignRights(
-            dirs = listOf(
-              "/var/lib/cassandra",
-              "/var/log/cassandra"
-            ),
-            rights = {},
-            user = "cassandra",
-            create = true
-          ) {sudo = true; abortOnError = true}
+        rights(
+          paths = listOf(
+            "/var/lib/cassandra",
+            "/var/log/cassandra"
+          ),
+          rights = Rights.userOnlyReadWrite.copy(owner = cassandra),
+          create = true,
+          recursive = true
 
-          custom("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra")
+        ) { sudo = true; abortOnError = true }
 
-          assignRights(
-            dirs = listOf(
-              "nodetool",
-              "cassandra",
-              "cqlsh"
-            ),
-            rights = "u+x"
-          ) {
-            dir = "/var/lib/cassandra/bin"
-            withUser = "cassandra"
-            abortOnError = true
-          }
+        sh("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra")
 
-          symlinks {
-            "cassandra" to "/usr/local/bin/cassandra"
-            "nodetool" to "/usr/local/bin/nodetool"
-            "cqlsh" to "/usr/local/bin/cqlsh"
-          } {
-            dir = "/var/lib/cassandra/bin"
-            withUser = "cassandra"
-          }
+        rights(
+          paths = listOf(
+            "$binPath/nodetool",
+            "$binPath/cassandra",
+            "$binPath/cqlsh"
+          ),
+          rights = Rights.userOnlyExecutable
+        ) {
+          withUser = "cassandra"
+          abortOnError = true
         }
+
+        symlinks {
+          "cassandra" to "/usr/local/bin/cassandra"
+          "nodetool" to "/usr/local/bin/nodetool"
+          "cqlsh" to "/usr/local/bin/cqlsh"
+
+          sudo = true
+          dir = "/var/lib/cassandra/bin"
+//          withUser = "cassandra"
+        }
+
         CIR(ServiceStatus.installed, 0)
       }.execute(ssh)
 
       val cassandraYamlPath = "/var/lib/cassandra/conf/cassandra.yaml"
 
-      val confString: String =  ssh.files().readAsString(cassandraYamlPath)
+      val confString: String = ssh.files().readAsString(cassandraYamlPath)
 
       /* TODO: EDIT THE DEFAULT CONF */
 
@@ -98,7 +100,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
          service.ensureState(installed, running)
          service.ensureConfiguration()
       */
-      extension.apt.tasks(this@LambdaTask).install()
+//      extension.apt.tasks(this@LambdaTask).install()
 
 
 
@@ -111,9 +113,9 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
 
 class CassandraConfig(
   val hosts: List<Host> = ArrayList(),
-  val hostConfigs: List<CassandraHost> = hosts.map { CassandraHost(it) },
+  val hostConfigs: List<CassandraHost> = hosts.map { CassandraHost(it) }
 
-) : ExtensionConfig {
+  ) : ExtensionConfig {
   var version = "3.11.2"
   val distroName = "apache-cassandra-$version"
   var archiveName = "apache-cassandra-$version-bin.tar.gz"

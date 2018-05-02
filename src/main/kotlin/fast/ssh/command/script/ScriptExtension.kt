@@ -1,6 +1,8 @@
-package fast.ssh.command
+package fast.ssh.command.script
 
+import fast.api.User
 import fast.ssh.*
+import fast.ssh.command.CommandResult
 
 /**
  Script is used to have multiple commands for the same packet sent to the server
@@ -47,55 +49,54 @@ How to separate output from one another stdout+stderr
 class CommandTranslationStrategy(/*settings*/)
 class ScriptExecutionStrategy(/*settings*/)
 
-open class ScriptDslSettings {
-  var sudo = false
-  var dir = ""
-  var abortOnError = true
-
-  var withUser: String? = null
-  var withPassword: String? = null
-  var passwordPromptRegex: Regex? = null
-
-  fun copySettings(other: ScriptDslSettings) {
-    sudo = other.sudo
-    dir  = other.dir
-    abortOnError = other.abortOnError
-    withUser = other.withUser
-    withPassword = other.withPassword
-    passwordPromptRegex = other.passwordPromptRegex
-  }
-}
-
-class ScriptDsl<R> : ScriptDslSettings() {
-  private val commands = ArrayList<ScriptCommandDsl>()
-
-  lateinit var processing: ConsoleProcessing<R>
-
-  fun command(block: ScriptCommandDsl.() -> Unit) {
-    this.commands.add(ScriptCommandDsl().apply(block))
-  }
-
-  fun asScript() = ShellScript(this)
-
-  suspend fun execute(ssh: SshProvider) =  ssh.execute(this)
-
-
-  companion object {
-    fun <R> script(block: ScriptDsl<R>.() -> Unit): ScriptDsl<R> {
-      return ScriptDsl<R>().apply(block)
+class TarCommandDsl(
+  val file: String
+): ScriptDslSettings(), ScriptLines {
+  override fun lines(): List<String> {
+    return when {
+      file.endsWith("tar.gz") -> listOf("tar xfz $file")
+      file.endsWith("gz") -> listOf("tar xf $file")
+      else -> throw Exception("todo: support $file for tar")
     }
   }
-
-
 }
 
-class ScriptCommandDsl : ScriptDslSettings(){
+fun CharSequence.countEntries(substring: String): Int {
+  var pos = -1
+  var r = 0
 
+  while(pos > 0) {
+    pos = this.indexOf(substring, pos + 1)
+
+    if( pos >= 0) r++
+  }
+
+  return r
 }
 
-class ScriptLineDsl : ScriptDslSettings(){
+class AddUserCommandDsl(
+  val user: User
+): ScriptDslSettings(), ScriptLines {
+  init {
+    sudo = true
 
+  }
+
+  override fun lines(): List<String> {
+    return listOfNotNull(
+      "id -u test &>/dev/null || sudo useradd -m -g ${user.group} $user",
+      if(user.password ==null) null else "passwd ${user.name}"
+    )
+  }
 }
+
+class ShellCommandDsl(
+  val command: String
+): ScriptDslSettings(), ScriptLines {
+  override fun lines(): List<String> = command.lines()
+}
+
+
 
 class ShellScript<R>(
   val dsl: ScriptDsl<R>
