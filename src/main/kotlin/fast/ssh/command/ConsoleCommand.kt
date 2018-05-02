@@ -16,20 +16,26 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   }
 
   suspend fun runBlocking(timeoutMs: Int = 60000, handler: ((Console) -> Unit)? = null): CommandResult<T> {
-    return processWhenDone(process.start(timeoutMs, chooseHandler(handler)).job.await())
+    val process = process.start(timeoutMs, chooseHandler(handler))
+
+    return processWhenDone(process.await())
   }
 
 
   protected fun processWhenDone(process: IConsoleProcess): CommandResult<T> {
     return if (process.result?.isOk() == true) {
-      parseConsole(process.console)
+      try {
+        parseConsole(process.console)
+      } catch (e: Exception) {
+        processError(e)
+      }
     } else {
-      processError()
+      processError(null)
     }
   }
 
-  protected open fun processError(): CommandResult<T> {
-    return CommandResult<T>(process.console).tryFindErrors().withSomeError()
+  protected open fun processError(exception: Exception?): CommandResult<T> {
+    return CommandResult<T>(process.console, exception).tryFindErrors().withSomeError()
   }
 
   abstract fun parseConsole(console: Console): CommandResult<T>

@@ -18,9 +18,9 @@ class ProcessConsoleCommand<T>(
     CommandResult<T>(console).withValue { processResult(console) }
 
 
-  override fun processError(): CommandResult<T> {
+  override fun processError(e: Exception?): CommandResult<T> {
     return if (processErrors == null) {
-      super.processError()
+      super.processError(e)
     } else {
       CommandResult<T>(process.console)
         .withValue { processErrors.invoke(process.console) }

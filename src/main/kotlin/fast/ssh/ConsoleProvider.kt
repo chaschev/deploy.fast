@@ -33,7 +33,7 @@ data class ConsoleProcessing<T>(
 
 suspend fun <T> ConsoleProvider.execute(
   dsl: ScriptDsl<T>,
-  timeoutMs: Int = 60000
+  timeoutMs: Int = 600000
 ): CommandResult<T> =
   dsl.asScript().execute(this, timeoutMs)
 
@@ -64,7 +64,6 @@ suspend fun <T> ConsoleProvider.runAndWaitInteractive(
   timeoutMs: Int
 ): CommandResult<T> =
     createSession().use { session ->
-
       ProcessConsoleCommand(
           process = session.plainCmd(cmd),
           processResult = processing.process,

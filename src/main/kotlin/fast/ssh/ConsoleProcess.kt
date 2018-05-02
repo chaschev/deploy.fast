@@ -12,12 +12,12 @@ import java.io.InputStream
  */
 interface IConsoleProcess : Cancellable {
   val console: Console
-  val job: Deferred<IConsoleProcess>
 
   fun start(timeoutMs: Int = 60000, callback: ((console: Console) -> Unit)?): IConsoleProcess
   var result: ConsoleCommandResult?
 
   val startedAt: Long
+  suspend fun await(): IConsoleProcess
 }
 
 /**
@@ -42,8 +42,18 @@ open class ConsoleProcess(
 
   private lateinit var process: BasicProcess
 
-  override lateinit var job: Deferred<IConsoleProcess>
+  lateinit var job: Deferred<IConsoleProcess>
   override lateinit var console: Console
+
+  var readJob1: Job? = null
+  var readJob2: Job? = null
+
+  override suspend fun await(): IConsoleProcess {
+    readJob1?.join()
+    readJob2?.join()
+
+    return job.await()
+  }
 
   override fun start(timeoutMs: Int, callback: ((console: Console) -> Unit)?): ConsoleProcess {
     logger.debug { "starting a new job: ${describeMe()} with timeout ${timeoutMs}ms" }
@@ -61,7 +71,7 @@ open class ConsoleProcess(
       console = Console(writer, this@ConsoleProcess)
 
       // todo: change to non-blocking coroutines
-      val readJob1 = launch(CommonPool) {
+      readJob1 = launch(CommonPool) {
         while (true) {
           console.newIn = tryRead(stdout, console.stdout)
 
@@ -76,7 +86,7 @@ open class ConsoleProcess(
         }
       }
 
-      val readJob2 = launch(CommonPool) {
+      readJob2 = launch(CommonPool) {
         while (true) {
           console.newErr = tryRead(stderr, console.stderr)
 
@@ -108,9 +118,11 @@ open class ConsoleProcess(
         }
 
         if (process.isEOF() || !process.isAlive()) {
-          result = process.getResult(console)
+          val r = process.getResult(console)
 
-          logger.info { "command finished with result $result  '${mom.toString().cuteSubstring(0, 40)}'" }
+          result = r
+
+          logger.info { "command finished with result $r, stdout=${r.console.stdout.cuteCutLast(100)} error=${r.console.stderr.cuteCutLast(100)}  '${mom.toString().cuteSubstring(0, 40)}'" }
 
           break
         }
@@ -123,8 +135,8 @@ open class ConsoleProcess(
         result = ConsoleCommandResult(console, null, false, false)
       }
 
-      readJob1.cancel()
-      readJob2.cancel()
+      readJob1?.cancel()
+      readJob2?.cancel()
 
       if (process.isAlive() && !isActive) {
         process.cancel()
@@ -143,6 +155,8 @@ open class ConsoleProcess(
   private fun describeMe() = mom.toString().cuteCut(30)
 
   override fun cancel() {
+    readJob1?.cancel()
+    readJob2?.cancel()
     job.cancel()
   }
 

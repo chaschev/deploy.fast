@@ -1,5 +1,6 @@
 package fast.ssh.command
 
+import fast.api.ext.nullForException
 import fast.ssh.process.Console
 
 /**
@@ -26,13 +27,16 @@ interface ICommandResult<T> {
   /**
    * Found errors when parsing. If exited with error and didn't parse, should be false
    */
-  val hasErrors: Boolean
+  fun hasErrors(): Boolean = !errors().isEmpty() || exception != null || nullForException { !console.result.isOk()} ?: true
 
-  fun isOk(): Boolean = !hasErrors && (console.result?.isOk() ?: false)
+  var exception: Exception?
+
+  fun isOk(): Boolean = !hasErrors() && console.result.isOk()
 
   fun parsedErrorsConcise(): List<String> = TODO()
   fun parsedErrorsFull(): List<String> = TODO()
   fun cuteOutput(): String = TODO()
+  fun errors(): MutableList<String>
 
 //    fun asTextObject(filter: TextFilter): TextObject = TODO()
 }
