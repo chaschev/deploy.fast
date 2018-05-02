@@ -129,6 +129,12 @@ class ShellCommandDsl(
   override fun lines(): List<String> = command.lines()
 }
 
+class RawShellCommandDsl(
+  val command: String
+) : ScriptDslSettings(), ScriptBlock {
+  override fun getString(): String = command
+}
+
 data class CaptureHolder(
   val command: ScriptCommandWithCapture<*>,
   val name: String,
@@ -145,7 +151,18 @@ class CommandVisitor(
     for (command in dsl.commands) {
       when (command) {
         is ScriptLines -> {
-          lines += command.lines()
+          lines += command.lines().map {
+            command.withSudoPrefix(it)
+          }
+
+          val prevCommand = lines.last().cuteCut(20)
+
+          if(command.abortOnError) {
+            lines += "rc=\$?; if [ \$rc != 0 ] ; then echo process exited with code \$rc, exiting command: $prevCommand, line: ${lines.size};  exit \$rc; fi"
+          }
+        }
+        is ScriptBlock -> {
+          lines += command.getString()
         }
         is ScriptCommandWithCapture<*> -> {
           val index = lines.size
@@ -166,10 +183,19 @@ class CommandVisitor(
   }
 }
 
+private fun ScriptDslSettings.withSudoPrefix(line: String): String {
+  return if(withUser != null) {
+    "sudo -u $withUser $line"
+  } else
+  if(sudo){
+    "sudo $line"
+  } else
+    line
+}
+
 class ShellScript<R>(
   val dsl: ScriptDsl<R>
 ) {
-
   suspend fun execute(console: ConsoleProvider, timeoutMs: Int): CommandResult<R> {
     val lines = ArrayList<String>()
     val captureMap = HashMap<String, CaptureHolder>()
@@ -177,7 +203,7 @@ class ShellScript<R>(
     CommandVisitor().visit(dsl.root, lines, captureMap)
 
     val x = console.runAndWaitInteractive(
-      cmd = lines.joinToString(";\n"),
+      cmd = lines.joinToString("\n"),
       processing = ConsoleProcessing(
         process = { con -> dsl.processing.invoke(con, captureMap) },
         consoleHandler = { con ->

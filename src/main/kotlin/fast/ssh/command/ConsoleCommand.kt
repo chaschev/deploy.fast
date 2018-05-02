@@ -18,7 +18,9 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   suspend fun runBlocking(timeoutMs: Int = 60000, handler: ((Console) -> Unit)? = null): CommandResult<T> {
     val process = process.start(timeoutMs, chooseHandler(handler))
 
-    return processWhenDone(process.await())
+    val process1 = process.await()
+
+    return processWhenDone(process1)
   }
 
 

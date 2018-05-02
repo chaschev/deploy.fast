@@ -3,11 +3,11 @@ package fast.ssh.command.script
 class WgetCommandDsl(
   var url: String,
   var sha1: String,
-  var directory : String? = null,
-  var filename: String? = TODO()
-): ScriptDslSettings(), ScriptLines {
-  override fun lines(): List<String> {
+  var filename: String? = url.substringAfterLast("/")
+): ScriptDslSettings(), ScriptBlock {
+  override fun getString(): String {
     return """
+hashSum() {
  URL=$url
  FILE=$filename
  sha1=$sha1
@@ -18,7 +18,7 @@ class WgetCommandDsl(
 
  if [ ${'$'}rc != 0 ] ; then
   rm ${'$'}FILE
-  wget ${'$'}URL
+  wget -O $filename ${'$'}URL
   echo "${'$'}sha1 ${'$'}FILE" | sha1sum --quiet -c -
   rc=${'$'}?
  fi
@@ -31,6 +31,6 @@ class WgetCommandDsl(
 hashSum
 
 echo ${'$'}?
-    """.trimIndent().lines();
+    """
   }
 }

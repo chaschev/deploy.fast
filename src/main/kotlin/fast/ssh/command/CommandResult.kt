@@ -23,22 +23,26 @@ class InitLater(val finalize: Boolean = true) {
 }
 
 open class CommandResult<T>(
-  override val console: Console
+  override val console: Console,
+  override var exception: Exception? = null
 ) : ICommandResult<T> {
   protected var _errors: MutableList<String>? = null
 
   override var value: T by InitLater()
 
-  override var hasErrors: Boolean = nullForException { !console.result.isOk()} ?: true
 
   override fun toString(): String = "CommandResult(value=$value,console=$console)"
 
-  protected fun errors(): MutableList<String> {
+  override fun errors(): MutableList<String> {
     if (_errors == null) _errors = ArrayList()
     return _errors!!
   }
 
   fun tryFindErrors(): CommandResult<T> {
+    if(exception != null) {
+      errors().add("exception: $exception")
+    }
+
     errors().addAll(Regexes.ERRORS.findAll(console.stdout).map { it.groups[0]!!.getLine(console.stdout) })
     errors().addAll(Regexes.ERRORS.findAll(console.stderr).map { it.groups[0]!!.getLine(console.stderr) })
 
@@ -48,8 +52,6 @@ open class CommandResult<T>(
       if (console.result.isTimeout) {
         errors().add("timeout after ${console.result.timeMs}")
       }
-
-    if(!errors().isEmpty()) hasErrors = true
 
     return this
   }
@@ -65,13 +67,11 @@ open class CommandResult<T>(
 
   fun withError(s: String): CommandResult<T> {
     errors().add(s)
-    hasErrors = true
     return this
   }
 
   fun withSomeError(): CommandResult<T> {
-    if(errors().isEmpty()) errors().add("there was some error, I am in an error handling branch")
-    hasErrors = true
+    if(errors().isEmpty()) errors().add("there was some error but we can't understand which exactly, I am in an error handling branch")
     return this
   }
 }

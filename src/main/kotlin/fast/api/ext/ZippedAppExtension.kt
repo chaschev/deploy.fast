@@ -125,7 +125,7 @@ class SymlinksDSL : ScriptDslSettings(), ScriptLines {
 
   override fun lines(): List<String> {
     return symlinks.map {
-      "ln -s ${it.sourcePath} ${it.destPath}"
+      "ln -fsn ${it.sourcePath} ${it.destPath}"
     }
   }
 }

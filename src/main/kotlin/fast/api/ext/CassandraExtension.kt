@@ -35,12 +35,26 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<CassandraExtension, CassandraConfig>(ext, parentCtx) {
   suspend fun install(): ITaskResult<Boolean> {
     return LambdaTask("install", extension) {
+
       val cassandra = User("cassandra")
       val appPath = "/var/lib/cassandra"
       val appBin = "$appPath/bin"
-
+      val tmpDir = "/tmp/cassandra"
 
       script<CIR> {
+        settings {
+          abortOnError = true
+        }
+
+        mkdir(tmpDir)
+
+        cd(tmpDir)
+
+        wget(
+          config.archiveUrl,
+          config.sha1
+        )
+
         untar(
           file = "/tmp/cassandra/${config.archiveName}"
         )
@@ -52,13 +66,12 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
             "/var/lib/cassandra",
             "/var/log/cassandra"
           ),
-          rights = Rights.userOnlyReadWrite.copy(owner = cassandra),
+          rights = Rights.userOnlyReadWriteFolder.copy(owner = cassandra),
           create = true,
-          recursive = true
-
+          recursive = false
         ) { sudo = true; abortOnError = true }
 
-        sh("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra")
+        sh("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra") { withUser = cassandra.name; abortOnError = false }
 
         rights(
           paths = listOf(
@@ -66,11 +79,17 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
             "$appBin/cassandra",
             "$appBin/cqlsh"
           ),
-          rights = Rights.userOnlyExecutable
+          rights = Rights.executableAll
         ) {
           withUser = "cassandra"
           abortOnError = true
         }
+
+        //todo: try running cassanra as a newly created user
+        //todo: fix yaml download
+        //todo: configure
+        //todo: install service
+        //todo: FUCK IT
 
         symlinks {
           "$appBin/cassandra" to "/usr/local/bin/cassandra"
@@ -120,6 +139,7 @@ class CassandraConfig(
   val distroName = "apache-cassandra-$version"
   var archiveName = "apache-cassandra-$version-bin.tar.gz"
   var archiveUrl = "http://mirror.bit.edu.cn/apache/cassandra/$version/$archiveName"
+  var sha1 = "f52a65ffddeff553f2ac3f8f3fd3dd74317fe793"
 
 }
 

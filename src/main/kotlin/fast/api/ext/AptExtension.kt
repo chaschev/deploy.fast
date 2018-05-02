@@ -155,7 +155,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
 
   suspend fun dpkgListInstalled(filter: String, timeoutMs: Int = 10000) =
-    (dPkgList(filter, timeoutMs) ).mapValue { it?.filter { it.installed } }
+    (dPkgList(filter, timeoutMs) ).mapValue { it.filter { it.installed } }
 
 
   private fun cutAfterCLIInterface(console: Console): List<String> {
@@ -164,7 +164,10 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
         .substringAfter("CLI interface")
         .split(Regexes.NEW_LINE)
 
-      list.subList(2, list.size)
+      when(list.size) {
+        0, 1 -> list   //error in parsing output
+        else -> list.subList(2, list.size)
+      }
     } else {
       console.stdout.toString().split(Regexes.NEW_LINE)
     }

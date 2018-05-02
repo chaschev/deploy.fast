@@ -8,6 +8,19 @@ import fast.ssh.process.Console
 open class ScriptCommandDsl<R> : ScriptDslSettings() {
   val commands = ArrayList<ScriptDslSettings>()
 
+  fun settings(block: ScriptDslSettings.() -> Unit) {
+    this.apply(block)
+  }
+
+  fun wget(file: String, sha1: String, block: (WgetCommandDsl.() -> Unit)? = null) {
+    val dsl = WgetCommandDsl(file, sha1)
+
+    if (block != null) dsl.apply(block)
+
+    commands += dsl
+  }
+
+
   fun untar(file: String, block: (TarCommandDsl.() -> Unit)? = null) {
     val dsl = TarCommandDsl(file)
 
@@ -54,11 +67,21 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     commands += dsl
   }
 
+  fun cd(dir: String) = sh("cd $dir")
+  fun mkdir(dir: String) = sh("mkdir -p $dir")
+
   fun sh(command: String, block: (ShellCommandDsl.() -> Unit)? = null) {
     val dsl = ShellCommandDsl(command)
 
     if (block != null) dsl.apply(block)
 
+    commands += dsl
+  }
+
+  fun rawSh(command: String) {
+    val dsl = RawShellCommandDsl(command)
+
+    commands += dsl
   }
 
   fun symlinks(block: (SymlinksDSL.() -> Unit)) {

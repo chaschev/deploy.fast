@@ -40,12 +40,13 @@ sealed class Rights(open val name: String) {
 
 
   companion object {
-    val userOnlyReadWrite = UserRights("u=rw,go=", name = "userOnlyReadWrite")
+    val userOnlyReadWrite = UserRights("u=rw,go=r", name = "userOnlyReadWrite")
+    val userOnlyReadWriteFolder = UserRights("u=rwx,go=r", name = "userOnlyReadWrite")
     val userOnlyExecutable = UserRights("u=rwx,go=", name = "userOnlyExecutable")
     val userReadWrite = UserRights("u=rw,go=r", name = "userReadWrite")
     val readOnly = UserRights("a=rx", name = "readOnly")
     val executable = UserRights("u+x", name = "executable")
-    val executableAll = UserRights("a+x", name = "executable")
+    val executableAll = UserRights("a+x", name = "executableAll")
     val all = UserRights("a=rwx", name = "all")
     val writeProtect = UserRights("u=rwx,go=rx", name = "writeProtect")
   }

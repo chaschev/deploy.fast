@@ -118,11 +118,12 @@ open class ConsoleProcess(
         }
 
         if (process.isEOF() || !process.isAlive()) {
+
           val r = process.getResult(console)
 
           result = r
 
-          logger.info { "command finished with result $r, stdout=${r.console.stdout.cuteCutLast(100)} error=${r.console.stderr.cuteCutLast(100)}  '${mom.toString().cuteSubstring(0, 40)}'" }
+          logger.info { "command finished with result $r, stdout=${r.console.stdout.cuteCutLast(100).trim()}; error=${r.console.stderr.cuteCutLast(100).trim()};  command=${mom.toString().cuteSubstring(0, 40)}" }
 
           break
         }

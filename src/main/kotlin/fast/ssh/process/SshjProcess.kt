@@ -28,6 +28,10 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
   override fun isEOF(): Boolean = command.isEOF
 
   override fun getResult(console: Console, isTimeout: Boolean): ConsoleCommandResult {
+    if(command.isOpen) {
+      command.tryClose()
+    }
+
     return ConsoleCommandResult(console,
       command.exitStatus,
       command.isEOF,
@@ -36,7 +40,10 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
   }
 
   override fun cancel() {
-    command.tryClose()
+    if(command.isOpen) {
+      command.tryClose()
+    }
+
     job.cancel()
   }
 

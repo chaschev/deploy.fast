@@ -26,8 +26,9 @@ fun Session.Command.tryClose() {
 }
 
 fun CharSequence.cuteCut(length: Int): String = cuteSubstring(0, length)
+fun CharSequence.cuteCutLast(length: Int): String = cuteSubstring(Math.max(0, this.length - length), this.length, false)
 
-fun CharSequence.cuteSubstring(from: Int, to: Int): String {
+fun CharSequence.cuteSubstring(from: Int, to: Int, multiOnRight: Boolean = true): String {
   check(from >= 0, { "from must be >=0, got $from" })
 
   var l = if (to == -1) length else to
@@ -37,11 +38,24 @@ fun CharSequence.cuteSubstring(from: Int, to: Int): String {
   //nothing to cut
   if (l == length) return substring(from, l)
 
-  l -= 3
+  // prefix vs suffix
+  if(multiOnRight) {
+    val lBefore = l
+    l -= 3
 
-  if (l < from) l = from
+    // for a very small string, less than '...'
+    if (l < from) return substring(from, lBefore)
 
-  return substring(from, l) + "..."
+    return substring(from, l) + "..."
+  }else {
+    var updFrom = from
+    updFrom += 3
+
+    if (l < updFrom) return substring(from, l)
+
+    return "..." + substring(updFrom, l)
+  }
+
 }
 
 val logger = KotlinLogging.logger("badger.core")
