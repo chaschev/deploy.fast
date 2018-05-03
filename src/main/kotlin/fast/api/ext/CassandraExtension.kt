@@ -4,6 +4,7 @@ import fast.api.*
 import fast.dsl.ServiceStatus
 import fast.dsl.TaskResult
 import fast.inventory.Host
+import fast.ssh.command.script.ScriptDsl.Companion.processScript
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import mu.KLogging
 
@@ -40,8 +41,9 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
       val appPath = "/var/lib/cassandra"
       val appBin = "$appPath/bin"
       val tmpDir = "/tmp/cassandra"
+      val extractedTmpHomePath = "$tmpDir/${config.distroName}"
 
-      script<CIR> {
+      script {
         settings {
           abortOnError = true
         }
@@ -71,7 +73,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
           recursive = false
         ) { sudo = true; abortOnError = true }
 
-        sh("cp -R /tmp/cassandra/${config.distroName}/* /var/lib/cassandra") { withUser = cassandra.name; abortOnError = false }
+        sh("cp -R $extractedTmpHomePath/* /var/lib/cassandra") { withUser = cassandra.name; abortOnError = false }
 
         rights(
           paths = listOf(
@@ -85,7 +87,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
           abortOnError = true
         }
 
-        //todo: try running cassanra as a newly created user
+        //todo: try running cassandra as a newly created user ok - works from CD or with magic
         //todo: fix yaml download
         //todo: configure
         //todo: install service
@@ -97,8 +99,6 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
           "$appBin/cqlsh" to "/usr/local/bin/cqlsh"
 
           sudo = true
-          dir = "/var/lib/cassandra/bin"
-//          withUser = "cassandra"
         }
 
         CIR(ServiceStatus.installed, 0)
@@ -106,7 +106,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
 
       val cassandraYamlPath = "/var/lib/cassandra/conf/cassandra.yaml"
 
-      val confString: String = ssh.files().readAsString(cassandraYamlPath)
+      val confString: String = ssh.files().readAsString("$extractedTmpHomePath/conf/cassandra.yaml")
 
       /* TODO: EDIT THE DEFAULT CONF */
 

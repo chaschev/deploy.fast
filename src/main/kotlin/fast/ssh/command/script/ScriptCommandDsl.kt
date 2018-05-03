@@ -6,6 +6,8 @@ import fast.api.ext.SymlinksDSL
 import fast.ssh.process.Console
 
 open class ScriptCommandDsl<R> : ScriptDslSettings() {
+  internal var processing: ((Console, HashMap<String, CaptureHolder>) -> R)? = null
+
   val commands = ArrayList<ScriptDslSettings>()
 
   fun settings(block: ScriptDslSettings.() -> Unit) {
@@ -86,6 +88,10 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
 
   fun symlinks(block: (SymlinksDSL.() -> Unit)) {
     commands += SymlinksDSL().apply(block)
+  }
+
+  fun processResult(block: ((Console, HashMap<String, CaptureHolder>) -> R)) {
+    this.processing = block
   }
 
 }

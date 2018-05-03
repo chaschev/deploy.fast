@@ -205,7 +205,7 @@ class ShellScript<R>(
     val x = console.runAndWaitInteractive(
       cmd = lines.joinToString("\n"),
       processing = ConsoleProcessing(
-        process = { con -> dsl.processing.invoke(con, captureMap) },
+        process = { con -> dsl.processing!!.invoke(con, captureMap) },
         consoleHandler = { con ->
           /*
           TODO: fix block extraction
