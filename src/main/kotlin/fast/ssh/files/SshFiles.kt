@@ -17,6 +17,10 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
 
   companion object {
     private val lsRegex = "^([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.{9,11}[^\\s]+)\\s+.*$".toRegex()
+    internal fun logDuration(startedAt: Long, sizeKb: Int): String {
+      val duration = Duration.between(Instant.ofEpochMilli(startedAt), Instant.now()).toMillis() + 1
+      return "transfer done in ${duration / 1000}s, avg. speed ${sizeKb * 1000 / duration}kb/s"
+    }
   }
 
   override suspend fun ls(path: String): List<RemoteFile> {
@@ -73,10 +77,7 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
       }
     }
 
-    logger.info {
-      val duration = Duration.between(Instant.ofEpochMilli(startedAt), Instant.now()).seconds
-      "done in $duration, avg. speed ${sizeKb / duration}kb/s"
-    }
+    logger.info { Companion.logDuration(startedAt, sizeKb) }
 
   }
 
@@ -101,8 +102,7 @@ open class SshFiles(override val provider: ConsoleProvider) : Files {
     val sizeKb = files.sumBy { it.length().toInt() }
 
     logger.info {
-      val duration = Duration.between(Instant.ofEpochMilli(startedAt), Instant.ofEpochMilli(finishedAt)).seconds
-      "download done in $duration, avg. speed ${sizeKb / duration}kb/s"
+      Companion.logDuration(startedAt, sizeKb)
     }
 
     return files
