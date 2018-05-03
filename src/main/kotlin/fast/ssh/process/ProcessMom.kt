@@ -19,7 +19,7 @@ class SshjProcessMom(val cmd: String, val session: GenericSshSession) : ProcessM
         = SshjProcess(parentJob, session.nativeSession.exec(cmd))
 
     override fun toString(): String =
-        "Command($cmd, ip=${session.provider.config.address})"
+        "$cmd, ip=${session.provider.config.address}"
 }
 
 class NativeProcessMom(val processBuilder: ProcessBuilder) : ProcessMom {

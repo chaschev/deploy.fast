@@ -15,7 +15,7 @@ typealias AptTask<R> = ExtensionTask<R, AptExtension, AptConfig>
 typealias AptTaskContext = ChildTaskContext<AptExtension, AptConfig>
 
 class AptExtension(
-  config: (AptTaskContext) -> AptConfig
+  config: (AptTaskContext) -> AptConfig = {AptConfig()}
 ) : DeployFastExtension<AptExtension, AptConfig>(
   "apt", config
 ) {

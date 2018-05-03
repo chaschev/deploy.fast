@@ -15,13 +15,6 @@ typealias AnyAnyResult = ITaskResult<*>
 typealias AnyResult = ITaskResult<*>
 typealias BooleanResult = ITaskResult<Boolean>
 
-open class TaskResultAdapter<R>(
-  override val ok: Boolean,
-  override val modified: Boolean,
-  override val value: R
-) : ITaskResult<R> {
-
-}
 
 data class TaskResult<R>(
   override val value: R,
@@ -32,9 +25,13 @@ data class TaskResult<R>(
   val code: Int = 0,
   val comment: String? = null
 ) : ITaskResult<R> {
+  override fun text(): String {
+    return stdout.trim()
+  }
 
   companion object {
     val ok: ITaskResult<Boolean> = TaskResult(value = true)
+    fun failed(comment: String): ITaskResult<Boolean> = TaskResult(value = false, stdout = comment)
 
     fun <R> defaultIsOk(value : R) =
       when (value) {
@@ -55,7 +52,7 @@ class CommandLineResult<T>(
     return """Result(ok=$ok, modified=$modified, value=$value)"""
   }
 
-  fun text() = commandResult.console.stdout
+  override fun text() = commandResult.console.stdout.trim().toString()
 }
 
 fun <T> CommandResult<T>.toFast(modified: Boolean = false): CommandLineResult<T> {

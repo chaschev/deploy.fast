@@ -25,12 +25,12 @@ open class NamedExtTasks<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Ex
     @Volatile
     private var value: LambdaTask<R, EXT, EXT_CONF>? = null
 
-    operator fun getValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>): LambdaTask<R, EXT, EXT_CONF> {
+    operator fun getValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>): suspend () -> ITaskResult<R> {
       if (value == null) {
-        value = LambdaTask("change_name", extension, initBlock)
+        value = LambdaTask(property.name, extension, initBlock)
       }
 
-      return value!!
+      return suspend {value!!.play(extCtx)}
     }
 
     operator fun setValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>, any: Any) {
@@ -40,6 +40,10 @@ open class NamedExtTasks<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Ex
 
   fun <R> extensionTask(block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>): ExtensionTaskDelegate<R> {
     return ExtensionTaskDelegate(block)
+  }
+
+  fun <R> extensionFun(name: String, block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>): LambdaTask<R, EXT, EXT_CONF> {
+    return LambdaTask(name, extension, block)
   }
 
 }

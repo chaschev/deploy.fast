@@ -9,7 +9,6 @@ import mu.KLogging
 
 typealias CassandraTaskContext = ChildTaskContext<CassandraExtension, CassandraConfig>
 
-
 class CassandraExtension(
   config: (CassandraTaskContext) -> CassandraConfig
 ) :
@@ -17,7 +16,14 @@ class CassandraExtension(
     "cassandra", config
   ) {
 
-  val apt = AptExtension({  AptConfig() })
+  val apt = AptExtension()
+  val cassandraService = SystemdExtension({SystemdConfig(
+    name = "cassandra",
+    exec = "/var/lib/cassandra/bin/cassandra -p /var/lib/cassandra/cassandra.pid",
+    directory = "/var/lib/cassandra",
+    user = "cassandra",
+    pidfile = "/var/lib/cassandra/cassandra.pid"
+  )})
 
   override val tasks = { parentCtx: ChildTaskContext<*, *> ->
     CassandraTasks(this@CassandraExtension, parentCtx)
@@ -143,10 +149,17 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
         ) {sudo = true}
       }.execute(ssh)
 
+      with(extension.cassandraService.tasks(this)) {
+        installService()
+        startAndAwait()
+      }
+
+
+
       /*
        todo change this to apt call to service installation, which not yet exists
        todo exit with service.state(installed, running)
-       todo install python for cqlsh
+       ok install python for cqlsh
          service.install
          service.ensureState(installed, running)
          service.ensureConfiguration()

@@ -7,6 +7,7 @@ import fast.ssh.command.ProcessConsoleCommand
 import fast.ssh.command.script.ScriptDsl
 import fast.ssh.files.Files
 import fast.ssh.process.Console
+import fast.ssh.process.ConsoleCommandResult
 import java.io.Closeable
 
 interface ConsoleProvider : Closeable {
@@ -16,7 +17,7 @@ interface ConsoleProvider : Closeable {
 
 //    fun packages(): AptPackage = AptPackage(this)
 
-    fun files(): Files
+  fun files(sudo: Boolean = false): Files
   fun user(): String
   fun address(): String
 }
@@ -46,6 +47,12 @@ suspend fun  ConsoleProvider.runAndWait(
 ): CommandResult<Boolean> =
   runAndWaitProcess(cmd, process, { false }, timeoutMs)
 
+suspend fun  ConsoleProvider.runResult(
+  cmd: String,
+  timeoutMs: Int = 60000
+): CommandResult<ConsoleCommandResult> =
+  runAndWaitProcess(cmd, { it.result }, timeoutMs = timeoutMs)
+
 suspend fun <T> ConsoleProvider.runAndWaitProcess(
   cmd: String,
   process: (Console) -> T = { "ok" as T },
@@ -53,6 +60,8 @@ suspend fun <T> ConsoleProvider.runAndWaitProcess(
   timeoutMs: Int = 60000
 ): CommandResult<T> =
     runAndWaitInteractive(cmd, ConsoleProcessing(process, processErrors), timeoutMs)
+
+
 
 suspend fun ConsoleProvider.run(
   cmd: String,

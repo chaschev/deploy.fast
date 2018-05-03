@@ -118,6 +118,8 @@ open class ConsoleProcess(
         }
 
         if (process.isEOF() || !process.isAlive()) {
+          //wait for read/write jobs - this is a must!
+          delay(30)
 
           val r = process.getResult(console)
 
@@ -148,12 +150,12 @@ open class ConsoleProcess(
       this@ConsoleProcess
     }
 
-    logger.debug { "job started: ${describeMe()}" }
+//    logger.debug { "job started: ${describeMe()}" }
 
     return this
   }
 
-  private fun describeMe() = mom.toString().cuteCut(30)
+  private fun describeMe() = mom.toString().cuteCut(60)
 
   override fun cancel() {
     readJob1?.cancel()

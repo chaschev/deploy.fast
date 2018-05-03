@@ -24,8 +24,7 @@ class VagrantExtension(
 class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
-  suspend fun updateFile(): ITaskResult<Boolean> {
-    return LambdaTask("updateFile", extension) {
+  val updateFileTask by extensionTask {
       logger.info { "updating Vagrantfile" }
 
       val config = extension.config(this)
@@ -35,15 +34,14 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
       val text = nullForException { vagrantFile.readText() }
 
       if (text == null || !text.substring(200).contains("Managed by ")) {
-        VagrantTemplate(config)
-          .writeToFile(vagrantFile)
+        VagrantTemplate(config).writeToFile(vagrantFile)
+        ok
       } else {
         throw Exception("can't write to $vagrantFile: it already exists and not ours!")
       }
-
-      ok
-    }.play(extCtx)
   }
+
+  suspend fun updateFile() = updateFileTask()
 
   companion object : KLogging()
 }

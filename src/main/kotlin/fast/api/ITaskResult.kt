@@ -40,4 +40,6 @@ interface ITaskResult<R> {
 
   fun <O> mapValue(block: (R) -> O) =
     TaskResult(block(value), this.ok, this.modified)
+
+  fun text(): String
 }
