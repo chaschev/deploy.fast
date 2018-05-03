@@ -23,6 +23,9 @@ interface ConsoleSession : Closeable {
   fun simpleCommand(cmd: String): IConsoleProcess
 
   fun asCommonCommands(): CommonCommands = CommonCommands(this)
+
+  fun address(): String
+  fun user(): String
 }
 
 fun ConsoleSession.plainCmd(cmd: String): IConsoleProcess {

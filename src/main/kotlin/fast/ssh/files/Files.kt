@@ -15,6 +15,7 @@ interface Files {
     fun readAsString(path: String): String
 
     suspend fun mkdirs(vararg paths: String): Boolean
+    suspend fun remove(vararg paths: String, recursive: Boolean = false): Boolean
     suspend fun chown(vararg paths: String, owner: String, recursive: Boolean = true): Boolean
     suspend fun chmod(vararg paths: String, mod: String, recursive: Boolean = true): Boolean
 }

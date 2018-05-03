@@ -44,6 +44,7 @@ sealed class Rights(open val name: String) {
     val userOnlyReadWriteFolder = UserRights("u=rwx,go=r", name = "userOnlyReadWrite")
     val userOnlyExecutable = UserRights("u=rwx,go=", name = "userOnlyExecutable")
     val userReadWrite = UserRights("u=rw,go=r", name = "userReadWrite")
+    val writeAll = UserRights("a=rw", name = "writeAll")
     val readOnly = UserRights("a=rx", name = "readOnly")
     val executable = UserRights("u+x", name = "executable")
     val executableAll = UserRights("a+x", name = "executableAll")

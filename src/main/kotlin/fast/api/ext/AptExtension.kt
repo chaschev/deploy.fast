@@ -6,6 +6,7 @@ import fast.ssh.ConsoleProcessing
 import fast.ssh.command.Regexes
 import fast.ssh.process.Console
 import fast.ssh.runAndWait
+import fast.ssh.runAndWaitProcess
 import fast.ssh.runAndWaitInteractive
 
 class AptConfig : ExtensionConfig
@@ -30,7 +31,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 ) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
     val task = AptTask("listInstalledPackages", extension) {
-      ssh.runAndWait(cmd = "apt list --installed | grep $filter",
+      ssh.runAndWaitProcess(cmd = "apt list --installed | grep $filter",
         process = { console ->
           val items = cutAfterCLIInterface(console)
 
@@ -45,6 +46,18 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
     return task.play(extCtx).value
   }
+
+  suspend fun requirePackage(
+    command: String,
+    packageToInstall: String = command,
+    timeoutMs: Int = 600 * 1000) =
+    ExtensionTask("requirePackage", extension) {
+      ssh.runAndWait(
+        cmd = "which $command || sudo apt-get install -y $packageToInstall",
+        timeoutMs = timeoutMs
+      ).toFast(true)
+
+    }.play(extCtx)
 
   suspend fun install(
     pack: String,
@@ -73,7 +86,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
     timeoutMs: Int = 600 * 1000) =
     ExtensionTask("update", extension) {
 
-      ssh.runAndWait(
+      ssh.runAndWaitProcess(
         cmd = "apt-get update -y ${options.asString()}",
         process = { "ok" },
         timeoutMs = timeoutMs
@@ -86,7 +99,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
   suspend fun remove(pack: String, timeoutMs: Int = 600 * 1000)  =
     ExtensionTask("update", extension) {
-      ssh.runAndWait(
+      ssh.runAndWaitProcess(
         "sudo apt-get remove -y $pack",
         { "ok" },
         timeoutMs = timeoutMs
@@ -98,7 +111,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
   suspend fun dpkgRemove(pack: String, timeoutMs: Int = 600 * 1000) =
     ExtensionTask("update", extension) {
-      ssh.runAndWait(
+      ssh.runAndWaitProcess(
         "sudo dpkg --remove $pack",
         { "ok" },
         timeoutMs = timeoutMs
@@ -129,7 +142,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 
   suspend fun dPkgList(filter: String, timeoutMs: Int = 10000): ITaskResult<List<DPkgPackageInfo>> =
     ExtensionTask("dPkgList", extension) {
-      ssh.runAndWait(
+      ssh.runAndWaitProcess(
         cmd = "dpkg --list *$filter*",
         timeoutMs = timeoutMs,
         process = { console ->

@@ -4,7 +4,7 @@ import fast.api.*
 import fast.dsl.*
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version
-import fast.ssh.runAndWait
+import fast.ssh.runAndWaitProcess
 import mu.KLogging
 
 class OpenJdkExtension(
@@ -96,7 +96,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
 
   suspend fun javaVersion(): JavaVersion? =
     (ExtensionTask("javacVersion", extension) {
-      ssh.runAndWait("java -version",
+      ssh.runAndWaitProcess("java -version",
         process = { console ->
           val version = JavaVersion.parseJavaVersion(console.stdout.toString())
 
@@ -107,7 +107,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
 
   suspend fun javacVersion(): JavaVersion? =
     (OpenJDKTask("javacVersion", extension) {
-      ssh.runAndWait("javac -version",
+      ssh.runAndWaitProcess("javac -version",
         process = { console ->
           println("parsing java version!")
 

@@ -18,6 +18,14 @@ interface SshProvider : ConsoleProvider {
 
     companion object {
       val dummy = object: SshProvider {
+          override fun user(): String {
+              TODO("not implemented")
+          }
+
+          override fun address(): String {
+              TODO("not implemented")
+          }
+
           override fun connect(): SshProvider {
               TODO("dummy")
           }

@@ -17,13 +17,15 @@ interface ConsoleProvider : Closeable {
 //    fun packages(): AptPackage = AptPackage(this)
 
     fun files(): Files
+  fun user(): String
+  fun address(): String
 }
 
 suspend fun ConsoleProvider.runAndWaitCustom(
   timeoutMs: Int,
   cmd: String
 ): CommandResult<Console> =
-  runAndWait(cmd, { it }, timeoutMs = timeoutMs)
+  runAndWaitProcess(cmd, { it }, timeoutMs = timeoutMs)
 
 data class ConsoleProcessing<T>(
     val process: (Console) -> T,
@@ -37,8 +39,14 @@ suspend fun <T> ConsoleProvider.execute(
 ): CommandResult<T> =
   dsl.asScript().execute(this, timeoutMs)
 
+suspend fun  ConsoleProvider.runAndWait(
+  cmd: String,
+  process: (Console) -> Boolean = { true },
+  timeoutMs: Int = 60000
+): CommandResult<Boolean> =
+  runAndWaitProcess(cmd, process, { false }, timeoutMs)
 
-suspend fun <T> ConsoleProvider.runAndWait(
+suspend fun <T> ConsoleProvider.runAndWaitProcess(
   cmd: String,
   process: (Console) -> T = { "ok" as T },
   processErrors: ((Console) -> T )? = null,
@@ -46,17 +54,10 @@ suspend fun <T> ConsoleProvider.runAndWait(
 ): CommandResult<T> =
     runAndWaitInteractive(cmd, ConsoleProcessing(process, processErrors), timeoutMs)
 
-suspend fun <T> ConsoleProvider.runAndWait(
-  cmd: String,
-  processing: ConsoleProcessing<T>,
-  timeoutMs: Int = 60000
-): CommandResult<T>
-    = runAndWaitInteractive(cmd, processing, timeoutMs)
-
 suspend fun ConsoleProvider.run(
   cmd: String,
   timeoutMs: Int = 60000
-): CommandLineResult<Boolean> = runAndWait(cmd, {it.result.isOk()}, {false}, timeoutMs = timeoutMs).toFast(false)
+): CommandLineResult<Boolean> = runAndWaitProcess(cmd, {it.result.isOk()}, {false}, timeoutMs = timeoutMs).toFast(false)
 
 suspend fun <T> ConsoleProvider.runAndWaitInteractive(
   cmd: String,

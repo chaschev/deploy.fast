@@ -68,5 +68,8 @@ class GenericSshProvider(
     createSession().use(block)
 
   override fun close() = sshClient.close()
+
+  override fun user() = config.authUser
+  override fun address() = config.address
 }
 

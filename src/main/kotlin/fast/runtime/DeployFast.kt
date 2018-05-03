@@ -51,7 +51,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
   })
 
   val cassandra = CassandraExtension({
-    CassandraConfig(app.hosts)
+    CassandraConfig("deploy.fast.cluster", app.hosts)
   })
 
   companion object {

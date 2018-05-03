@@ -25,6 +25,9 @@ class GenericSshSession(override val provider: GenericSshProvider) : SshSession 
     }
   }
 
+  override fun address(): String = provider.config.address
+  override fun user(): String = provider.config.authUser
+
   override fun simpleCommand(cmd: String): IConsoleProcess =
     ConsoleSession.sshCommand(cmd, this)
 
@@ -63,6 +66,14 @@ class GenericSshSession(override val provider: GenericSshProvider) : SshSession 
 }
 
 class NativeSession : ConsoleSession {
+  override fun address(): String {
+    TODO("not implemented")
+  }
+
+  override fun user(): String {
+    TODO("not implemented")
+  }
+
   override fun simpleCommand(cmd: String): IConsoleProcess =
     ConsoleSession.command(cmd)
 

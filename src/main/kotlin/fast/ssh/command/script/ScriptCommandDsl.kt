@@ -52,8 +52,9 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
   }
 
   fun rights(
-    paths: List<String>,
+    path: String = "change",
     rights: UserRights,
+    paths: List<String> = listOf(path),
     create: Boolean = false,
     recursive: Boolean = true,
     block: (AddRightsCommandDsl.() -> Unit)? = null
