@@ -2,6 +2,7 @@ package fast.api
 
 import fast.dsl.AggregatedValue
 import fast.dsl.TaskResult
+import fast.ssh.logger
 
 interface ITaskResult<R> {
   val ok: Boolean
@@ -40,6 +41,23 @@ interface ITaskResult<R> {
 
   fun <O> mapValue(block: (R) -> O) =
     TaskResult(block(value), this.ok, this.modified)
+
+  fun asBoolean() = mapValue { ok }
+  fun abortIfError(msg: String? = null, e: Exception? = null): ITaskResult<R> {
+    return if(ok) this else {
+
+      if(msg != null) {
+        val s = "aborting due to result: $msg, $this"
+        logger.warn { s }
+      }
+
+      if(e != null) throw e
+
+      throw Exception("aborting due to result: $this")
+    }
+  }
+
+  fun nullIfError(): ITaskResult<R>? = if(ok) this else null
 
   fun text(): String
 }

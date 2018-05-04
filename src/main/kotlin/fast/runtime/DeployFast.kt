@@ -124,6 +124,14 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
             ext.openJdk.tasks(this).installJava()
           }
 
+          task("depistrano") {
+            with(extension.depistrano.tasks(this)) {
+              installRequirements()
+              deploy()
+            }
+
+          }
+
 //          task("install_cassandra") {
 //            ext.cassandra.tasks(this).install()
 //          }

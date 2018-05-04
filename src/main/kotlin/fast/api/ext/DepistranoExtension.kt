@@ -190,6 +190,20 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
     extension.apt.tasks(this).requirePackage("git")
   }
 
+  suspend fun deploy() = extensionFun("installRequirements") {
+    var r: ITaskResult<*>
+
+    r = prepareTask.play(this).abortIfError()
+    r *= checkoutTask.play(this).abortIfError()
+    r *= buildTask.play(this).abortIfError()
+    r *= distributeTask.play(this).abortIfError()
+    r *= linkTask.play(this).abortIfError()
+    r *= executeTask.play(this).abortIfError()
+    r *= sweepTask.play(this).abortIfError()
+
+    r.asBoolean()
+  }
+
   suspend fun updateFileTask() = extensionFun("updateFileTask") {
     ok
   }
