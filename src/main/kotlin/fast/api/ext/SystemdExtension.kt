@@ -29,7 +29,7 @@ class SystemdExtension(
 class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<SystemdExtension, SystemdConfig>(ext, parentCtx) {
 
-  val installService by extensionTask {
+  suspend fun installService() = extensionFun("installService") {
     logger.info { "installing systemd service ${config.name}.service" }
 
     val confString = SystemdTemplate(config).generate()
@@ -43,15 +43,15 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
     ok
   }
 
-  val isActive by extensionTask {
+  suspend fun isActive() = extensionFun("isActive") {
     ssh.runResult("sudo systemctl is-active ${config.name}").toFast()
   }
 
-  val isEnabled by extensionTask {
+  suspend fun isEnabled() = extensionFun("isEnabled") {
     ssh.runAndWait("sudo systemctl is-enabled ${config.name}").toFast()
   }
 
-  val start by extensionTask {
+  suspend fun  start() = extensionFun("start") {
     ssh.runAndWait("sudo systemctl start ${config.name}").toFast()
   }
 
@@ -107,7 +107,7 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
     ssh.runResult("sudo systemctl status ${config.name}").toFast().mapValue { it.console.stdout.toString() }
   }
 
-  val logs by extensionTask {
+  suspend fun logs() = extensionFun("logs") {
     ssh.runResult("sudo journalctl -u ${config.name} --no-pager | tail -n 20").toFast().mapValue { it.console.stdout.toString() }
   }
 

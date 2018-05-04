@@ -48,7 +48,7 @@ data class VagrantHost(
 class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
-  val updateFileTask by extensionTask {
+  suspend fun updateFile() = extensionFun("updateFile") {
       logger.info { "updating Vagrantfile" }
 
       val config = extension.config(this)
@@ -65,7 +65,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
       }
   }
 
-  suspend fun updateFile() = updateFileTask()
+
 
   companion object : KLogging()
 }

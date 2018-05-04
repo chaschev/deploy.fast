@@ -1,6 +1,6 @@
 package fast.ssh.command
 
-import fast.api.ext.nullForException
+import fast.lang.nullForException
 import fast.ssh.logger
 import fast.ssh.process.Console
 import kotlin.reflect.KProperty
@@ -43,8 +43,8 @@ open class CommandResult<T>(
       errors().add("exception: $exception")
     }
 
-    errors().addAll(Regexes.ERRORS.findAll(console.stdout).map { it.groups[0]!!.getLine(console.stdout) })
-    errors().addAll(Regexes.ERRORS.findAll(console.stderr).map { it.groups[0]!!.getLine(console.stderr) })
+    errors().addAll(Regexes.ERRORS.findAll(console.stdout).map { it.groups[0]!!.getLineWithMe(console.stdout) })
+    errors().addAll(Regexes.ERRORS.findAll(console.stderr).map { it.groups[0]!!.getLineWithMe(console.stderr) })
 
     if (nullForException { console.result } == null) {
       errors().add("no result, the process could be running")
