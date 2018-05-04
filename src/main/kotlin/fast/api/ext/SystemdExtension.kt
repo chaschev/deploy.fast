@@ -97,7 +97,7 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
     }
 
     ok
-  }).play(extCtx)
+  })
 
   val stop by extensionTask {
     ssh.runAndWait("sudo systemctl stop ${config.name}").toFast()

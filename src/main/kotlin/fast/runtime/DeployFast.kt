@@ -2,6 +2,7 @@ package fast.runtime
 
 import fast.api.DeployFastApp
 import fast.api.ext.*
+import fast.api.ext.DepistranoConfigDSL.Companion.depistrano
 import fast.dsl.*
 import fast.inventory.Group
 import fast.inventory.Host
@@ -9,6 +10,7 @@ import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.logger
 import fast.ssh.run
+import fast.ssh.runResult
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
 import org.kodein.di.generic.bind
@@ -49,6 +51,25 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
       pack = "openjdk-8-jdk"
     )
   })
+
+  val depistrano = depistrano {
+    checkout { ctx, ssh,folder,ref  ->
+      VCSUpdateResult("", "")
+    }
+
+    build {
+      ssh.runResult("gradle build")
+      listOf("todo: ls build dir to retrieve jar files")
+    }
+
+    distribute {
+      // todo: call extension
+    }
+
+    execute {
+      // todo: install service and make sure it is running
+    }
+  }
 
   val cassandra = CassandraExtension({
     CassandraConfig("deploy.fast.cluster", app.hosts)
@@ -103,9 +124,9 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
             ext.openJdk.tasks(this).installJava()
           }
 
-          task("install_cassandra") {
-            ext.cassandra.tasks(this).install()
-          }
+//          task("install_cassandra") {
+//            ext.cassandra.tasks(this).install()
+//          }
         }
       }
     }

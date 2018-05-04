@@ -30,7 +30,7 @@ open class NamedExtTasks<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Ex
         value = LambdaTask(property.name, extension, initBlock)
       }
 
-      return suspend {value!!.play(extCtx)}
+      return suspend { value!!.play(extCtx) }
     }
 
     operator fun setValue(extTasks: NamedExtTasks<EXT, EXT_CONF>, property: KProperty<*>, any: Any) {
@@ -42,8 +42,12 @@ open class NamedExtTasks<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Ex
     return ExtensionTaskDelegate(block)
   }
 
-  fun <R> extensionFun(name: String, block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>): LambdaTask<R, EXT, EXT_CONF> {
-    return LambdaTask(name, extension, block)
+
+  suspend fun <R> extensionFun(name: String, block: suspend ChildTaskContext<EXT, EXT_CONF>.() -> ITaskResult<R>): ITaskResult<R> {
+    /**
+     * Extension creates a context and every task is executed inside this context. For each task execution a new task
+     */
+    return LambdaTask(name, extension, block).play(extCtx)
   }
 
 }

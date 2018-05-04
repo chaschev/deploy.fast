@@ -108,9 +108,9 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
         //ok: configure
         //ok: install python
         //ok: check cqlsh
-        //todo: install service, run from cd
-        //todo: FUCK IT
-        //todo: take a break
+        //ok: install service, run from cd
+        //ok: FUCK IT
+        //ok: take a break
 
         symlinks {
           "$appBin/cassandra" to "/usr/local/bin/cassandra"

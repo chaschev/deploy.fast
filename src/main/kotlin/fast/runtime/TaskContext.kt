@@ -6,6 +6,7 @@ import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.api.ITaskResult
 import fast.api.Task
+import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
@@ -33,6 +34,7 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
   val ssh = session.ssh
 
   val global: AllSessionsRuntimeContext by FAST.instance()
+  val app: AppContext by FAST.instance()
 
   lateinit var config: EXT_CONF
   lateinit var extension: EXT
