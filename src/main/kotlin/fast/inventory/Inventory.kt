@@ -1,5 +1,8 @@
 package fast.inventory
 
+import fast.runtime.DeployFastDI.FAST
+import org.kodein.di.generic.instance
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 class Inventory(
@@ -7,9 +10,11 @@ class Inventory(
 ) {
   val asOneGroup = CompositeGroup("inventory")
 
+  val props = ConfigProps(File(".fast/fast.props"))
+
+  val vars = ConcurrentHashMap<String, Any>()
+
   private var initialised = false
-
-
 
   init {
     asOneGroup.groups.addAll(groups)
@@ -31,19 +36,53 @@ class Inventory(
   }
 
   fun initialised() = initialised
+
+  fun getVar(name: String, host: Host): Any? {
+    if(host._getVar(name) != null) return host._getVar(name)
+
+    val groupOverrideValue = host.groups.find { it._getVar(name) != null }?._getVar(name)
+
+    if(groupOverrideValue != null)  return groupOverrideValue
+
+    return props[name] ?:
+      vars[name]
+  }
+}
+
+interface IWithVars {
+  fun _getVar(name: String): Any?
+  fun setVar(name: String, value: Any)
+}
+
+open class WithVars : IWithVars {
+  private var _vars: ConcurrentHashMap<String, Any>? = null
+
+  override fun _getVar(name: String): Any? {
+    if(_vars == null) return null
+    return _vars!![name]
+  }
+
+  override fun setVar(name: String, value: Any) {
+    if(_vars == null) _vars = ConcurrentHashMap()
+    _vars!![name] = value
+  }
+
 }
 
 data class Host(
   val address: String,
-  val name: String = address,
-  val vars: ConcurrentHashMap<String, Any> = ConcurrentHashMap()
-) {
+  val name: String = address
+) : WithVars() {
   internal val _groups: ArrayList<Group> = ArrayList()
 
+  val inventory: Inventory by FAST.instance()
+
   val groups: List<Group> = _groups
+
+  fun getVar(name: String) = inventory.getVar(name, this)
 }
 
-interface IGroup {
+interface IGroup : IWithVars {
   val name: String
   val hosts: List<Host>
 
@@ -54,7 +93,7 @@ interface IGroup {
 
 class CompositeGroup(
   override val name: String
-) : IGroup {
+) : IGroup, WithVars() {
   val groups = ArrayList<IGroup>()
 
   override val hosts: List<Host> by lazy {
@@ -101,7 +140,7 @@ class CompositeGroup(
 data class Group(
   override val name: String,
   override val hosts: List<Host>
-) : IGroup {
+) : IGroup, WithVars() {
   override fun getHostsForName(name: String): List<Host> {
     if(this.name == name) return hosts
 

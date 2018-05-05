@@ -18,8 +18,11 @@ interface Files {
   suspend fun remove(vararg paths: String, recursive: Boolean = false): Boolean
   suspend fun chown(vararg paths: String, owner: String, recursive: Boolean = true): Boolean
   suspend fun chmod(vararg paths: String, mod: String, recursive: Boolean = true): Boolean
+}
 
-  suspend fun exists(path: String) = !ls(path).isEmpty()
+suspend fun Files.exists(path: String): Boolean {
+  return ls(path.substringBeforeLast('/'))
+    .find { it.name == path.substringAfterLast('/') } != null
 }
 
 

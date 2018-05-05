@@ -4,7 +4,7 @@ import fast.ssh.cuteCut
 import java.io.BufferedWriter
 
 class Console(
-  val stdin: BufferedWriter,
+  private val stdin: BufferedWriter,
   internal val session: Cancellable,
   val stdout: StringBuilder = StringBuilder(),
   val stderr: StringBuilder = StringBuilder()

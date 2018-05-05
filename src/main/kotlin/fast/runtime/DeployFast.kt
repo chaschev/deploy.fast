@@ -4,19 +4,18 @@ import fast.api.DeployFastApp
 import fast.api.ext.*
 import fast.api.ext.DepistranoConfigDSL.Companion.depistrano
 import fast.dsl.*
-import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
+import fast.lang.writeln
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
-import fast.ssh.command.script.ScriptDsl
 import fast.ssh.command.script.ScriptDsl.Companion.script
+import fast.ssh.files.exists
 import fast.ssh.logger
 import fast.ssh.run
 import fast.ssh.runResult
 import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
@@ -57,11 +56,13 @@ class AppContext {
     }
   }
   suspend fun <R> runOnce(path: String, block: suspend () -> R): Deferred<R> {
-    return (globalMap.getOrDefault(path, {
+    val r = globalMap.getOrElse(path, {
       asyncNoisy {
         block()
       }
-    }) as Deferred<R>)
+    })
+
+    return r as Deferred<R>
   }
 }
 
@@ -90,6 +91,10 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
   })
 
   val depistrano = depistrano {
+    ctx.session.ssh.user()
+    projectDir = "${ctx.home}/crawlers"
+
+
     checkout { ctx, ssh,folder,ref  ->
       val config = ctx.config
 
@@ -99,12 +104,22 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
         val refId = script {
           cd(srcDir)
 
-          if (!checkedOut) {
-            sh("git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
-          } else {
-            cd("honey-badger")
+          capture {
+            processConsole = { console, newText ->
+              if(newText.contains("Password for ")) {
+                val password = ctx.getStringVar("git.password")
+                console.writeln(password)
+              }
+            }
 
-            sh("git pull")
+            if (!checkedOut) {
+              sh("git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
+              cd("honey-badger")
+            } else {
+              cd("honey-badger")
+
+              sh("git pull")
+            }
           }
 
           capture("revisionCapture") {
@@ -112,11 +127,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
           }
         }.execute(ssh)["revisionCapture"]!!.text!!.toString()
 
-        if(!checkedOut) {
-          ssh.runResult("cd $srcDir && git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
-        } else {
-          ssh.runResult("cd $srcDir/honey-badger && git pull")
-        }
+        logger.info { "checked out revision $refId" }
 
         VCSUpdateResult(refId, refId.substring(0, 6))
       }

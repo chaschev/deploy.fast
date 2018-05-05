@@ -4,6 +4,7 @@ import fast.api.User
 import fast.ssh.*
 import fast.ssh.command.CommandResult
 import fast.ssh.process.Console
+import java.util.concurrent.atomic.AtomicReference
 
 /**
 Script is used to have multiple commands for the same packet sent to the server
@@ -112,10 +113,10 @@ class AddUserCommandDsl(
   }
 
   override fun lines(): List<String> {
-    val userGroup = if(user.group == null) "" else "-g ${user.group}"
+    val userGroup = if (user.group == null) "" else "-g ${user.group}"
 
     return listOfNotNull(
-      if(user.group != null) " grep -q ${user.group} /etc/group || sudo groupadd ${user.group}" else null,
+      if (user.group != null) " grep -q ${user.group} /etc/group || sudo groupadd ${user.group}" else null,
 
       "id -u ${user.name} &>/dev/null || sudo useradd -m $userGroup ${user.name}",
 
@@ -138,18 +139,19 @@ class RawShellCommandDsl(
 
 data class CaptureHolder(
   val command: ScriptCommandWithCaptureDsl<*>,
-  val name: String,
+  val id: String,
+  var userName: String? = null,
   var result: Any? = null
 ) {
   var text: CharSequence? = null
+  var start: Int = -1
 }
 
-class CommandVisitor(
-) {
+class CommandVisitor {
   fun visit(
     dsl: ScriptCommandDsl<*>,
     lines: ArrayList<String> = ArrayList(),
-    captureMap: MutableMap<String, CaptureHolder> = HashMap()
+    captureMap: CaptureMap
   ) {
     for (command in dsl.commands) {
       when (command) {
@@ -160,7 +162,7 @@ class CommandVisitor(
 
           val prevCommand = lines.last().cuteCut(20)
 
-          if(command.abortOnError) {
+          if (command.abortOnError) {
             lines += "rc=\$?; if [ \$rc != 0 ] ; then echo process exited with code \$rc, exiting command: $prevCommand, line: ${lines.size};  exit \$rc; fi"
           }
         }
@@ -170,15 +172,15 @@ class CommandVisitor(
         is ScriptCommandWithCaptureDsl<*> -> {
           val index = lines.size
 
-          val holder = CaptureHolder(command,command.name ?: index.toString())
+          val holder = CaptureHolder(command, index.toString(), command.name)
 
-          captureMap[holder.name] = holder
+          captureMap.add(holder)
 
-          lines += "echo --- start ${holder.name}"
+          lines += "echo --- start ${holder.id}"
 
           visit(command, lines, captureMap)
 
-          lines += "echo --- end ${holder.name}"
+          lines += "echo --- end ${holder.id}"
         }
       }
     }
@@ -187,59 +189,98 @@ class CommandVisitor(
 }
 
 private fun ScriptDslSettings.withSudoPrefix(line: String): String {
-  return if(withUser != null) {
+  return if (withUser != null) {
     "sudo -u $withUser $line"
   } else
-  if(sudo){
-    "sudo $line"
-  } else
-    line
+    if (sudo) {
+      "sudo $line"
+    } else
+      line
 }
 
 class ScriptCommandResult<R>(
   console: Console,
   exception: Exception? = null,
-  val captureMap: MutableMap<String, CaptureHolder>
-): CommandResult<R>(console, exception) {
+  val captureMap: CaptureMap
+) : CommandResult<R>(console, exception) {
 
   operator fun get(name: String): CaptureHolder? {
-    return captureMap[name]
+    return captureMap.nameMap[name]
   }
 
-  constructor(captureMap: MutableMap<String, CaptureHolder>, r: CommandResult<R>)
-    : this(r.console, r.exception, captureMap) {
+  constructor(
+    captureMap: CaptureMap,
+    r: CommandResult<R>
+  ) : this(r.console, r.exception, captureMap) {
 
     this._errors = ArrayList(r.errors())
     this.value = r.value
   }
 }
 
+class CaptureMap {
+  fun add(holder: CaptureHolder) {
+    idMap[holder.id] = holder
+    if (holder.userName != null) nameMap[holder.userName!!] = holder
+  }
+
+  val idMap = HashMap<String, CaptureHolder>()
+  val nameMap = HashMap<String, CaptureHolder>()
+
+}
+
 class ShellScript<R>(
   val dsl: ScriptDsl<R>
 ) {
-  val captureMap = HashMap<String, CaptureHolder>()
 
-  suspend fun execute(console: ConsoleProvider, timeoutMs: Int): ScriptCommandResult<R> {
+  val captureMap = CaptureMap()
+
+  suspend fun execute(ssh: ConsoleProvider, timeoutMs: Int): ScriptCommandResult<R> {
     val lines = ArrayList<String>()
 
     CommandVisitor().visit(dsl.root, lines, captureMap)
 
-    val x = console.runAndWaitInteractive(
+    val currentCapture = AtomicReference<CaptureHolder>(null)
+
+    val x = ssh.runAndWaitInteractive(
       cmd = lines.joinToString("\n"),
       processing = ConsoleProcessing(
         process = { console ->
           captureProcessing(console)
-          dsl.processing!!.invoke(console, captureMap)
+          dsl.allCapturesProcessing!!.invoke(console, captureMap)
         },
         consoleHandler = { con ->
-          con.newIn.mapEachNamedTextBlock(
-            "--- start",
-            "--- end"
-          ) { start, end, blockName, blockText ->
-            val holder = captureMap[blockName]!!
+          val newHolders = con.newIn.mapEachNamedTextBlock(
+            "--- start ",
+            "--- end "
+          ) { start, end, blockId, blockText ->
+            val holder = captureMap.idMap[blockId]!!
 
-            holder.result = holder.command.processInput(con, blockText)
+            holder.start = start
+            holder.result = holder.command.processConsole?.invoke(con, blockText)
+            holder
           }
+
+          // if there was a previous capture started, append to it
+          if(currentCapture.get() != null){
+            val holder = currentCapture.get()!!
+
+            //if no new holders, append all. Else: append before the start of the first holder
+            if(newHolders.isEmpty()) {
+              holder.text = con.stdout.subSequence(holder.start, con.stdout.length)
+            } else {
+              holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
+            }
+
+            holder.command.processConsole?.invoke(con, con.newIn)
+          }
+
+          // if found new blocks, change the current capture
+          if(!newHolders.isEmpty()) {
+            currentCapture.set(newHolders.last())
+          }
+
+
         }
       ),
       timeoutMs = timeoutMs
@@ -250,13 +291,13 @@ class ShellScript<R>(
 
   private fun captureProcessing(console: Console) {
     console.stdout.mapEachNamedTextBlock(
-      "--- start",
-      "--- end"
-    ) { start, end, blockName, blockText ->
-      val holder = captureMap[blockName]!!
+      "--- start ",
+      "--- end "
+    ) { start, end, blockId, blockText ->
+      val holder = captureMap.idMap[blockId]!!
 
-      holder.result = holder.command.processInput(console, blockText)
-      holder.text = blockText
+//      holder.result = holder.command?.processConsole(console, blockText)
+      holder.text = blockText.trim()
     }
   }
 
@@ -280,18 +321,18 @@ class ShellScript<R>(
       val blockNameEnd = str.indexOf('\n', pos + blockStart.length)
       val blockName = str.substring(pos + blockStart.length, blockNameEnd)
 
-      val blockEndFullname = "$blockEnd $blockName"
+      val blockEndFullname = "$blockEnd$blockName"
 
       val blockEndPos = this.indexOf(blockEndFullname, pos + blockStart.length)
 
-      if(blockEndPos == -1) {
-        list += block(pos, -1, blockName, this.subSequence(pos, length ))
+      if (blockEndPos == -1) {
+        list += block(pos, -1, blockName, this.subSequence(pos, length))
         break
       } else {
         // doesn't make much sense, so fuck it
         if (blockEndPos >= end) break
 
-        list += block(pos, blockEndPos, blockName, this.subSequence(pos, end))
+        list += block(pos, blockEndPos, blockName, this.subSequence(blockNameEnd + 1, blockEndPos))
 
         pos = blockEndPos + blockEnd.length
       }

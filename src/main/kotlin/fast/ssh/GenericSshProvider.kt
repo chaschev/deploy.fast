@@ -1,5 +1,6 @@
 package fast.ssh
 
+import kotlinx.coroutines.experimental.runBlocking
 import mu.KLogging
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.transport.TransportException
@@ -70,6 +71,7 @@ class GenericSshProvider(
   override fun close() = sshClient.close()
 
   override fun user() = config.authUser
+  override val home by lazy { runBlocking { run("echo \$HOME").text().trim()} }
   override fun address() = config.address
 }
 

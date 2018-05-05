@@ -23,7 +23,7 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
   }
 
   companion object {
-    private val lsRegex = "^([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.{9,11}[^\\s]+)\\s+.*$".toRegex()
+    private val lsRegex = "^([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.{9,11}[^\\s]+)\\s+(.*)$".toRegex()
     internal fun logDuration(startedAt: Long, sizeKb: Int): String {
       val duration = Duration.between(Instant.ofEpochMilli(startedAt), Instant.now()).toMillis() + 1
       return "transfer done in ${duration / 1000}s, avg. speed ${sizeKb * 1000 / duration}kb/s"
@@ -31,33 +31,43 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
   }
 
   override suspend fun ls(path: String): List<RemoteFile> {
-    return provider.runAndWaitProcess("$sudo ls -ltra $path", { console ->
-      val list = console.stdout.split('\n')
-      val rows =
-        if (list.isNotEmpty() && list[0].contains("total "))
-          list.subList(1, list.size)
-        else
-          list
+    return provider.runAndWaitProcess(
+      cmd = "$sudo ls -ltrA $path",
+      process = { console ->
+        val list = console.stdout.trim().split('\n')
+        val rows =
+          if (list.isNotEmpty() && list[0].contains("total "))
+            list.subList(1, list.size)
+          else
+            list
 
-      val files = rows.map { line ->
-        //-rw-r--r-- 1 root root 72945070 Oct 11 14:41 jenkins_2.73.2_all.deb
-        //    0      1   2    3    4       5       6     7
-        val g = lsRegex.tryFind(line)!!
+        val files = rows.map { line ->
+          //-rw-r--r-- 1 root root 72945070 Oct 11 14:41 jenkins_2.73.2_all.deb
+          //    1      2   3    4    5           6                  7
+          val g = lsRegex.tryFind(line)!!
 
-        RemoteFileImpl(
-          name = g[7],
-          isFolder = g[0][0] == 'd',
-          group = g[2],
-          user = g[3],
-          size = g[4].toLong(),
-          path = path,
-          unixRights = g[0],
-          lastModified = g[5]
-        )
-      }
+          try {
+            RemoteFileImpl(
+              name = g[7],
+              isFolder = g[1][0] == 'd',
+              group = g[2],
+              user = g[3]+":"+g[4],
+              size = g[5].toLong(),
+              path = path,
+              unixRights = g[1],
+              lastModified = g[6]
+            )
+          } catch (e: Exception) {
+            logger.warn { "ls parsing failed with line $line" }
+            throw e
+          }
+        }
 
-      files
-    }, timeoutMs = 5 * 1000).value
+        files
+      },
+      processErrors = { emptyList() },
+      timeoutMs = 15 * 1000
+    ).value
 
   }
 

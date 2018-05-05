@@ -187,7 +187,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     tasks: Iterable<AnyTask>,
     interceptors: (TaskInterceptor<EXT, EXT_CONF>)? = null
   ): AnyResult {
-    var r: AnyResult = TaskResult.ok as AnyResult
+    var r: AnyResult = TaskResult.ok
 
     for (task in tasks) {
       r *= playChildTask(task, interceptors)
@@ -195,6 +195,13 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
 
     return r
   }
+
+  fun getStringVar(name: String): String {
+    return session.host.getVar(name) as String
+  }
+
+  val user by lazy {ssh.user()}
+  val home by lazy {ssh.home}
 
   companion object : KLogging() {
 

@@ -2,11 +2,12 @@ package fast.api.ext
 
 import fast.api.*
 import fast.dsl.TaskResult.Companion.ok
+import fast.dsl.toFast
 import fast.inventory.Host
-import fast.runtime.TaskInterceptor.Companion.intercept
 import fast.ssh.SshProvider
+import fast.ssh.command.script.ScriptDsl.Companion.script
 import mu.KLogging
-import java.time.Instant
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatterBuilder
 
 typealias DepistranoTaskContext = ChildTaskContext<DepistranoExtension, DepistranoConfigDSL>
@@ -64,7 +65,7 @@ data class CheckoutMethod(
 class DepistranoRuntime(
  val dsl: DepistranoConfigDSL
 ) {
-  var releaseName: String = dsl.releaseTagDateFormat.format(Instant.now())
+  var releaseName: String = dsl.releaseTagDateFormat.format(LocalDateTime.now())
 
 }
 
@@ -92,7 +93,7 @@ class DepistranoConfigDSL(
   var execute: (suspend (DepistranoTaskContext) -> Unit)? = null
 
   var releaseTagDateFormat = DateTimeFormatterBuilder()
-    .appendPattern("yyyyMMdd_HHmm_ss")
+    .appendPattern("YYYYMMdd_HHmm_ss")
     .toFormatter()
 
   val runtime = DepistranoRuntime(this)
@@ -114,6 +115,7 @@ class DepistranoConfigDSL(
   }
 
   val srcDir by lazy { "$projectDir/src" }
+  val stashDir by lazy { "$projectDir/stash" }
 
   companion object {
     fun depistranoDsl (ctx: DepistranoTaskContext, block: DepistranoConfigDSL.() -> Unit): DepistranoConfigDSL {
@@ -149,9 +151,13 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   : NamedExtTasks<DepistranoExtension, DepistranoConfigDSL>(ext, parentCtx) {
 
   val prepareTask by extensionTask {
-    ssh.files().mkdirs(config.projectDir)
-
-    ok
+    script {
+      mkdirs(
+        config.projectDir,
+        config.srcDir,
+        config.stashDir
+      )
+    }.execute(ssh).toFast()
   }
 
   //checkout will set release tag
@@ -226,7 +232,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
     r = prepareTask.play(this).abortIfError()
     r *= checkoutTask.play(this).abortIfError()
-    r *= buildTask.play(this).abortIfError()
+//    r *= buildTask.play(this).abortIfError()
     r *= distributeTask.play(this).abortIfError()
     r *= linkTask.play(this).abortIfError()
     r *= executeTask.play(this).abortIfError()

@@ -57,7 +57,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
           abortOnError = true
         }
 
-        mkdir(tmpDir)
+        mkdirs(tmpDir)
 
         cd(tmpDir)
 

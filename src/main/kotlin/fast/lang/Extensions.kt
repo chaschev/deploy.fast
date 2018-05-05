@@ -1,5 +1,7 @@
 package fast.lang
 
+import java.io.BufferedWriter
+
 inline fun <T> nullForException(
   onError: ((Throwable) -> Unit) = { _ -> },
   block: () -> T): T? {
@@ -11,3 +13,5 @@ inline fun <T> nullForException(
     null
   }
 }
+
+fun BufferedWriter.writeln(s: String) = write(s + "\n")

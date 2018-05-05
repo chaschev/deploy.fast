@@ -6,7 +6,7 @@ import fast.api.ext.SymlinksDSL
 import fast.ssh.process.Console
 
 open class ScriptCommandDsl<R> : ScriptDslSettings() {
-  internal var processing: ((Console, HashMap<String, CaptureHolder>) -> R)? = null
+  internal var processing: ((Console, CaptureMap) -> R)? = null
 
   val commands = ArrayList<ScriptDslSettings>()
 
@@ -32,7 +32,7 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
   }
 
   fun capture(name: String? = null, block: ScriptCommandWithCaptureDsl<*>.() -> Unit) {
-    val dsl = ScriptCommandWithCaptureDsl<Any>().apply(block)
+    val dsl = ScriptCommandWithCaptureDsl<Any>(name).apply(block)
 
     this.commands += dsl
   }
@@ -41,10 +41,10 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     capture {
       commands += _addUser(user, block)
 
-      this.processInput = { console, myText ->
+      this.processConsole = { console, myText ->
         if (user.password != null) {
           if (myText.contains("UNIX password:"))
-            console.stdin.write(user.password + "\n")
+            console.writeln(user.password)
         }
       }
     }
@@ -70,7 +70,7 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
   }
 
   fun cd(dir: String) = sh("cd $dir")
-  fun mkdir(dir: String) = sh("mkdir -p $dir")
+  fun mkdirs(vararg dirs: String) = sh("mkdir -p ${dirs.joinToString(" ")}")
 
   fun sh(command: String, block: (ShellCommandDsl.() -> Unit)? = null) {
     val dsl = ShellCommandDsl(command)
@@ -90,14 +90,14 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     commands += SymlinksDSL().apply(block)
   }
 
-  fun processResult(block: ((Console, HashMap<String, CaptureHolder>) -> R)) {
+  fun processResult(block: ((Console, CaptureMap) -> R)) {
     this.processing = block
   }
 
 }
 
 class ScriptCommandWithCaptureDsl<R>(val name: String? = null) : ScriptCommandDsl<R>() {
-  lateinit var processInput: (Console, myText: CharSequence) -> Any
+  var processConsole: ((Console, myText: CharSequence) -> Any)? = null
 
   internal fun _addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null): AddUserCommandDsl {
     val dsl = AddUserCommandDsl(user)

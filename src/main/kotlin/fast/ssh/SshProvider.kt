@@ -18,6 +18,9 @@ interface SshProvider : ConsoleProvider {
 
     companion object {
       val dummy = object: SshProvider {
+          override val home: String
+              get() = TODO("not implemented")
+
           override fun user(): String {
               TODO("not implemented")
           }
