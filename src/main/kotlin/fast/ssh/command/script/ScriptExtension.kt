@@ -3,6 +3,7 @@ package fast.ssh.command.script
 import fast.api.User
 import fast.ssh.*
 import fast.ssh.command.CommandResult
+import fast.ssh.process.Console
 
 /**
 Script is used to have multiple commands for the same packet sent to the server
@@ -136,10 +137,12 @@ class RawShellCommandDsl(
 }
 
 data class CaptureHolder(
-  val command: ScriptCommandWithCapture<*>,
+  val command: ScriptCommandWithCaptureDsl<*>,
   val name: String,
   var result: Any? = null
-)
+) {
+  var text: CharSequence? = null
+}
 
 class CommandVisitor(
 ) {
@@ -164,7 +167,7 @@ class CommandVisitor(
         is ScriptBlock -> {
           lines += command.getString()
         }
-        is ScriptCommandWithCapture<*> -> {
+        is ScriptCommandWithCaptureDsl<*> -> {
           val index = lines.size
 
           val holder = CaptureHolder(command,command.name ?: index.toString())
@@ -193,29 +196,45 @@ private fun ScriptDslSettings.withSudoPrefix(line: String): String {
     line
 }
 
+class ScriptCommandResult<R>(
+  console: Console,
+  exception: Exception? = null,
+  val captureMap: MutableMap<String, CaptureHolder>
+): CommandResult<R>(console, exception) {
+
+  operator fun get(name: String): CaptureHolder? {
+    return captureMap[name]
+  }
+
+  constructor(captureMap: MutableMap<String, CaptureHolder>, r: CommandResult<R>)
+    : this(r.console, r.exception, captureMap) {
+
+    this._errors = ArrayList(r.errors())
+    this.value = r.value
+  }
+}
+
 class ShellScript<R>(
   val dsl: ScriptDsl<R>
 ) {
-  suspend fun execute(console: ConsoleProvider, timeoutMs: Int): CommandResult<R> {
+  val captureMap = HashMap<String, CaptureHolder>()
+
+  suspend fun execute(console: ConsoleProvider, timeoutMs: Int): ScriptCommandResult<R> {
     val lines = ArrayList<String>()
-    val captureMap = HashMap<String, CaptureHolder>()
 
     CommandVisitor().visit(dsl.root, lines, captureMap)
 
     val x = console.runAndWaitInteractive(
       cmd = lines.joinToString("\n"),
       processing = ConsoleProcessing(
-        process = { con -> dsl.processing!!.invoke(con, captureMap) },
+        process = { console ->
+          captureProcessing(console)
+          dsl.processing!!.invoke(console, captureMap)
+        },
         consoleHandler = { con ->
-          /*
-          TODO: fix block extraction
-            read start tag, get index,
-            don't expect there will be a closing tag
-            if it is there, try to find next opening tag
-            */
           con.newIn.mapEachNamedTextBlock(
-            "--- start ",
-            "--- end "
+            "--- start",
+            "--- end"
           ) { start, end, blockName, blockText ->
             val holder = captureMap[blockName]!!
 
@@ -226,7 +245,19 @@ class ShellScript<R>(
       timeoutMs = timeoutMs
     )
 
-    return x
+    return ScriptCommandResult(captureMap, x)
+  }
+
+  private fun captureProcessing(console: Console) {
+    console.stdout.mapEachNamedTextBlock(
+      "--- start",
+      "--- end"
+    ) { start, end, blockName, blockText ->
+      val holder = captureMap[blockName]!!
+
+      holder.result = holder.command.processInput(console, blockText)
+      holder.text = blockText
+    }
   }
 
   fun <R> CharSequence.mapEachNamedTextBlock(

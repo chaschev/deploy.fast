@@ -4,13 +4,20 @@ import fast.api.DeployFastApp
 import fast.api.ext.*
 import fast.api.ext.DepistranoConfigDSL.Companion.depistrano
 import fast.dsl.*
+import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
+import fast.ssh.asyncNoisy
+import fast.ssh.command.script.ScriptDsl
+import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.logger
 import fast.ssh.run
 import fast.ssh.runResult
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
 import org.kodein.di.generic.bind
@@ -18,6 +25,7 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 
 class AppContext {
@@ -26,6 +34,35 @@ class AppContext {
   val inventory: Inventory by FAST.instance()
 
   val hosts: List<Host> = inventory.asOneGroup.getHostsForName(runAt)
+  val globalMap = ConcurrentHashMap<String, Any>()
+
+  /**
+   * Party coordination could be done in a similar fashion.
+   *
+   * I.e. can await for an
+   *  (taskKey, AtomicInteger) value,
+   *  or a certain state of parties
+   *  shared result state isCompleted() = true. Parties report to this result
+   */
+
+  suspend fun awaitKey(path: String, timeoutMs: Long = 600_000): Boolean {
+    val startMs = System.currentTimeMillis()
+
+    while(true) {
+      if(globalMap.containsKey(path)) return true
+
+      if(System.currentTimeMillis() - startMs > timeoutMs) return false
+
+      delay(50)
+    }
+  }
+  suspend fun <R> runOnce(path: String, block: suspend () -> R): Deferred<R> {
+    return (globalMap.getOrDefault(path, {
+      asyncNoisy {
+        block()
+      }
+    }) as Deferred<R>)
+  }
 }
 
 object DeployFastDI {
@@ -54,14 +91,52 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
   val depistrano = depistrano {
     checkout { ctx, ssh,folder,ref  ->
-      VCSUpdateResult("", "")
+      val config = ctx.config
+
+      with(config) {
+        val checkedOut = ssh.files().exists("$srcDir/honey-badger")
+
+        val refId = script {
+          cd(srcDir)
+
+          if (!checkedOut) {
+            sh("git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
+          } else {
+            cd("honey-badger")
+
+            sh("git pull")
+          }
+
+          capture("revisionCapture") {
+            sh("git rev-parse --verify HEAD")
+          }
+        }.execute(ssh)["revisionCapture"]!!.text!!.toString()
+
+        if(!checkedOut) {
+          ssh.runResult("cd $srcDir && git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
+        } else {
+          ssh.runResult("cd $srcDir/honey-badger && git pull")
+        }
+
+        VCSUpdateResult(refId, refId.substring(0, 6))
+      }
     }
 
     build {
       ssh.runResult("gradle build")
-      listOf("todo: ls build dir to retrieve jar files")
+
+      val buildResult = script {
+        cd("$srcDir/honey-badger")
+        sh("rm build/*.jar")
+        sh("gradle build")
+      }.execute(ssh)
+
+      val jar = ssh.files().ls("$srcDir/honey-badger/build").find { it.name.endsWith(".jar") }!!
+
+      buildResult.toFast().mapValue { listOf(jar.path) }
     }
 
+    //todo select node and synchronize
     distribute {
       // todo: call extension
     }

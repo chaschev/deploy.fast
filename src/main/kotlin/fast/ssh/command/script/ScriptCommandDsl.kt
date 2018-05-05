@@ -31,12 +31,11 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     commands += dsl
   }
 
-  fun capture(name: String? = null, block: ScriptCommandWithCapture<*>.() -> Unit) {
-    val dsl = ScriptCommandWithCapture<Any>().apply(block)
+  fun capture(name: String? = null, block: ScriptCommandWithCaptureDsl<*>.() -> Unit) {
+    val dsl = ScriptCommandWithCaptureDsl<Any>().apply(block)
 
     this.commands += dsl
   }
-
 
   open fun addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null) {
     capture {
@@ -97,14 +96,13 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
 
 }
 
-class ScriptCommandWithCapture<R>(val name: String? = null) : ScriptCommandDsl<R>() {
+class ScriptCommandWithCaptureDsl<R>(val name: String? = null) : ScriptCommandDsl<R>() {
   lateinit var processInput: (Console, myText: CharSequence) -> Any
 
   internal fun _addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null): AddUserCommandDsl {
     val dsl = AddUserCommandDsl(user)
 
     if (block != null) dsl.apply(block)
-
 
     return dsl
   }

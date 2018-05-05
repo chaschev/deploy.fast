@@ -6,7 +6,6 @@ import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.api.ITaskResult
 import fast.api.Task
-import fast.inventory.Inventory
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
@@ -23,9 +22,23 @@ typealias AnyTaskContextExt<EXT> =
 typealias AnyAnyTaskContext =
   TaskContext<*, *, *>
 
-//User accesses Task Context
-//TODO consider another abstraction level: separate user context from logic
-class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
+data class TaskInterceptor<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
+  var modifyConfig: (EXT_CONF.() -> Unit)? = null,
+  var modifyExtension: (EXT.() -> Unit)? = null
+) {
+  fun config(block: EXT_CONF.() -> Unit) { modifyConfig = block}
+
+  companion object {
+    fun <EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
+      intercept(block: TaskInterceptor<EXT, EXT_CONF>.() -> Unit) =
+
+      TaskInterceptor<EXT, EXT_CONF>().apply(block)
+  }
+}
+
+// The difficult part:
+//  context of a task is created inside the tasks() call and is stored inside NamedExtTasks object
+class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
 (
   val task: Task<R, EXT, EXT_CONF>,
   val session: SessionRuntimeContext,
@@ -45,6 +58,8 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
   @Volatile
   private var job: Deferred<ITaskResult<Any>>? = null
 
+  val address: String by lazy { session.host.address }
+
   /**
    * Api to play a Task
    *
@@ -61,9 +76,12 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
    *   we call child task from extension apt, i.e. apt.install('java')
    *   we don't know fuck about it's types, so it is Task<Any, *, *>
    */
-  private suspend fun playOneTask(childTask: Task<Any, *, ExtensionConfig>): ITaskResult<Any> {
+  private suspend fun playOneTask(
+    childTask: Task<Any, *, ExtensionConfig>,
+    interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
+  ): ITaskResult<Any> {
     job = asyncNoisy {
-      val childContext = newChildContext(childTask)
+      val childContext = newChildContext(childTask, interceptors = interceptors)
 
       logger.info { "playing task: ${childContext.session.path}" }
 
@@ -75,21 +93,24 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
   }
 
   /**
-   * custom names are for new extension context, i.e.
+   * @param customName custom names are for new extension context, i.e.
    * task1.task2.apt::listPackages
    *             ^-- that is the custom name
+   * @param
    */
-  internal fun newChildContext(childTask: Task<*, *, *>, customName: String? = null): TaskContext<Any, EXT, EXT_CONF> {
+  internal fun newChildContext(
+    childTask: Task<*, *, *>,
+    customName: String? = null,
+    interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
+  ): TaskContext<Any, EXT, EXT_CONF> {
     val childSession = session.newChildContext(childTask)
 
-    // we only need to create it
-    // TODO switch to fucking reflection
-
+    // that is not correct when there is an extension change
     val childContext = TaskContext<Any, EXT, EXT_CONF>(
       childTask as Task<Any, EXT, EXT_CONF>, childSession, this
     )
 
-    if(customName != null)
+    if (customName != null)
       childContext.session.path = "${session.path}.$customName"
 
     this.children.add(childContext)
@@ -101,9 +122,18 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     childContext.config = childTask.extension.config(childContext)
     childContext.extension = childTask.extension
 
+    if (interceptors != null)
+      childContext.applyInterceptors(interceptors)
     // TODO apply interceptors here (to change config variables)
 
     return childContext
+  }
+
+  private fun applyInterceptors(interceptor: TaskInterceptor<EXT, EXT_CONF>) {
+    with(interceptor) {
+      if (modifyConfig != null) config.apply(modifyConfig!!)
+      if (modifyExtension != null) extension.apply(modifyExtension!!)
+    }
   }
 
   /*
@@ -113,29 +143,35 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     return childCtx.play(task.asTask())
   }*/
 
-  suspend fun play(task: Task<R, EXT, EXT_CONF>): ITaskResult<R> {
+  suspend fun play(
+    task: Task<R, EXT, EXT_CONF>,
+    interceptors: (TaskInterceptor<EXT, EXT_CONF>)? = null
+  ): ITaskResult<R> {
     return playChildTask(task as AnyTask) as ITaskResult<R>
   }
 
-  suspend fun playChildTask(childTask: AnyTask): ITaskResult<*> {
+  suspend fun playChildTask(
+    childTask: AnyTask,
+    interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
+  ): ITaskResult<*> {
     // TODO apply interceptors here (modify tasks)
 //    if(childTask is ExtensionTask) return playExtensionTask(childTask)
 
-    var result: ITaskResult<*> = ok as ITaskResult<*>
+    var result: ITaskResult<*> = ok
     var taskResult: ITaskResult<*>? = null
 
     with(childTask) {
       if (before.size() > 0) {
-        taskResult = play(before)
+        taskResult = play(before, interceptors)
         result *= taskResult!!
       }
 
-      taskResult = playOneTask(this)
+      taskResult = playOneTask(this, interceptors)
 
       result *= taskResult!!
 
       if (after.size() > 0) {
-        result *= play(after)
+        result *= play(after, interceptors)
       }
     }
 
@@ -147,17 +183,20 @@ class TaskContext<R, EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensi
     return play(dsl.tasks)
   }
 
-  suspend fun play(tasks: Iterable<AnyTask>): AnyResult {
+  suspend fun play(
+    tasks: Iterable<AnyTask>,
+    interceptors: (TaskInterceptor<EXT, EXT_CONF>)? = null
+  ): AnyResult {
     var r: AnyResult = TaskResult.ok as AnyResult
 
     for (task in tasks) {
-      r *= playChildTask(task)
+      r *= playChildTask(task, interceptors)
     }
 
     return r
   }
 
-  companion object: KLogging() {
+  companion object : KLogging() {
 
   }
 

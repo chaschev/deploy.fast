@@ -30,7 +30,6 @@ open class CommandResult<T>(
 
   override var value: T by InitLater()
 
-
   override fun toString(): String = "CommandResult(value=$value,console=$console)"
 
   override fun errors(): MutableList<String> {

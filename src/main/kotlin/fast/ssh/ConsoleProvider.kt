@@ -4,6 +4,7 @@ import fast.dsl.CommandLineResult
 import fast.dsl.toFast
 import fast.ssh.command.CommandResult
 import fast.ssh.command.ProcessConsoleCommand
+import fast.ssh.command.script.ScriptCommandResult
 import fast.ssh.command.script.ScriptDsl
 import fast.ssh.files.Files
 import fast.ssh.process.Console
@@ -37,10 +38,10 @@ data class ConsoleProcessing<T>(
 suspend fun <T> ConsoleProvider.execute(
   dsl: ScriptDsl<T>,
   timeoutMs: Int = 600000
-): CommandResult<T> =
+): ScriptCommandResult<T> =
   dsl.asScript().execute(this, timeoutMs)
 
-suspend fun  ConsoleProvider.runAndWait(
+suspend fun ConsoleProvider.runAndWait(
   cmd: String,
   process: (Console) -> Boolean = { true },
   timeoutMs: Int = 60000

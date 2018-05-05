@@ -3,6 +3,7 @@ package fast.api
 import fast.dsl.*
 import fast.runtime.DeployFastDI
 import fast.runtime.TaskContext
+import fast.runtime.TaskInterceptor
 import org.kodein.di.generic.instance
 
 open class Task<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
@@ -19,8 +20,29 @@ open class Task<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensio
     return context.play(this) as ITaskResult<Any>
   }
 
-  override suspend final fun play(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
+  override suspend final fun play(
+    context: ChildTaskContext<EXT, EXT_CONF>
+  ): ITaskResult<R> {
     return context.play(this as Task<Any, EXT, EXT_CONF>) as ITaskResult<R>
+  }
+
+  /**
+   * Example:
+   *
+   * with(extension.stash.tasks(this)) {
+   *   stash.playWithInterception(extCtx, intercept {
+   *     config {
+   *       files.addAll(artifacts.value)
+   *     }
+   *   })
+   * }
+   */
+  override suspend final fun playWithInterception(
+    context: ChildTaskContext<EXT, EXT_CONF>,
+    interceptors: TaskInterceptor<EXT, EXT_CONF>
+  ): ITaskResult<R> {
+
+    return context.play(this as Task<Any, EXT, EXT_CONF>, interceptors) as ITaskResult<R>
   }
 
   override suspend fun doIt(context: ChildTaskContext<EXT, EXT_CONF>): ITaskResult<R> {
