@@ -3,6 +3,7 @@ package fast.api.ext
 import fast.api.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
+import fast.runtime.TaskInterceptor.Companion.intercept
 import fast.ssh.SshProvider
 import mu.KLogging
 import java.time.Instant
@@ -19,6 +20,13 @@ class DepistranoExtension(
   "depistrano", config
 ) {
   val apt = AptExtension()
+  val stash = StashExtension({ parentCtx ->
+    val ctx = parentCtx as DepistranoTaskContext
+    StashConfig(
+      ctx.config.hosts,
+      stashFolder = ctx.config.projectDir
+    )
+  })
 
   override val tasks = { parentCtx: ChildTaskContext<*, *> ->
     DepistranoTasks(this@DepistranoExtension, parentCtx)
@@ -73,7 +81,7 @@ class DepistranoConfigDSL(
 
   var checkoutRef: String? = null
 
-  var build: (suspend (DepistranoTaskContext) -> List<String>)? = null
+  var build: (suspend (DepistranoTaskContext) -> ITaskResult<List<String>>)? = null
 
   /** checkout works with an empty folder */
   var checkout: (suspend (ctx: DepistranoTaskContext, ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult)? = null
@@ -93,7 +101,7 @@ class DepistranoConfigDSL(
     checkout = block
   }
 
-  fun build(block: suspend DepistranoTaskContext.() -> List<String>) {
+  fun build(block: suspend DepistranoTaskContext.() -> ITaskResult<List<String>>) {
     build = block
   }
 
@@ -163,18 +171,41 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
     ok
   }
 
+  /**
+   * Architectural note: handling multiple jobs:
+   *
+   * val job1 = runOnce({job1})
+   * val job2 = runOnce({job2})
+   *
+   * job1.await()
+   * job2.await()
+   */
   val buildTask by extensionTask {
-    config.build!!.invoke(this@extensionTask)
-    ok
+    val artifacts = app.runOnce("depistrano_build_${session.path}") {
+      app.globalMap["depistrano_build_owner_${session.path}"] = address
+
+      logger.info { "I am ($address) building the project, everyone is waiting" }
+
+       config.build!!.invoke(this@extensionTask).mapValue { address to it }
+
+    }.await()
+
+    artifacts
   }
 
   val distributeTask by extensionTask {
-    TODO()
-    ok
+    val (owner, artifacts) = buildTask.play(this).value
+
+    val tasks = extension.stash.tasks(this)
+
+    var r: ITaskResult<*> = tasks.stash(listOf(owner), artifacts)
+
+    r *= tasks.unstash()
+
+    r.asBoolean()
   }
 
   val linkTask by extensionTask {
-
     ok
   }
 
