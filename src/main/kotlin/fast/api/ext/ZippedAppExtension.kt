@@ -13,6 +13,7 @@ import fast.ssh.command.script.ScriptDslSettings
 import fast.ssh.command.script.ScriptLines
 import fast.ssh.run
 import honey.lang.append
+import honey.lang.mapReplace
 
 typealias ZippedAppTaskContext = ChildTaskContext<ZippedAppExtension, ZippedAppConfig>
 
@@ -25,7 +26,7 @@ typealias ZippedAppTaskContext = ChildTaskContext<ZippedAppExtension, ZippedAppC
  * i.e. configure Cassandra right after installation
  */
 class ZippedAppExtension(
-  config: (TaskContext<*, *, *>) -> ZippedAppConfig
+  config: (ZippedAppTaskContext) -> ZippedAppConfig
 ) : DeployFastExtension<ZippedAppExtension, ZippedAppConfig>(
   "zippedApp", config
 ) {
@@ -43,6 +44,12 @@ data class ChecksumHolder(
     sha256 != null -> "sha256sum"
     else -> TODO()
   }
+
+  fun get() = when {
+    sha1 != null -> sha1
+    sha256 != null -> sha256
+    else -> TODO()
+  }
 }
 
 class ConfigurationEditor() {
@@ -54,9 +61,8 @@ class ConfigurationEditor() {
   }
 
   fun files(): List<String> {
-    TODO("not implemented")
+    return editorMap.keys.toList()
   }
-
 
 }
 
@@ -65,11 +71,13 @@ class ZippedAppConfig(
   val version: String
 ) : ExtensionConfig {
   var archiveBaseUrl: String by InitLater()
-  var archiveBasename: () -> String = { "$name-$version" }
+//  var archiveBasename: () -> String = { "$name-$version" }
+  //name of the folder inside the archive
+  var archivedFolderName: () -> String = { "$name-$version" }
   var archiveName = { "$name-$version.tar.gz" }
   var archiveUrl = { "${archiveBaseUrl}/${archiveName()}" }
   var tempDir = { "/tmp/$name" }
-  var appDir: String = "/var/lib"
+  var appDir = {"/var/local/lib/$name"}
   var otherAppDirs = { emptyList<String>() }
   var editor: ConfigurationEditor = ConfigurationEditor()
   var binDir: String = "/usr/local/bin"
@@ -127,11 +135,10 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
    * TODO: take a break
    */
   suspend fun install() = extensionFun("install") {
-    val appUser = config.createUser
-    val appPath = config.appDir
-    val appBin = config.appDir
+    val appUser = config.createUser ?: User(ssh.user())
+    val appPath = config.appDir()
     val tmpDir = config.tempDir()
-    val extractedTmpHomePath = "$tmpDir/${config.archiveBasename()}"
+    val extractedTmpHomePath = "$tmpDir/${config.archivedFolderName()}"
 
     val tmpConfPath = "$tmpDir/zippedExtConf"
 
@@ -150,7 +157,7 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
       )
 
       untar(
-        file = "$tmpDir/${config.archiveName}"
+        file = "$tmpDir/${config.archiveName()}"
       )
 
       if (appUser != null)
@@ -173,7 +180,10 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
 
       mkdirs(tmpConfPath)
 
-      sh("cp -f ${config.editor.files().joinToString(" ")} $tmpDir/zippedExtConf") { sudo = true }
+      if(!config.editor.files().isEmpty()) {
+        sh("echo copying conf files into $tmpConfPath")
+        sh("cp -f ${config.editor.files().joinToString(" ")} $tmpConfPath") { sudo = true }
+      }
 
       rights(
         path = tmpConfPath,
@@ -183,49 +193,62 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
       if (config.execSymlinks != null) {
         val symlinks = config.execSymlinks!!
 
-        // set right to exec sources
-        rights(
-          paths = symlinks.symlinks.map { it.sourcePath },
-          rights = symlinks.rights ?: Rights.executableAll
-        ) {
-          withUser = appUser?.name
-          abortOnError = true
-        }
+        //create paths for symlinks
+        val parentPaths = symlinks.symlinks.map { "$appPath/${it.sourcePath}".substringBeforeLast('/') }
 
         symlinks.sudo = true
 
+        symlinks.symlinks.mapReplace { it.copy(sourcePath = "$appPath/${it.sourcePath}") }
+
         //add symlink creation to script
         commands += symlinks
+
+        // set right to exec sources
+        rights(
+          paths = parentPaths.append(symlinks.symlinks.map { it.sourcePath }),
+          rights = (symlinks.rights ?: Rights.executableAll).copy(owner = appUser)
+        ) {
+          sudo = true
+          abortOnError = true
+        }
       }
 
       ok
 
     }.execute(ssh)
 
-    //PATCH & UPLOAD CONF
+    /*
 
-    //first: files are copied
-    //then: script is generated
-    //last: script is executed
-    script {
-      config.editor.editorMap.forEach { (sourcePath, editor) ->
-        val basename = sourcePath.substringAfterLast('/')
-        val contentsBefore = ssh.files().readAsString("$tmpConfPath/$basename")
-        val contentsAfter = editor(contentsBefore)
+    PATCH & UPLOAD CONF
 
-        ssh.files().writeToString("$tmpConfPath/$basename", contentsAfter)
+    first: files are copied
+    then: script is generated
+    last: script is executed
 
-        sh("cp -f $tmpConfPath/$basename $sourcePath") { sudo = true }
+    */
+    if(config.editor.files().isNotEmpty()) {
+      script {
+        config.editor.editorMap.forEach { (sourcePath, editor) ->
+          val basename = sourcePath.substringAfterLast('/')
+          val contentsBefore = ssh.files().readAsString("$tmpConfPath/$basename")
+          val contentsAfter = editor(contentsBefore)
 
-        var confRights = Rights.userReadWrite
-        if (appUser != null) confRights = confRights.copy(owner = appUser)
+          sh("echo writing conf files after editing $tmpConfPath")
 
-        rights(
-          path = sourcePath,
-          rights = confRights
-        ) { sudo = true }
-      }
-    }.execute(ssh)
+          ssh.files().writeToString("$tmpConfPath/$basename", contentsAfter)
+
+          sh("cp -f $tmpConfPath/$basename $sourcePath") { sudo = true }
+
+          var confRights = Rights.userReadWrite
+          if (appUser != null) confRights = confRights.copy(owner = appUser)
+
+          rights(
+            path = sourcePath,
+            rights = confRights
+          ) { sudo = true }
+        }
+      }.execute(ssh)
+    }
 
     TaskResult.ok
   }
@@ -243,7 +266,6 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
 
 }
 
-
 data class Symlink(
   val sourcePath: String,
   val destPath: String,
@@ -258,7 +280,7 @@ class SymlinksDSL : ScriptDslSettings(), ScriptLines {
   var rights: UserRights? = null
 
   infix fun String.to(appPath: String): Symlink {
-    symlinks += Symlink(this, appPath)
+    symlinks += Symlink(appPath, this)
     return symlinks.last()
   }
 

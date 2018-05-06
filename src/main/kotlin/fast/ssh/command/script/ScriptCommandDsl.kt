@@ -71,7 +71,7 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
   }
 
   fun cd(dir: String) = sh("cd $dir")
-  fun mkdirs(vararg dirs: String) = sh("mkdir -p ${dirs.joinToString(" ")}")
+  fun mkdirs(vararg dirs: String, sudo: Boolean = false) = sh("${if(sudo) "sudo" else ""} mkdir -p ${dirs.joinToString(" ")}")
 
   fun sh(command: String, block: (ShellCommandDsl.() -> Unit)? = null) {
     val dsl = ShellCommandDsl(command)

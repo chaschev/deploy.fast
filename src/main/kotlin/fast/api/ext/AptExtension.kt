@@ -31,7 +31,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
 ) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
     val task = AptTask("listInstalledPackages", extension) {
-      ssh.runAndWaitProcess(cmd = "apt list --installed | grep $filter",
+      ssh.runAndWaitProcess(cmd = "sudo apt list --installed | grep $filter",
         process = { console ->
           val items = cutAfterCLIInterface(console)
 

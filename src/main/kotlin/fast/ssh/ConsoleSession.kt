@@ -1,7 +1,7 @@
 package fast.ssh
 
 import fast.ssh.command.CommandResult
-import fast.ssh.command.ProcessConsoleCommand
+import fast.ssh.command.ProcessWithProcessing
 import fast.ssh.process.*
 import java.io.Closeable
 import java.io.File
@@ -41,7 +41,7 @@ suspend fun <T> ConsoleSession.runAndWait(
   cmd: String,
   process: (Console) -> T,
   processErrors: ((Console) -> T)? = null
-): CommandResult<T> = ProcessConsoleCommand(plainCmd(cmd), process, processErrors).runBlocking(timeoutMs)
+): CommandResult<T> = ProcessWithProcessing(plainCmd(cmd), process, processErrors).runBlocking(timeoutMs)
 
 suspend fun ConsoleSession.runAndWaitCustom(timeoutMs: Int,
                                             cmd: String): CommandResult<Console> =

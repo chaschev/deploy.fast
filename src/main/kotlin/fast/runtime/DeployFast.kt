@@ -7,16 +7,12 @@ import fast.dsl.*
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
-import fast.lang.writeln
 import fast.runtime.DeployFastDI.FAST
-import fast.ssh.asyncNoisy
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.files.exists
 import fast.ssh.logger
 import fast.ssh.run
 import fast.ssh.runResult
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.*
 import org.kodein.di.generic.bind
@@ -24,62 +20,11 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 
-
-class AppContext {
-  val runAt: String by FAST.instance(tag = "runAt")
-
-  val inventory: Inventory by FAST.instance()
-
-  val hosts: List<Host> = inventory.asOneGroup.getHostsForName(runAt)
-  val globalMap = ConcurrentHashMap<String, Any>()
-
-  /**
-   * Party coordination could be done in a similar fashion.
-   *
-   * I.e. can await for an
-   *  (taskKey, AtomicInteger) value,
-   *  or a certain state of parties
-   *  shared result state isCompleted() = true. Parties report to this result
-   */
-
-  suspend fun awaitKey(path: String, timeoutMs: Long = 600_000): Boolean {
-    val startMs = System.currentTimeMillis()
-
-    while(true) {
-      if(globalMap.containsKey(path)) return true
-
-      if(System.currentTimeMillis() - startMs > timeoutMs) return false
-
-      delay(50)
-    }
-  }
-
-  suspend fun <R> runOnce(path: String, block: suspend () -> R): Deferred<R> {
-    val r = globalMap.getOrElse(path, {
-      asyncNoisy {
-        block()
-      }
-    })
-
-    return r as Deferred<R>
-  }
-}
-
-object DeployFastDI {
-  var FAST = Kodein {
-    bind<AppContext>() with singleton { AppContext() }
-  }
-    set(value) {
-      FASTD = value.direct
-      field = value
-    }
-
-  var FASTD = FAST.direct
-}
 
 class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
+
+
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension({
     VagrantConfig(app.hosts)
@@ -90,6 +35,8 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
       pack = "openjdk-8-jdk"
     )
   })
+
+  val gradle = GradleExtension({GradleConfig(version = "4.7")})
 
   val depistrano = depistrano {
     ctx.session.ssh.user()
@@ -163,6 +110,18 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
   })
 
   companion object {
+    @JvmStatic
+    fun main(args: Array<String>) {
+      CrawlersAppDI
+
+      val scheduler = DeployFastScheduler<CrawlersFastApp>()
+
+      runBlocking {
+        scheduler.doIt()
+      }
+    }
+
+
     fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
       val app by FAST.instance<DeployFastApp<*>>()
 
@@ -209,6 +168,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
           task("install_java") {
             ext.openJdk.tasks(this).installJava()
+            ext.gradle.tasks(this).install()
           }
 
           task("depistrano") {
@@ -230,7 +190,6 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
 
 object CrawlersAppDI {
-
   init {
     DeployFastDI.FAST = Kodein {
       extend(FAST)
@@ -263,13 +222,5 @@ object CrawlersAppDI {
     }
   }
 
-  @JvmStatic
-  fun main(args: Array<String>) {
-    val scheduler = DeployFastScheduler<CrawlersFastApp>()
-
-    runBlocking {
-      scheduler.doIt()
-    }
-  }
 }
 

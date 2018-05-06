@@ -13,7 +13,7 @@ class WgetCommandDsl(
 hashSum() {
  URL=$url
  FILE=$filename
- sha1=$checksum
+ sha1=${checksum.get()}
 
  echo "${'$'}sha1 ${'$'}FILE" | $util --quiet -c -
 

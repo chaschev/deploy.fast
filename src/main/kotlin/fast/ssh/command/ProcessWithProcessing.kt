@@ -8,7 +8,7 @@ import fast.ssh.process.Console
  * Otherwise default handler will try to find errors and will add them or an 'empty' error
  *
  */
-class ProcessConsoleCommand<T>(
+class ProcessWithProcessing<T>(
   override val process: IConsoleProcess,
   private val processResult: (Console) -> T,
   private val processErrors: ((Console) -> T)? = null

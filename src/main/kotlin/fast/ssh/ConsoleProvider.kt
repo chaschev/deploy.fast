@@ -3,7 +3,7 @@ package fast.ssh
 import fast.dsl.CommandLineResult
 import fast.dsl.toFast
 import fast.ssh.command.CommandResult
-import fast.ssh.command.ProcessConsoleCommand
+import fast.ssh.command.ProcessWithProcessing
 import fast.ssh.command.script.ScriptCommandResult
 import fast.ssh.command.script.ScriptDsl
 import fast.ssh.files.Files
@@ -76,10 +76,15 @@ suspend fun <T> ConsoleProvider.runAndWaitInteractive(
   timeoutMs: Int
 ): CommandResult<T> =
     createSession().use { session ->
-      ProcessConsoleCommand(
-          process = session.plainCmd(cmd),
-          processResult = processing.process,
-          processErrors = processing.processErrors
-        ).runBlocking(timeoutMs, processing.consoleHandler)
+      val process = ProcessWithProcessing(
+        process = session.plainCmd(cmd),
+        processResult = processing.process,
+        processErrors = processing.processErrors
+      )
+
+//      TODO: configure loggers
+//      process.printToOutput = true
+
+      process.runBlocking(timeoutMs, processing.consoleHandler)
     }
 

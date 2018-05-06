@@ -31,7 +31,7 @@ abstract class DeployFastExtension<EXT: DeployFastExtension<EXT, CONF>, CONF: Ex
    * Each call will create a child context from parent for executing extension's tasks
     *
    * */
-   open val tasks: (AnyTaskContext) -> NamedExtTasks<EXT, CONF> = {
+   open val tasks: (TaskContext<Any, *, ExtensionConfig>) -> NamedExtTasks<EXT, CONF> = {
     NamedExtTasks(this as EXT, it)
   }
 

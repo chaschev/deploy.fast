@@ -51,6 +51,7 @@ fun CharSequence.cuteSubstring(from: Int, to: Int, multiOnRight: Boolean = true)
     var updFrom = from
     updFrom += 3
 
+    //there is probably a bug here
     if (l < updFrom) return substring(from, l)
 
     return "..." + substring(updFrom, l)

@@ -59,7 +59,7 @@ class TarCommandDsl(
     return when {
       file.endsWith("tar.gz") -> listOf("tar xfz $file")
       file.endsWith("gz") -> listOf("tar xf $file")
-      file.endsWith("zip") -> listOf("unzip $file")
+      file.endsWith("zip") -> listOf("unzip -o -q $file")
       else -> throw Exception("todo: support $file for tar")
     }
   }

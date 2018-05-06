@@ -125,7 +125,10 @@ open class ConsoleProcess(
 
           result = r
 
-          logger.info { "command finished with result $r, stdout=${r.console.stdout.cuteCutLast(100).trim()}; error=${r.console.stderr.cuteCutLast(100).trim()};  command=${mom.toString().cuteSubstring(0, 40)}" }
+          logger.info { "command finished with result $r,\n" +
+            "  stdout=${r.console.stdout.cuteCutLast(100).trim()}\n" +
+            "  error=${r.console.stderr.cuteCutLast(100).trim()}\n" +
+            "  command=${mom.toString().cuteSubstring(0, 40)}\n" }
 
           break
         }

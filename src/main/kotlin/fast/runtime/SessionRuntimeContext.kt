@@ -8,7 +8,6 @@ import fast.ssh.SshProvider
 class SessionRuntimeContext(
   val task: Task<*, *, *>,
   val parent: SessionRuntimeContext?,
-  var path: String,
   val allSessionsContext: AllSessionsRuntimeContext,
   val host: Host,
   val ssh: SshProvider
@@ -17,7 +16,6 @@ class SessionRuntimeContext(
     this(
       task = task,
       parent = parent,
-      path = if (!parent.path.isBlank()) "${parent.path}.${task.name}" else task.name,
       allSessionsContext = parent.allSessionsContext,
       ssh = parent.ssh,
       host = parent.host

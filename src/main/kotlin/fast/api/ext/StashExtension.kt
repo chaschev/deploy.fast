@@ -61,7 +61,7 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
     }
 
     val eligible = config.owners.contains(address)
-    val taskKey = "stash_${session.path}"
+    val taskKey = "stash_$path"
 
 
     if (!eligible) {

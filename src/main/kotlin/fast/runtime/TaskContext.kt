@@ -11,16 +11,8 @@ import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import mu.KLogging
 import org.kodein.di.generic.instance
-
-
-typealias AnyTaskContext =
-  TaskContext<Any, *, ExtensionConfig>
-
-typealias AnyTaskContextExt<EXT> =
-  TaskContext<*, EXT, *>
-
-typealias AnyAnyTaskContext =
-  TaskContext<*, *, *>
+import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 
 data class TaskInterceptor<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>(
   var modifyConfig: (EXT_CONF.() -> Unit)? = null,
@@ -42,8 +34,9 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
 (
   val task: Task<R, EXT, EXT_CONF>,
   val session: SessionRuntimeContext,
-  val parent: AnyAnyTaskContext?
-) {
+  val parent: TaskContext<*, *, *>?,
+  var path: String = getPath(parent, task)
+  ) {
   val ssh = session.ssh
 
   val global: AllSessionsRuntimeContext by FAST.instance()
@@ -83,7 +76,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     job = asyncNoisy {
       val childContext = newChildContext(childTask, interceptors = interceptors)
 
-      logger.info { "playing task: ${childContext.session.path}" }
+      logger.info { "playing task: ${childContext.path}" }
 
       //types are wrong, but so far I don't know how to replace *
       (childTask as Task<Any, EXT, EXT_CONF>).doIt(childContext)
@@ -111,7 +104,9 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     )
 
     if (customName != null)
-      childContext.session.path = "${session.path}.$customName"
+      childContext.path = "$path.$customName"
+
+    logger.debug { "created new context: ${childContext.path}" }
 
     this.children.add(childContext)
 
@@ -203,6 +198,29 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
   val user by lazy {ssh.user()}
   val home by lazy {ssh.home}
 
+  fun <T: TaskContext<*,*,*>> getParentCtx(aClass: KClass<T>): T? {
+    var ctx: TaskContext<*, *, *>? = parent
+
+    while (ctx != null) {
+      if(ctx::class.isSubclassOf(aClass)) return ctx as T
+      ctx = ctx.parent
+    }
+
+    return null
+  }
+
+  fun <T: TaskContext<*,*,*>> getParentCtx(block: (TaskContext<*,*,*>) -> Boolean): T? {
+    var ctx: TaskContext<*, *, *>? = parent
+
+    while (ctx != null) {
+      if(block(ctx)) return ctx as T
+      ctx = ctx.parent
+    }
+
+    return null
+  }
+
+
   companion object : KLogging() {
 
   }
@@ -226,4 +244,8 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
   }
 */
 
+}
+
+private fun <EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig, R> getPath(parent: TaskContext<*, *, *>?, task: Task<R, EXT, EXT_CONF>): String {
+  return if (parent?.path?.isEmpty() ?: true) task.name else "${parent!!.path}.${task.name}"
 }

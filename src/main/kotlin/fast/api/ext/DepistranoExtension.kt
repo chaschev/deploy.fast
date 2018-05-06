@@ -187,8 +187,8 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
    * job2.await()
    */
   val buildTask by extensionTask {
-    val artifacts = app.runOnce("depistrano_build_${session.path}") {
-      app.globalMap["depistrano_build_owner_${session.path}"] = address
+    val artifacts = app.runOnce("depistrano_build_$path") {
+      app.globalMap["depistrano_build_owner_$path"] = address
 
       logger.info { "I am ($address) building the project, everyone is waiting" }
 

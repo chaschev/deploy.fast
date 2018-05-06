@@ -95,3 +95,11 @@ class CompositeUnmodifiableSet<E>(
 
 
 }
+
+inline fun <E, R> MutableList<E>.mapReplace(map: (E) -> R): MutableList<R> {
+  for(i in 0 until size) {
+    this[i] = map(this[i]) as E
+  }
+
+  return this as MutableList<R>
+}

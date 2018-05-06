@@ -16,7 +16,8 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   }
 
   suspend fun runBlocking(timeoutMs: Int = 60000, handler: ((Console) -> Unit)? = null): CommandResult<T> {
-    val process = process.start(timeoutMs, chooseHandler(handler))
+    val activeHandler = chooseHandler(handler)
+    val process = process.start(timeoutMs, activeHandler)
 
     process.await()
 
@@ -51,6 +52,14 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   private fun chooseHandler(handler: ((Console) -> Unit)?) =
     if (handler == null)
       (if (printToOutput) printingHandler else null)
-    else
-      handler
+    else {
+      if (!printToOutput)
+        handler
+      else {
+        {console: Console ->
+          printingHandler(console)
+          handler(console)
+        }
+      }
+    }
 }
