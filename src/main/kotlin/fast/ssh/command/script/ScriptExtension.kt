@@ -258,7 +258,7 @@ class ShellScript<R>(
             val holder = captureMap.idMap[blockId]!!
 
             holder.start = start
-            holder.result = holder.command.processConsole?.invoke(con, blockText)
+            holder.result = holder.command.handleInput?.invoke(con, blockText)
             holder
           }
 
@@ -273,7 +273,7 @@ class ShellScript<R>(
               holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
             }
 
-            holder.command.processConsole?.invoke(con, con.newIn)
+            holder.command.handleInput?.invoke(con, con.newIn)
           }
 
           // if found new blocks, change the current capture

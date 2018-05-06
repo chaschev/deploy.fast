@@ -10,7 +10,6 @@ import fast.ssh.command.script.ScriptDsl
 import fast.ssh.files.exists
 import fast.ssh.logger
 import fast.ssh.run
-import fast.ssh.runResult
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.generic.instance
 import java.time.Duration
@@ -50,7 +49,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
           cd(srcDir)
 
           capture {
-            processConsole = { console, newText ->
+            handleInput = { console, newText ->
               if (newText.contains("Password for ")) {
                 val password = ctx.getStringVar("git.password")
                 console.writeln(password)
@@ -79,11 +78,9 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     }
 
     build {
-      ssh.runResult("gradle build")
-
       val buildResult = ScriptDsl.script {
         cd("$srcDir/honey-badger")
-        sh("rm build/*.jar")
+        sh("rm -f build/*.jar")
         sh("gradle build")
       }.execute(ssh)
 

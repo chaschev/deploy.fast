@@ -42,7 +42,7 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     capture {
       commands += _addUser(user, block)
 
-      this.processConsole = { console, myText ->
+      this.handleInput = { console, myText ->
         if (user.password != null) {
           if (myText.contains("UNIX password:"))
             console.writeln(user.password)
@@ -98,7 +98,7 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
 }
 
 class ScriptCommandWithCaptureDsl<R>(val name: String? = null) : ScriptCommandDsl<R>() {
-  var processConsole: ((Console, myText: CharSequence) -> Any)? = null
+  internal var handleInput: ((Console, myText: CharSequence) -> Any)? = null
 
   internal fun _addUser(user: User, block: (AddUserCommandDsl.() -> Unit)? = null): AddUserCommandDsl {
     val dsl = AddUserCommandDsl(user)
@@ -106,5 +106,9 @@ class ScriptCommandWithCaptureDsl<R>(val name: String? = null) : ScriptCommandDs
     if (block != null) dsl.apply(block)
 
     return dsl
+  }
+
+  fun handleConsoleInput(block: (Console, myText: CharSequence) -> Any) {
+    handleInput = block
   }
 }
