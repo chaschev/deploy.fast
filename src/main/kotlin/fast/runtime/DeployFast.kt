@@ -55,6 +55,7 @@ class AppContext {
       delay(50)
     }
   }
+
   suspend fun <R> runOnce(path: String, block: suspend () -> R): Deferred<R> {
     val r = globalMap.getOrElse(path, {
       asyncNoisy {

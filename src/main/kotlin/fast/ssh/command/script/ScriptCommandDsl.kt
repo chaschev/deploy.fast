@@ -2,6 +2,7 @@ package fast.ssh.command.script
 
 import fast.api.User
 import fast.api.UserRights
+import fast.api.ext.ChecksumHolder
 import fast.api.ext.SymlinksDSL
 import fast.ssh.process.Console
 
@@ -14,8 +15,8 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     this.apply(block)
   }
 
-  fun wget(file: String, sha1: String, block: (WgetCommandDsl.() -> Unit)? = null) {
-    val dsl = WgetCommandDsl(file, sha1)
+  fun wget(file: String, checksum: ChecksumHolder, block: (WgetCommandDsl.() -> Unit)? = null) {
+    val dsl = WgetCommandDsl(file, checksum)
 
     if (block != null) dsl.apply(block)
 

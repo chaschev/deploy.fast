@@ -4,6 +4,7 @@ import fast.api.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
 import fast.lang.nullForException
+import fast.runtime.TaskContext
 import mu.KLogging
 import java.io.File
 
@@ -13,7 +14,7 @@ typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>
  * This extension will generate vagrant project file.
  */
 class VagrantExtension(
-  config: (VagrantTaskContext) -> VagrantConfig
+  config: (TaskContext<*, *, *>) -> VagrantConfig
 ) : DeployFastExtension<VagrantExtension, VagrantConfig>(
   "vagrant", config
 ) {

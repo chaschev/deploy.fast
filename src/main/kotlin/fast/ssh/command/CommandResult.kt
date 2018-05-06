@@ -1,26 +1,10 @@
 package fast.ssh.command
 
+import fast.lang.InitLater
 import fast.lang.nullForException
 import fast.ssh.logger
 import fast.ssh.process.Console
-import kotlin.reflect.KProperty
 
-class InitLater(val finalize: Boolean = true) {
-  private var value: Any? = null
-
-  operator fun <T> getValue(obj: Any, property: KProperty<*>): T {
-    if(value == null) throw Exception("property $property is not initialized")
-    return value!! as T
-  }
-
-  operator fun <T> setValue(obj: Any, property: KProperty<*>, value: T) {
-    if(finalize) {
-      require(this.value == null, {"value is already set for property $property"})
-    }
-
-    this.value = value
-  }
-}
 
 open class CommandResult<T>(
   override val console: Console,

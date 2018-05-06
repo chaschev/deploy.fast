@@ -85,6 +85,8 @@ dependencies {
   compile 'org.apache.logging.log4j:log4j-api:2.11.0'
   compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.0'
 
+  provided 'com.google.guava:guava:19.0'
+
   testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
   testCompile deps.kotlin.test.jre
 
