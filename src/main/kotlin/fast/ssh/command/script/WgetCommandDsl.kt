@@ -1,10 +1,10 @@
 package fast.ssh.command.script
 
-import fast.api.ext.ChecksumHolder
+import fast.api.ext.Checksum
 
 class WgetCommandDsl(
   var url: String,
-  var checksum: ChecksumHolder,
+  var checksum: Checksum,
   var filename: String? = url.substringAfterLast("/")
 ): ScriptDslSettings(), ScriptBlock {
   override fun getString(): String {

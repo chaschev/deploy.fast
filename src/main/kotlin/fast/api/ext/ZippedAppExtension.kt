@@ -3,7 +3,6 @@ package fast.api.ext
 import fast.api.*
 import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
-import fast.runtime.TaskContext
 import fast.lang.InitLater
 import fast.ssh.command.Version
 import fast.ssh.command.script.ScriptCommandDsl
@@ -35,7 +34,7 @@ class ZippedAppExtension(
   }
 }
 
-data class ChecksumHolder(
+data class Checksum(
   val sha1: String? = null,
   val sha256: String? = null
 ) {
@@ -87,7 +86,7 @@ class ZippedAppConfig(
   var symlinks: SymlinksDSL? = null
   var execSymlinks: SymlinksDSL? = null
 
-  lateinit var archiveChecksum: ChecksumHolder
+  lateinit var archiveChecksum: Checksum
 
   fun symlinks(block: SymlinksDSL.() -> Unit) {
     symlinks = SymlinksDSL().apply(block)

@@ -63,7 +63,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
 
       wget(
         config.archiveUrl,
-        ChecksumHolder(sha1 = config.sha1)
+        Checksum(sha1 = config.sha1)
       )
 
       untar(
