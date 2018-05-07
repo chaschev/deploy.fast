@@ -17,8 +17,27 @@ class InitLater(val finalize: Boolean = true) {
 
     this.value = value
   }
+}
 
-  companion object {
-    fun initLater(finalize: Boolean = true) = InitLater(finalize)
+class LazyVar<T>(private val initBlock:() -> T) {
+  private var value: T? = null
+
+  operator fun getValue(obj: Any, property: KProperty<*>): T {
+    val t = value
+
+    if(t == null) {
+      val x = initBlock()
+      value = x
+      return x
+    }
+
+    return t
+  }
+
+  operator fun setValue(obj: Any, property: KProperty<*>, value: T) {
+    this.value = value
   }
 }
+
+fun <T> lazyVar(initBlock:() -> T) = LazyVar(initBlock)
+fun initLater(finalize: Boolean = true) = InitLater(finalize)

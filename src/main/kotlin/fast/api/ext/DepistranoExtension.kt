@@ -4,8 +4,10 @@ import fast.api.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.dsl.toFast
 import fast.inventory.Host
+import fast.lang.lazyVar
 import fast.ssh.SshProvider
 import fast.ssh.command.script.ScriptDsl.Companion.script
+import fast.ssh.files.exists
 import mu.KLogging
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatterBuilder
@@ -13,7 +15,14 @@ import java.time.format.DateTimeFormatterBuilder
 typealias DepistranoTaskContext = ChildTaskContext<DepistranoExtension, DepistranoConfigDSL>
 
 /**
- * This extension will generate depistrano project file.
+ * TODO simple checkout
+ *  checkout branch
+ *  checkout tag
+ * TODO checkout ref
+ * TODO keep releases
+ * TODO rollback to release
+ * TODO take a break
+ * TODO FUCK IT
  */
 class DepistranoExtension(
   config: (DepistranoTaskContext) -> DepistranoConfigDSL
@@ -63,17 +72,81 @@ data class CheckoutMethod(
 ) : ICheckoutMethod
 
 class DepistranoRuntime(
- val dsl: DepistranoConfigDSL
+  val dsl: DepistranoConfigDSL
 ) {
   var releaseName: String = dsl.releaseTagDateFormat.format(LocalDateTime.now())
-
 }
+
+class DepistranoGitCheckoutDSL {
+  //user defined vars
+
+  lateinit var url: String
+
+  var target: GitCheckoutTarget? = null
+
+  var folder: String by lazyVar {"${ctx.config.srcDir}/${ctx.config.projectName}"}
+
+  //provided at runtime
+
+  lateinit var ctx: DepistranoTaskContext
+  val ssh: SshProvider by lazy {ctx.ssh}
+
+  suspend fun checkout(): VCSUpdateResult {
+    val config = ctx.config
+
+    with(config) {
+      val checkedOut = ssh.files().exists(folder)
+
+      //TODO That's for target = null. Support custom checkout with target
+      val refId = script {
+        cd(srcDir)
+
+        capture {
+          handleConsoleInput { console, newText ->
+            if (newText.contains("Password for ")) {
+              val password = ctx.getStringVar("git.password")
+              console.writeln(password)
+            }
+          }
+
+          if (!checkedOut) {
+            sh("git clone $url")
+            cd(folder)
+          } else {
+            cd(folder)
+
+            sh("git pull")
+          }
+        }
+
+        capture("revisionCapture") {
+          sh("git rev-parse --verify HEAD")
+        }
+      }.execute(ssh)["revisionCapture"]!!.text!!.toString()
+
+      logger.info { "checked out revision $refId" }
+
+      return VCSUpdateResult(refId, refId.substring(0, 6))
+    }
+  }
+
+  data class GitCheckoutTarget(
+    val ref: String? = null,
+    val tag: String? = null,
+    val branch: String? = null
+  )
+
+  companion object : KLogging()
+}
+
 
 class DepistranoConfigDSL(
   val hosts: List<Host>,
   val ctx: DepistranoTaskContext
 ) : ExtensionConfig {
   lateinit var projectDir: String
+  lateinit var projectName: String
+
   lateinit var checkoutMethod: CheckoutMethod
 
   var hostConfigs: List<DepistranoHost> = hosts.map { DepistranoHost(it) }
@@ -82,10 +155,14 @@ class DepistranoConfigDSL(
 
   var checkoutRef: String? = null
 
+  val srcDir by lazy { "$projectDir/src" }
+  val stashDir by lazy { "$projectDir/stash" }
+
   var build: (suspend (DepistranoTaskContext) -> ITaskResult<List<String>>)? = null
 
   /** checkout works with an empty folder */
   var checkout: (suspend (ctx: DepistranoTaskContext, ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult)? = null
+  var checkout3: DepistranoGitCheckoutDSL? = null
 //  var update: ((ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult)? = null
 
   var distribute: (suspend (DepistranoTaskContext) -> Unit)? = null
@@ -97,6 +174,10 @@ class DepistranoConfigDSL(
     .toFormatter()
 
   val runtime = DepistranoRuntime(this)
+
+  fun checkout3(block: DepistranoGitCheckoutDSL.() -> Unit) {
+    checkout3 = DepistranoGitCheckoutDSL().apply(block)
+  }
 
   fun checkout(block: suspend (ctx: DepistranoTaskContext, ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult) {
     checkout = block
@@ -114,11 +195,9 @@ class DepistranoConfigDSL(
     execute = block
   }
 
-  val srcDir by lazy { "$projectDir/src" }
-  val stashDir by lazy { "$projectDir/stash" }
 
   companion object {
-    fun depistranoDsl (ctx: DepistranoTaskContext, block: DepistranoConfigDSL.() -> Unit): DepistranoConfigDSL {
+    fun depistranoDsl(ctx: DepistranoTaskContext, block: DepistranoConfigDSL.() -> Unit): DepistranoConfigDSL {
       val dsl = DepistranoConfigDSL(ctx.app.hosts, ctx)
 
       dsl.apply(block)
@@ -127,7 +206,7 @@ class DepistranoConfigDSL(
     }
 
     fun depistrano(block: DepistranoConfigDSL.() -> Unit) = DepistranoExtension(
-      {depistranoDsl(it, block)}
+      { depistranoDsl(it, block) }
     )
   }
 }
@@ -162,13 +241,11 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
   //checkout will set release tag
   val checkoutTask by extensionTask {
-    with(config) {
-      val r = checkout!!.invoke(
-        this@extensionTask,
-        ssh,
-        srcDir,
-        checkoutRef
-      )
+    config.apply {
+      val r = with(checkout3!!) {
+        ctx = this@extensionTask
+        checkout()
+      }
 
       runtime.releaseName += "_ref${r.ref}"
 
@@ -192,7 +269,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
       logger.info { "I am ($address) building the project, everyone is waiting" }
 
-       config.build!!.invoke(this@extensionTask).mapValue { address to it }
+      config.build!!.invoke(this@extensionTask).mapValue { address to it }
 
     }.await()
 

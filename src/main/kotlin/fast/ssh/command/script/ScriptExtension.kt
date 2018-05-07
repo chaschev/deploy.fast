@@ -4,6 +4,7 @@ import fast.api.User
 import fast.ssh.*
 import fast.ssh.command.CommandResult
 import fast.ssh.process.Console
+import honey.lang.scanForIndex
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -319,7 +320,8 @@ class ShellScript<R>(
 
       if (pos == -1) break
 
-      val blockNameEnd = str.indexOf('\n', pos + blockStart.length)
+      //block name can be 'block 8<EOF>'
+      val blockNameEnd = str.scanForIndex({ ch, _, _ -> ch == '\n'}, pos + blockStart.length) ?: str.length
       val blockName = str.substring(pos + blockStart.length, blockNameEnd)
 
       val blockEndFullname = "$blockEnd$blockName"
@@ -343,3 +345,4 @@ class ShellScript<R>(
   }
 
 }
+

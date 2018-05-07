@@ -103,3 +103,11 @@ inline fun <E, R> MutableList<E>.mapReplace(map: (E) -> R): MutableList<R> {
 
   return this as MutableList<R>
 }
+
+inline fun CharSequence.scanForIndex(predicate: (ch: Char, index:Int, length: Int) -> Boolean, startAt: Int): Int? {
+  for(index in startAt until length) {
+    if(predicate(this[index], index, length)) return index
+  }
+
+  return null
+}

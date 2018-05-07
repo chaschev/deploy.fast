@@ -2,11 +2,13 @@ package fast.runtime
 
 import fast.api.DeployFastApp
 import fast.api.ext.*
+import fast.api.ext.DepistranoConfigDSL.Companion.depistrano
 import fast.dsl.DeployFastAppDSL
 import fast.dsl.DeployFastDSL
 import fast.dsl.TaskResult
 import fast.dsl.toFast
 import fast.ssh.command.script.ScriptDsl
+import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.files.exists
 import fast.ssh.logger
 import fast.ssh.run
@@ -34,57 +36,26 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
   val gradle = GradleExtension({ GradleConfig(version = "4.7") })
 
-  val depistrano = DepistranoConfigDSL.depistrano {
+  val depistrano = depistrano {
     ctx.session.ssh.user()
     projectDir = "${ctx.home}/crawlers"
+//    projectName = "honey-badger"
+    projectName = "deploy.fast"
 
 
-    checkout { ctx, ssh, folder, ref ->
-      val config = ctx.config
-
-      with(config) {
-        val checkedOut = ssh.files().exists("$srcDir/honey-badger")
-
-        val refId = ScriptDsl.script {
-          cd(srcDir)
-
-          capture {
-            handleInput = { console, newText ->
-              if (newText.contains("Password for ")) {
-                val password = ctx.getStringVar("git.password")
-                console.writeln(password)
-              }
-            }
-
-            if (!checkedOut) {
-              sh("git clone https://chaschev@bitbucket.org/chaschev/honey-badger.git")
-              cd("honey-badger")
-            } else {
-              cd("honey-badger")
-
-              sh("git pull")
-            }
-          }
-
-          capture("revisionCapture") {
-            sh("git rev-parse --verify HEAD")
-          }
-        }.execute(ssh)["revisionCapture"]!!.text!!.toString()
-
-        logger.info { "checked out revision $refId" }
-
-        VCSUpdateResult(refId, refId.substring(0, 6))
-      }
+    checkout3 {
+      url = "https://github.com/chaschev/deploy.fast.git"
+//      url = "https://chaschev@bitbucket.org/chaschev/honey-badger.git"
     }
 
     build {
       val buildResult = ScriptDsl.script {
-        cd("$srcDir/honey-badger")
-        sh("rm -f build/*.jar")
-        sh("gradle build")
+        cd("$srcDir/$projectName")
+        sh("rm -rf build/*")
+        sh("gradle build --console plain")
       }.execute(ssh)
 
-      val jar = ssh.files().ls("$srcDir/honey-badger/build").find { it.name.endsWith(".jar") }!!
+      val jar = ssh.files().ls("$srcDir/$projectName/build/libs").find { it.name.endsWith(".jar") }!!
 
       buildResult.toFast().mapValue { listOf(jar.path) }
     }
