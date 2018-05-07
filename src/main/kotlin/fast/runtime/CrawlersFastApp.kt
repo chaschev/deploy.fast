@@ -21,8 +21,6 @@ import java.time.Instant
 fun String.env() = System.getenv(this)
 
 class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
-
-
   /* TODO: convert to method invocation API */
   val vagrant = VagrantExtension({
     VagrantConfig(app.hosts)
@@ -35,6 +33,13 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
   })
 
   val gradle = GradleExtension({ GradleConfig(version = "4.7") })
+
+  val cassandra = CassandraExtension({
+    CassandraConfig(
+      clusterName = "deploy.fast.cluster",
+      _hosts = app.hosts
+    )
+  })
 
   val depistrano = depistrano {
     ctx.session.ssh.user()
@@ -53,28 +58,27 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
         settings { abortOnError = true }
 
         cd("$srcDir/$projectName")
-//        sh("rm -rf build/*")
+        sh("rm -rf build/*")
         sh("gradle build --console plain")
       }.execute(ssh)
 
       val jar = ssh.files().ls("$srcDir/$projectName/build/libs").find { it.name.endsWith(".jar") }!!
 
-      buildResult.toFast().mapValue { listOf(jar.path) }
+      val artifacts = buildResult.toFast().mapValue { listOf(jar.path) }
+
+      artifacts
     }
 
-    //todo select node and synchronize
     distribute {
-      // todo: call extension
+      /* auto-distribution of build results */
     }
 
     execute {
-      // todo: install service and make sure it is running
+      // todo: install a service and make sure it is running
     }
   }
 
-  val cassandra = CassandraExtension({
-    CassandraConfig("deploy.fast.cluster", app.hosts)
-  })
+
 
   companion object {
     @JvmStatic

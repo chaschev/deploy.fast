@@ -19,6 +19,7 @@ typealias DepistranoTaskContext = ChildTaskContext<DepistranoExtension, Depistra
  *  checkout branch
  *  checkout tag
  * TODO checkout ref
+ * ok test 3 machines
  * TODO keep releases
  * TODO rollback to release
  * TODO take a break
