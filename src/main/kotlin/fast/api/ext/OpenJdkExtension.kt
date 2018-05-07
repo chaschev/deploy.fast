@@ -48,50 +48,48 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
     return result
   }
 
-  suspend fun uninstall(): Boolean {
-    return (ExtensionTask("getStatus", extension = extension) {
+  suspend fun uninstall() = extensionFun("uninstall") {
 
-      val apt = ext.apt
+    val apt = ext.apt
 
-      logger.info { "trying to delete old installed openjdk packages..." }
+    logger.info { "trying to delete old installed openjdk packages..." }
 
-      for (i in 1..3) {
-        val installed = apt.tasks(this).listInstalled("openjdk")
+    for (i in 1..3) {
+      val installed = apt.tasks(this).listInstalled("openjdk")
 
-        if (installed.isEmpty()) {
-          logger.info { "found 0 packages installed, finishing" }
-        }
-
-        logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
-
-        for (pack in installed) {
-          logger.info { "removing $pack..." }
-          apt.tasks(this).remove(pack)
-        }
+      if (installed.isEmpty()) {
+        logger.info { "found 0 packages installed, finishing" }
       }
 
-      logger.info { "dpkg: trying to delete old openjdk packages..." }
+      logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
 
-      for (i in 1..3) {
-        val installed = apt.tasks(this).dpkgListInstalled("openjdk").value
+      for (pack in installed) {
+        logger.info { "removing $pack..." }
+        apt.tasks(this).remove(pack)
+      }
+    }
 
-        if (installed.isEmpty()) {
-          logger.info { "found 0 packages installed, finishing" }
-        }
+    logger.info { "dpkg: trying to delete old openjdk packages..." }
 
-        logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
+    for (i in 1..3) {
+      val installed = apt.tasks(this).dpkgListInstalled("openjdk").value!!
 
-        for (pack in installed) {
-          logger.info { "removing $pack..." }
-          apt.tasks(this).dpkgRemove(pack.name)
-        }
+      if (installed.isEmpty()) {
+        logger.info { "found 0 packages installed, finishing" }
       }
 
-      val installed1 = apt.tasks(this).listInstalled("openjdk")
-      val installed2 = apt.tasks(this).dpkgListInstalled("openjdk").value
+      logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
 
-      return@ExtensionTask TaskResult(installed1.isEmpty() && installed2.isEmpty())
-    }.play(extCtx)).value
+      for (pack in installed) {
+        logger.info { "removing $pack..." }
+        apt.tasks(this).dpkgRemove(pack.name)
+      }
+    }
+
+    val installed1 = apt.tasks(this).listInstalled("openjdk")
+    val installed2 = apt.tasks(this).dpkgListInstalled("openjdk").value
+
+    TaskResult(installed1.isEmpty() && installed2?.isEmpty() != false)
   }
 
   suspend fun javaVersion(): JavaVersion? =
@@ -131,57 +129,56 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
 
   suspend fun installJava(
     options: JavaInstallOptions = JavaInstallOptions.DEFAULT
-  ): ITaskResult<Boolean> {
-    val openJDKTask = OpenJDKTask("javacVersion", extension) {
+  ) = extensionFun("installJava") {
 
-      val apt = ext.apt
+    val apt = ext.apt
 
-      val javaVersion = javaVersion()
-      val javacVersion = javacVersion()
+    val javaVersion = javaVersion()
+    val javacVersion = javacVersion()
 
-      val conf = config as OpenJdkConfig
+    val conf = config
 
-      val requiredJavaVersion: Version = Version.parse(conf.version.toString())
+    val requiredJavaVersion: Version = Version.parse(conf.version.toString())
 
-      logger.info { "found java $javaVersion, javac $javacVersion" }
+    logger.info { "found java $javaVersion, javac $javacVersion" }
 
-      val result = if (options.force
-        || javaVersion ?: Version.ZERO < requiredJavaVersion
-        || javacVersion ?: Version.ZERO < requiredJavaVersion) {
+    val result = if (options.force
+      || javaVersion ?: Version.ZERO < requiredJavaVersion
+      || javacVersion ?: Version.ZERO < requiredJavaVersion) {
 
-        if (options.force)
-          logger.info { "java installation is forced" }
-        else
-          logger.info { "java is not installed or less than $requiredJavaVersion" }
+      if (options.force)
+        logger.info { "java installation is forced" }
+      else
+        logger.info { "java is not installed or less than $requiredJavaVersion" }
 
-        if (options.clearPreviousVersions) {
-          if (!uninstall()) {
-            throw IllegalStateException("could not delete old jdk")
-          }
+      if (options.clearPreviousVersions) {
+        if (!uninstall().ok) {
+          throw IllegalStateException("could not delete old jdk")
         }
-
-        logger.info { "installing java ${requiredJavaVersion.asString()}" }
-
-        val r = apt.tasks(this).install(
-          pack = (config as OpenJdkConfig).pack,
-          options = AptTasks.InstallOptions(true)
-        )
-
-        if (r.ok) {
-          logger.info { "installed java $requiredJavaVersion" }
-          r
-        } else {
-          logger.info { "could not install java $requiredJavaVersion: $r" }
-          throw Exception("could not install java $requiredJavaVersion")
-        }
-      } else {
-        logger.info { "there is no need for java update, sir" }
-        TaskResult.ok
       }
 
-      result as ITaskResult<Boolean>
+      logger.info { "installing java ${requiredJavaVersion.asString()}" }
+
+      apt.tasks(this).update()
+
+      val r = apt.tasks(this).install(
+        pack = config.pack,
+        options = AptTasks.InstallOptions(true)
+      )
+
+      if (r.ok) {
+        logger.info { "installed java $requiredJavaVersion" }
+        r
+      } else {
+        logger.info { "could not install java $requiredJavaVersion: $r" }
+        throw Exception("could not install java $requiredJavaVersion")
+      }
+    } else {
+      logger.info { "there is no need for java update, sir" }
+      TaskResult.ok
     }
-    return openJDKTask.play(extCtx)
+
+    result.asBoolean()
   }
 
 

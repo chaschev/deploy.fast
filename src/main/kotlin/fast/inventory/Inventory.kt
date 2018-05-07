@@ -1,6 +1,8 @@
 package fast.inventory
 
+import fast.lang.InitLater
 import fast.runtime.DeployFastDI.FAST
+import fast.ssh.KnownHostsConfig
 import org.kodein.di.generic.instance
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -15,6 +17,8 @@ class Inventory(
   val vars = ConcurrentHashMap<String, Any>()
 
   private var initialised = false
+
+  lateinit var sshConfig: KnownHostsConfig
 
   init {
     asOneGroup.groups.addAll(groups)

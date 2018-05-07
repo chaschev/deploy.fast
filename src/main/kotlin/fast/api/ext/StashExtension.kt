@@ -8,6 +8,7 @@ import fast.runtime.TaskContext
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.run
 import mu.KLogging
+import java.io.File
 
 typealias StashTaskContext = ChildTaskContext<StashExtension, StashConfig>
 
@@ -30,12 +31,10 @@ class StashExtension(
  */
 class StashConfig(
   val hosts: List<Host> = ArrayList(),
-  hostConfigs: List<StashHost>? = null,
   val stashFolder: String,
   val owners: ArrayList<String> = ArrayList(),
   val files: ArrayList<String> = ArrayList()
 ) : ExtensionConfig {
-  val hostConfigs = hostConfigs ?: hosts.map { StashHost(this, it) }
 }
 
 
@@ -51,38 +50,60 @@ class StashHost(
 class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<StashExtension, StashConfig>(ext, parentCtx) {
 
+  suspend fun copyKey() = extensionFun("copyKey") {
+    val keyPath = app.inventory.sshConfig.keyPath ?: return@extensionFun ok
+
+    distribute {
+      app.addresses() with {
+        script {
+          mkdirs("${ssh.home}/.ssh")
+          sh("rm -f ${ssh.home}/.ssh/fast_id")
+        }.execute(ssh)
+
+        val ls = ssh.files().ls("${ssh.home}/.ssh/fast_id")
+
+        println("ls: $ls, $address, ${this.hashCode()}")
+
+        ssh.files().copyLocalFiles("${ssh.home}/.ssh/fast_id", File(keyPath))
+        ssh.files().chmod("${ssh.home}/.ssh/fast_id", mod = "u=r,go=")
+
+        ok
+      }
+    }.await()
+
+    ok
+  }
+
+  @Suppress("IMPLICIT_CAST_TO_ANY")
   suspend fun stash(owners: List<String>? = null, files: List<String>? = null) = extensionFun("stashTask") {
-    if(files != null) {
+    if (files != null) {
       config.files.addAll(files)
     }
 
-    if(owners != null) {
+    if (owners != null) {
       config.owners.addAll(owners)
     }
 
-    val eligible = config.owners.contains(address)
-    val taskKey = "stash_$path"
+    copyKey()
 
+    val stashConfig = config
 
-    if (!eligible) {
-      app.awaitKey(taskKey)
-      app.runOnce(taskKey, { ok })
-    } else {
-      app.runOnce(taskKey) {
-        var r: ITaskResult<*> = ssh.run("cp ${config.files.joinToString(" ")} ${config.stashFolder}")
+    (distribute {
+      stashConfig.owners.take(1) with {
+
+        var r: ITaskResult<*> = ssh.run("cp ${stashConfig.files.joinToString(" ")} ${stashConfig.stashFolder}")
 
         // todo: verify checksum via global map
         // todo: provide ssh auth
-        for (host in config.hosts) {
+        for (host in stashConfig.hosts) {
           if (host.address == address) continue
 
-          r *= ssh.run("scp ${config.stashFolder}/* ${host.address}:${config.stashFolder}")
+          r *= ssh.run("scp -i ${ssh.home}/.ssh/fast_id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${stashConfig.stashFolder}/* ${host.address}:${stashConfig.stashFolder}")
         }
 
         r
       }
-
-    } as ITaskResult<Any>
+    }.await() as ITaskResult<Any>?)?.asBoolean() ?: ok
   }
 
   suspend fun unstash() = extensionFun("unstash") {
@@ -92,7 +113,7 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
         .forEach { (name, destPath) ->
           sh("cp ${config.stashFolder}/$name $destPath")
         }
-      sh("rm ${config.stashFolder}/*")
+      sh("rm -f ${config.stashFolder}/*")
     }.execute(ssh).toFast()
 
     ok

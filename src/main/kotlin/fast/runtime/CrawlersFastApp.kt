@@ -50,8 +50,10 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
     build {
       val buildResult = ScriptDsl.script {
+        settings { abortOnError = true }
+
         cd("$srcDir/$projectName")
-        sh("rm -rf build/*")
+//        sh("rm -rf build/*")
         sh("gradle build --console plain")
       }.execute(ssh)
 

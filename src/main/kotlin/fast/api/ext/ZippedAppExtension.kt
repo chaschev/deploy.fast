@@ -114,21 +114,16 @@ class ZippedAppConfig(
 
 class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<ZippedAppExtension, ZippedAppConfig>(ext, parentCtx) {
-  val downloadTask by lazy {
-    LambdaTask("download", extension) {
-      ssh.run(
-        cmd = "wget --directory-prefix=${config.tempDir} ${config.archiveUrl}",
-        timeoutMs = config.downloadTimeoutSec * 1000
-      )
-    }
-  }
+  val apt = AptExtension()
 
   /*
    * ok: edit conf
    * ok: set rights
    * ok: fix checksum
    * ok: fix archive extraction
-   * TODO: install gradle
+   * ok: install gradle
+   * TODO: extract apt.require into extension
+   * TODO: check if already installed - requires parseVersionOutput
    * TODO: install service task (boolean start)
    * TODO: verify version task
    * TODO: take a break
@@ -140,6 +135,8 @@ class ZippedAppTasks(ext: ZippedAppExtension, parentCtx: ChildTaskContext<*, *>)
     val extractedTmpHomePath = "$tmpDir/${config.archivedFolderName()}"
 
     val tmpConfPath = "$tmpDir/zippedExtConf"
+
+    apt.tasks(this).requirePackage("unzip")
 
     ScriptDsl.script {
       settings {

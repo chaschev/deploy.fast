@@ -6,7 +6,7 @@ class InitLater(val finalize: Boolean = true) {
   private var value: Any? = null
 
   operator fun <T> getValue(obj: Any, property: KProperty<*>): T {
-    if(value == null) throw Exception("property $property is not initialized")
+    if(value == null) throw UninitializedPropertyAccessException("property $property is not initialized")
     return value!! as T
   }
 

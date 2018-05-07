@@ -1,13 +1,15 @@
 package fast.dsl
 
 import fast.api.*
+import fast.lang.nullForException
 import fast.ssh.command.CommandResult
 
 
 data class AggregatedValue(
-  val list: ArrayList<Any> = ArrayList<Any>()
+  val values: ArrayList<Any?> = ArrayList(),
+  val errors: ArrayList<Exception?> = ArrayList()
 ) {
-  constructor(vararg items: Any) : this(items.toCollection(ArrayList()))
+//  constructor(vararg items: Any) : this(items.toCollection(ArrayList()))
 }
 
 
@@ -20,6 +22,7 @@ data class TaskResult<R>(
   override val value: R,
   override val ok: Boolean = defaultIsOk(value),
   override val modified: Boolean = false,
+  override val exception: Exception? = null,
   val stdout: String = "",
   val stderr: String? = null,
   val code: Int = 0,
@@ -31,6 +34,8 @@ data class TaskResult<R>(
 
   companion object {
     val ok: ITaskResult<Boolean> = TaskResult(value = true)
+    val okNull: ITaskResult<Any?> = TaskResult<Any?>(value = null)
+
     fun failed(comment: String): ITaskResult<Boolean> = TaskResult(value = false, stdout = comment)
 
     fun <R> defaultIsOk(value : R) =
@@ -45,9 +50,11 @@ data class TaskResult<R>(
 class CommandLineResult<T>(
   override val ok: Boolean,
   override val modified: Boolean,
-  override val value: T,
-  val commandResult: CommandResult<T>
+  val commandResult: CommandResult<T>,
+  override val value: T?,
+  override val exception: Exception? = null
 ) : ITaskResult<T> {
+
   override fun toString(): String {
     return """Result(ok=$ok, modified=$modified, value=$value)"""
   }
@@ -56,8 +63,9 @@ class CommandLineResult<T>(
 }
 
 fun <T> CommandResult<T>.toFast(modified: Boolean = false): CommandLineResult<T> {
+  val ok = this.console.result.isOk()
   return CommandLineResult(
-    this.console.result.isOk(), modified, value, this
+    ok, modified, this, nullableValue() , this.errorsAsException()
   )
 }
 

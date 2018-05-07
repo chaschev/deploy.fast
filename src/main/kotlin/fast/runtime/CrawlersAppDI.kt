@@ -28,7 +28,9 @@ object CrawlersAppDI {
             Group(
               name = "vm",
               hosts = listOf(
-                Host("192.168.5.10")
+                Host("192.168.5.10"/*, "vm1"*/),
+                Host("192.168.5.11"/*, "vm2"*/),
+                Host("192.168.5.12", "vm3")
               )
             )
           )

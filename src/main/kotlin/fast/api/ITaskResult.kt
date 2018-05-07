@@ -2,12 +2,19 @@ package fast.api
 
 import fast.dsl.AggregatedValue
 import fast.dsl.TaskResult
+import fast.lang.nullForException
 import fast.ssh.logger
 
 interface ITaskResult<R> {
   val ok: Boolean
   val modified: Boolean
-  val value: R
+
+  // nullable for exception
+  val value: R?
+
+  val exception: Exception?
+
+  fun valueNullable() = nullForException { value }
 
   operator fun plus(other: ITaskResult<Boolean>): TaskResult<Boolean> {
     return TaskResult(
@@ -31,15 +38,18 @@ interface ITaskResult<R> {
     val v = value
 
     return if (v is AggregatedValue) {
-      v.list.add(other.value as Any)
-      v
+      v.values.add(other.value)
+      v.errors.add(other.exception)
     } else {
-      AggregatedValue(v as Any, other.value as Any)
+      AggregatedValue(
+        arrayListOf(v as Any?, other.value),
+        arrayListOf(exception, other.exception)
+      )
     }
   }
 
 
-  fun <O> mapValue(block: (R) -> O) =
+  fun <O> mapValue(block: (R?) -> O) =
     TaskResult(block(value), this.ok, this.modified)
 
   fun asBoolean() = mapValue { ok }

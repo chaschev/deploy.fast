@@ -18,7 +18,9 @@ data class TaskInterceptor<EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : 
   var modifyConfig: (EXT_CONF.() -> Unit)? = null,
   var modifyExtension: (EXT.() -> Unit)? = null
 ) {
-  fun config(block: EXT_CONF.() -> Unit) { modifyConfig = block}
+  fun config(block: EXT_CONF.() -> Unit) {
+    modifyConfig = block
+  }
 
   companion object {
     fun <EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : ExtensionConfig>
@@ -36,7 +38,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
   val session: SessionRuntimeContext,
   val parent: TaskContext<*, *, *>?,
   var path: String = getPath(parent, task)
-  ) {
+) {
   val ssh = session.ssh
 
   val global: AllSessionsRuntimeContext by FAST.instance()
@@ -195,31 +197,36 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     return session.host.getVar(name) as String
   }
 
-  val user by lazy {ssh.user()}
-  val home by lazy {ssh.home}
+  val user by lazy { ssh.user() }
+  val home by lazy { ssh.home }
 
-  fun <T: TaskContext<*,*,*>> getParentCtx(aClass: KClass<T>): T? {
+  fun <T : TaskContext<*, *, *>> getParentCtx(aClass: KClass<T>): T? {
     var ctx: TaskContext<*, *, *>? = parent
 
     while (ctx != null) {
-      if(ctx::class.isSubclassOf(aClass)) return ctx as T
+      if (ctx::class.isSubclassOf(aClass)) return ctx as T
       ctx = ctx.parent
     }
 
     return null
   }
 
-  fun <T: TaskContext<*,*,*>> getParentCtx(block: (TaskContext<*,*,*>) -> Boolean): T? {
+  fun <T : TaskContext<*, *, *>> getParentCtx(block: (TaskContext<*, *, *>) -> Boolean): T? {
     var ctx: TaskContext<*, *, *>? = parent
 
     while (ctx != null) {
-      if(block(ctx)) return ctx as T
+      if (block(ctx)) return ctx as T
       ctx = ctx.parent
     }
 
     return null
   }
 
+  suspend fun distribute(
+    timeoutMs: Long = 600_000,
+    block: GlobalMap.DistributedJobDsl.() -> Unit
+  ) =
+    app.globalMap.distribute(this, block, timeoutMs)
 
   companion object : KLogging() {
 

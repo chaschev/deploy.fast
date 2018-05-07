@@ -70,7 +70,6 @@ class DeployFastScheduler<APP : DeployFastApp<APP>> {
   }
 
   suspend fun startSessions(): List<Deferred<AnyAnyResult>> {
-
     val rootDeployApp = FASTD.instance<DeployFastApp<*>>() as APP
 
     return appCtx.hosts.map { host ->
@@ -81,12 +80,14 @@ class DeployFastScheduler<APP : DeployFastApp<APP>> {
 
         rootTaskContext.play(dsl)
       }
-    }
+    }.toList()
   }
 
   private fun connect(host: Host): SshProvider {
     val sshConfig = dsl.ssh!!.forHost(host)
     val sshImpl = GenericSshProvider(sshConfig)
+
+    inventory.sshConfig = sshConfig
 
     return sshImpl.connect()
   }

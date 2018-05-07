@@ -15,7 +15,7 @@ typealias AptTask<R> = ExtensionTask<R, AptExtension, AptConfig>
 typealias AptTaskContext = ChildTaskContext<AptExtension, AptConfig>
 
 class AptExtension(
-  config: (AptTaskContext) -> AptConfig = {AptConfig()}
+  config: (AptTaskContext) -> AptConfig = { AptConfig() }
 ) : DeployFastExtension<AptExtension, AptConfig>(
   "apt", config
 ) {
@@ -27,8 +27,8 @@ class AptExtension(
 
 class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
   NamedExtTasks<AptExtension, AptConfig>(
-  ext, parentCtx
-) {
+    ext, parentCtx
+  ) {
   suspend fun listInstalled(filter: String, timeoutMs: Int = 10000): Set<String> {
     val task = AptTask("listInstalledPackages", extension) {
       ssh.runAndWaitProcess(cmd = "sudo apt list --installed | grep $filter",
@@ -44,7 +44,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
       ).toFast()
     }
 
-    return task.play(extCtx).value
+    return task.play(extCtx).value!!
   }
 
   suspend fun requirePackage(
@@ -87,7 +87,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
     ExtensionTask("update", extension) {
 
       ssh.runAndWaitProcess(
-        cmd = "apt-get update -y ${options.asString()}",
+        cmd = "sudo apt-get update -y ${options.asString()}",
         process = { "ok" },
         timeoutMs = timeoutMs
       )
@@ -96,8 +96,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
     }.play(extCtx)
 
 
-
-  suspend fun remove(pack: String, timeoutMs: Int = 600 * 1000)  =
+  suspend fun remove(pack: String, timeoutMs: Int = 600 * 1000) =
     ExtensionTask("update", extension) {
       ssh.runAndWaitProcess(
         "sudo apt-get remove -y $pack",
@@ -106,7 +105,6 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
       ).toFast(true)
 
     }.play(extCtx)
-
 
 
   suspend fun dpkgRemove(pack: String, timeoutMs: Int = 600 * 1000) =
@@ -140,35 +138,31 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
     val desc: String
   )
 
-  suspend fun dPkgList(filter: String, timeoutMs: Int = 10000): ITaskResult<List<DPkgPackageInfo>> =
-    ExtensionTask("dPkgList", extension) {
-      ssh.runAndWaitProcess(
-        cmd = "dpkg --list *$filter*",
-        timeoutMs = timeoutMs,
-        process = { console ->
-          val rows =
-            console.stdout.toString()
-              .substringAfter("==\n").trim()
-              .split("\n")
-              .filter { it.isNotEmpty() }
-              .map {
-                val m = "^(\\w\\w)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.*)?$".toRegex().matchEntire(it)!!
-                val g = m.groups.map { it?.value ?: "null" }
+  suspend fun dPkgList(filter: String, timeoutMs: Int = 10000) = extensionFun("dPkgList") {
+    ssh.runAndWaitProcess(
+      cmd = "dpkg --list *$filter*",
+      timeoutMs = timeoutMs,
+      process = { console ->
+        val rows =
+          console.stdout.toString()
+            .substringAfter("==\n").trim()
+            .split("\n")
+            .filter { it.isNotEmpty() }
+            .map {
+              val m = "^(\\w\\w)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.*)?$".toRegex().matchEntire(it)!!
+              val g = m.groups.map { it?.value ?: "null" }
 
-                DPkgPackageInfo(g[1][0] == 'i', g[2], g[3], g[4])
-              }
+              DPkgPackageInfo(g[1][0] == 'i', g[2], g[3], g[4])
+            }
 
-          rows
-        },
-        processErrors = { emptyList() }
-      ).toFast(true).mapValue { it }
-
-    }.play(extCtx)
-
-
+        rows
+      },
+      processErrors = { emptyList() }
+    ).toFast(true).mapValue { it }
+  }
 
   suspend fun dpkgListInstalled(filter: String, timeoutMs: Int = 10000) =
-    (dPkgList(filter, timeoutMs) ).mapValue { it.filter { it.installed } }
+    (dPkgList(filter, timeoutMs)).mapValue { it?.filter { it.installed } }
 
 
   private fun cutAfterCLIInterface(console: Console): List<String> {
@@ -177,7 +171,7 @@ class AptTasks(ext: AptExtension, parentCtx: ChildTaskContext<*, *>) :
         .substringAfter("CLI interface")
         .split(Regexes.NEW_LINE)
 
-      when(list.size) {
+      when (list.size) {
         0, 1 -> list   //error in parsing output
         else -> list.subList(2, list.size)
       }

@@ -47,13 +47,14 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
           val g = lsRegex.tryFind(line)!!
 
           try {
+            val name = g[7]
             RemoteFileImpl(
-              name = g[7],
+              name = name,
               isFolder = g[1][0] == 'd',
               group = g[2],
               user = g[3]+":"+g[4],
               size = g[5].toLong(),
-              path = path,
+              path = "$path/$name",
               unixRights = g[1],
               lastModified = g[6]
             )

@@ -216,7 +216,8 @@ class ScriptCommandResult<R>(
   ) : this(r.console, r.exception, captureMap) {
 
     this._errors = ArrayList(r.errors())
-    this.value = r.value
+    val x = r.nullableValue()
+    if(x != null) this.value = x
   }
 }
 

@@ -1,6 +1,8 @@
 package honey.lang
 
 import com.google.common.collect.Iterators
+import kotlinx.coroutines.experimental.CoroutineScope
+import kotlinx.coroutines.experimental.Job
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -111,3 +113,5 @@ inline fun CharSequence.scanForIndex(predicate: (ch: Char, index:Int, length: In
 
   return null
 }
+
+fun CoroutineScope.getCurrentJob() = coroutineContext[Job]!!

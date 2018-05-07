@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatterBuilder
 typealias DepistranoTaskContext = ChildTaskContext<DepistranoExtension, DepistranoConfigDSL>
 
 /**
- * TODO simple checkout
+ * ok simple checkout
  *  checkout branch
  *  checkout tag
  * TODO checkout ref
@@ -31,10 +31,11 @@ class DepistranoExtension(
 ) {
   val apt = AptExtension()
   val stash = StashExtension({ parentCtx ->
-    val ctx = parentCtx as DepistranoTaskContext
+    val ctx = parentCtx.getParentCtx<DepistranoTaskContext> { it.task.name == "depistrano" }!!
+
     StashConfig(
       ctx.config.hosts,
-      stashFolder = ctx.config.projectDir
+      ctx.config.stashDir
     )
   })
 
@@ -255,6 +256,11 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   }
 
   /**
+   * Build task will return null if the party is not building the project.
+   * Distribute task
+   *
+   * Delete this ?!
+   *
    * Architectural note: handling multiple jobs:
    *
    * val job1 = runOnce({job1})
@@ -264,28 +270,32 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
    * job2.await()
    */
   val buildTask by extensionTask {
-    val artifacts = app.runOnce("depistrano_build_$path") {
-      app.globalMap["depistrano_build_owner_$path"] = address
+    val depiConfig = config
+    distribute {
+      app.addresses().take(1) with {
+        logger.info { "I am ($address) building the project, everyone is waiting, path: $path" }
 
-      logger.info { "I am ($address) building the project, everyone is waiting" }
-
-      config.build!!.invoke(this@extensionTask).mapValue { address to it }
-
-    }.await()
-
-    artifacts
+        depiConfig.build!!.invoke(this@extensionTask)
+      }
+    }.await() as ITaskResult<List<String>?>
   }
 
   val distributeTask by extensionTask {
-    val (owner, artifacts) = buildTask.play(this).value
+    val artifacts = buildTask.play(this).value
 
-    val tasks = extension.stash.tasks(this)
+    with(extension.stash.tasks(this)) {
+      var r: ITaskResult<*> = ok
 
-    var r: ITaskResult<*> = tasks.stash(listOf(owner), artifacts)
+      r *= if(artifacts != null) {
+        stash(listOf(address), artifacts)
+      } else {
+        stash()
+      }
 
-    r *= tasks.unstash()
+      r *= unstash()
 
-    r.asBoolean()
+      r.asBoolean()
+    }
   }
 
   val linkTask by extensionTask {

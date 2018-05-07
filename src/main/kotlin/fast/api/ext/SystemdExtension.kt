@@ -104,11 +104,11 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
   }
 
   val status by extensionTask {
-    ssh.runResult("sudo systemctl status ${config.name}").toFast().mapValue { it.console.stdout.toString() }
+    ssh.runResult("sudo systemctl status ${config.name}").toFast().mapValue { it!!.console.stdout.toString() }
   }
 
   suspend fun logs() = extensionFun("logs") {
-    ssh.runResult("sudo journalctl -u ${config.name} --no-pager | tail -n 20").toFast().mapValue { it.console.stdout.toString() }
+    ssh.runResult("sudo journalctl -u ${config.name} --no-pager | tail -n 20").toFast().mapValue { it!!.console.stdout.toString() }
   }
 
 //  suspend fun installService() = installServiceTask()

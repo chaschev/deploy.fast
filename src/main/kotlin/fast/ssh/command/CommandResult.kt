@@ -12,6 +12,7 @@ open class CommandResult<T>(
 ) : ICommandResult<T> {
   protected var _errors: MutableList<String>? = null
 
+  //TODO: that probably should be nullable
   override var value: T by InitLater()
 
   override fun toString(): String = "CommandResult(value=$value,console=$console)"
@@ -20,6 +21,8 @@ open class CommandResult<T>(
     if (_errors == null) _errors = ArrayList()
     return _errors!!
   }
+
+  fun nullableValue() = nullForException { value }
 
   fun tryFindErrors(): CommandResult<T> {
     if(exception != null) {
@@ -57,4 +60,15 @@ open class CommandResult<T>(
     if(errors().isEmpty()) errors().add("there was some error but we can't understand which exactly, I am in an error handling branch")
     return this
   }
+
+  fun errorsAsException(): Exception? {
+    if(exception != null) return exception
+    if(_errors != null && !_errors!!.isEmpty())
+      return MultipleErrorsException(_errors!!)
+
+    return null
+  }
 }
+
+class MultipleErrorsException(val errors: MutableList<String>) :
+  Exception("${errors.size} errors: ${errors.joinToString()}")

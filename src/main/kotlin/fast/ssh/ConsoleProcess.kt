@@ -4,6 +4,7 @@ import kotlinx.coroutines.experimental.*
 import mu.KLogging
 import fast.ssh.command.Regexes
 import fast.ssh.process.*
+import honey.lang.getCurrentJob
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
@@ -59,7 +60,7 @@ open class ConsoleProcess(
     logger.debug { "starting a new job: ${describeMe()} with timeout ${timeoutMs}ms" }
 
     job = asyncNoisy {
-      process = mom.giveBirth(job)
+      process = mom.giveBirth(getCurrentJob())
 
       logger.debug { "started $mom" }
 
