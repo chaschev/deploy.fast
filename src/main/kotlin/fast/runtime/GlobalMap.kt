@@ -27,29 +27,29 @@ class GlobalMap {
 
   operator fun get(key: String): Any? = globalMap[key]
 
-  suspend fun awaitKey(path: String, timeoutMs: Long = 600_000): Boolean {
+  suspend fun awaitKey(path: String, timeoutMs: Long = 600_000): Any? {
     val startMs = System.currentTimeMillis()
 
-    while(true) {
-      if(globalMap.containsKey(path)) return true
+    while (true) {
+      if (globalMap.containsKey(path)) return globalMap[path]!!
 
-      if(System.currentTimeMillis() - startMs > timeoutMs) return false
+      if (System.currentTimeMillis() - startMs > timeoutMs) return null
 
       delay(50)
     }
   }
 
-  suspend fun <V> awaitCondition(path: String, predicate: (V) -> Boolean, timeoutMs: Long = 600_000): Boolean {
+  suspend fun <V> awaitCondition(path: String, predicate: (V) -> Boolean, timeoutMs: Long = 600_000): Any? {
     val startMs = System.currentTimeMillis()
 
-    while(true) {
+    while (true) {
       val value = globalMap.get(path) as V?
 
-      if(value != null) {
-        if(predicate(value)) return true
+      if (value != null) {
+        if (predicate(value)) return value
       }
 
-      if(System.currentTimeMillis() - startMs > timeoutMs) return false
+      if (System.currentTimeMillis() - startMs > timeoutMs) return null
 
       delay(50)
     }
@@ -68,7 +68,7 @@ class GlobalMap {
 
   data class DistributeResult(
     val job: Deferred<ITaskResult<*>?>,
-    val dsl: DistributedJobDsl
+    val dsl: DistributedJobDsl?
   ) {
     suspend fun await() = (job.await() ?: okNull) as ITaskResult<Any?>
   }
@@ -77,71 +77,94 @@ class GlobalMap {
     // Do not use computeIfAbsent on JVM8 as it would change locking behavior
     val storedValue = this[key];
 
-    if(storedValue != null) return storedValue
+    if (storedValue != null) return storedValue
 
     val newValue = defaultValue()
 
     val previousStoredValue = putIfAbsent(key, newValue)
 
-    return if(previousStoredValue != null) {
+    return if (previousStoredValue != null) {
       println("already there: $previousStoredValue ${previousStoredValue.hashCode()}")
       previousStoredValue
-    }else {
+    } else {
       println("first to put: $newValue")
       newValue
     }
   }
 
+  /*suspend fun awaitForDistributeJob(name: String, ctx: TaskContext<*, *, *>): Deferred<Any> {
+    val distributeKey = "distribute.$name.${ctx.path}"
+
+    return awaitKey(distributeKey)
+  }*/
+
   /**
    * See usage (DSL) to understand how it works
+   *
+   * Returns a job to await for completion. Inactive parties register with null dsl.
+   *
+   * @param block Null means the party can't do this orchestration.
+   *              I.e. it doesn't have artifacts, so it doesn't know which files to copy
+   *              So, it can't provide definition of the task, which is dsl
+   *
+   *              TODO: clean up the mess
    */
   suspend fun distribute(
+    name: String,
     ctx: TaskContext<*, *, *>,
-    block: DistributedJobDsl.() -> Unit,
+    block: (DistributedJobDsl.() -> Unit)?,
     timeoutMs: Long = 600_000
   ): DistributeResult {
-    val distributeKey = "distribute.${ctx.path}"
+    logger.info { "distribute $name ${ctx.address} - starting" }
 
-    val dsl = (globalMap.getOrPut(distributeKey, {
-        println("inside the fucking block! ${ctx.address}")
-        DistributedJobDsl().apply(block)
-    }) as DistributedJobDsl)
+    val distributeKey = "distribute.$name.${ctx.path}"
 
-    println("got dsl: $dsl, map: ${globalMap.hashCode()} - ${ctx.address} ")
+    val dsl = if(block == null) null else
+      (globalMap.getOrPut(distributeKey, {
+        //        println("inside the fucking block! ${ctx.address}")
+        DistributedJobDsl(name).apply(block)
+      }) as DistributedJobDsl)
 
-    val myJob = dsl.getJob(ctx.session.host)
+//    println("got dsl: $dsl, map: ${globalMap.hashCode()} - ${ctx.address} ")
 
-    val job = if(myJob == null) {
+    val myJob = dsl?.getJob(ctx.session.host)
+
+    val job = if (myJob == null) {
       asyncNoisy {
-        logger.info { "distribute ${ctx.address} - no job, awaiting others ${ctx.path}" }
-        awaitAllParties(distributeKey, timeoutMs)
+        logger.info { "distribute $name ${ctx.address} - no job, awaiting others ${ctx.path}" }
+        awaitAllParties(name, distributeKey, timeoutMs)
         null
       }
     } else {
-      logger.info { "distribute ${ctx.address} - job started ${ctx.path}" }
+      logger.info { "distribute $name ${ctx.address} - job started ${ctx.path}" }
 
       val r = myJob(ctx)
 
       dsl.arrived(ctx.session.host, r)
 
       asyncNoisy {
-        awaitAllParties(distributeKey, timeoutMs)  //todo: fix - await for leftover period of time
+        awaitAllParties(name, distributeKey, timeoutMs)  //todo: fix - await for leftover period of time
         r
       }
     }
 
+    //note: non-null dsl can be returned in a job result
+
     return DistributeResult(job, dsl)
   }
 
-  private suspend fun awaitAllParties(path: String, timeoutMs: Long = 600_000) {
-    awaitCondition<DistributedJobDsl>(path, {it.allPartiesArrived()}, timeoutMs)
-    logger.info { "distribution: all parties arrived, $path" }
+  private suspend fun awaitAllParties(name: String, path: String, timeoutMs: Long = 600_000) {
+    awaitCondition<DistributedJobDsl>(path, { it.allPartiesArrived() }, timeoutMs)
+    logger.info { "distribute $name all parties arrived, $path" }
+  }
+
+  operator fun set(s: String, value: Any): Any? {
+    return globalMap.put(s, value)
   }
 
 
-
   class DistributedJobDsl(
-    val name: String? = null
+    val name: String
   ) {
     internal val jobs: ArrayList<DistributedJobEntry> = ArrayList()
 
@@ -150,13 +173,14 @@ class GlobalMap {
 
     val jobResultMap = ConcurrentHashMap<String, TaskResult<Any>>()
 
-    infix fun List<String>.with(block: suspend TaskContext<*,*,*>.() -> ITaskResult<*>) {
+    infix fun List<String>.with(block: suspend TaskContext<*, *, *>.() -> ITaskResult<*>) {
       jobs += DistributedJobEntry(this, block)
     }
 
-    fun getJob(host: Host): (suspend TaskContext<*,*,*>.() -> ITaskResult<*>)? {
-      jobs.forEach { (hosts,job) ->
-        if(hosts.contains(host.address)) return job
+    fun getJob(host: Host): (suspend TaskContext<*, *, *>.() -> ITaskResult<*>)? {
+      println("job for $host in $jobs")
+      jobs.forEach { (hosts, job) ->
+        if (hosts.contains(host.address)) return job
       }
 
       return null
@@ -164,7 +188,7 @@ class GlobalMap {
 
     internal data class DistributedJobEntry(
       val hosts: List<String>,
-      val block: (suspend TaskContext<*,*,*>.() -> ITaskResult<*>)
+      val block: (suspend TaskContext<*, *, *>.() -> ITaskResult<*>)
     )
 
     fun allPartiesArrived(): Boolean {
@@ -177,7 +201,7 @@ class GlobalMap {
     fun arrived(host: Host, result: ITaskResult<*>) {
       jobResultMap[host.address] = result as TaskResult<Any>
 
-      logger.info { "distribute ${host.address} - arrived in a distribution task [${jobResultMap.size}/${size()}]" }
+      logger.info { "distribute $name ${host.address} - arrived in a distribution task [${jobResultMap.size}/${size()}]" }
     }
   }
 

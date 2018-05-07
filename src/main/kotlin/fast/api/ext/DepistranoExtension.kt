@@ -272,11 +272,16 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
    */
   val buildTask by extensionTask {
     val depiConfig = config
-    distribute {
-      app.addresses().take(1) with {
-        logger.info { "I am ($address) building the project, everyone is waiting, path: $path" }
 
-        depiConfig.build!!.invoke(this@extensionTask)
+    distribute("depi.build") {
+      app.addresses().take(1) with {
+        logger.info { "I am ($address) building the project, everyone is watching, path: $path" }
+
+        val r = depiConfig.build!!.invoke(this@extensionTask)
+
+        logger.info { "$address - finished building artifacts: ${r.valueNullable()}" }
+
+        r
       }
     }.await() as ITaskResult<List<String>?>
   }
@@ -288,18 +293,19 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
       var r: ITaskResult<*> = ok
 
       r *= if(artifacts != null) {
-        stash(listOf(address), artifacts)
+        stash("depi.distribute", listOf(address), artifacts)
       } else {
-        stash()
+        stash("depi.distribute")
       }
 
-      r *= unstash()
+      r *= unstash("depi.distribute")
 
       r.asBoolean()
     }
   }
 
   val linkTask by extensionTask {
+
     ok
   }
 

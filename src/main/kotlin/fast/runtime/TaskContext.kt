@@ -223,10 +223,11 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
   }
 
   suspend fun distribute(
+    name: String,
     timeoutMs: Long = 600_000,
-    block: GlobalMap.DistributedJobDsl.() -> Unit
+    block: (GlobalMap.DistributedJobDsl.() -> Unit)? = null
   ) =
-    app.globalMap.distribute(this, block, timeoutMs)
+    app.globalMap.distribute(name, this, block, timeoutMs)
 
   companion object : KLogging() {
 
