@@ -1,6 +1,7 @@
 package fast.api
 
 import fast.dsl.ServiceStatus
+import fast.runtime.TaskContext
 import fast.ssh.command.Version
 import kotlin.reflect.KProperty
 

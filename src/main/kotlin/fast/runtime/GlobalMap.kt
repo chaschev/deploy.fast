@@ -1,5 +1,7 @@
 package fast.runtime
 
+import fast.api.DeployFastExtension
+import fast.api.ExtensionConfig
 import fast.api.ITaskResult
 import fast.dsl.TaskResult
 import fast.dsl.TaskResult.Companion.ok
@@ -39,7 +41,7 @@ class GlobalMap {
     }
   }
 
-  suspend fun <V> awaitCondition(path: String, predicate: (V) -> Boolean, timeoutMs: Long = 600_000): Any? {
+  suspend fun <V> awaitCondition(path: String, predicate: (V) -> Boolean, timeoutMs: Long = 600_000): V? {
     val startMs = System.currentTimeMillis()
 
     while (true) {
@@ -66,9 +68,9 @@ class GlobalMap {
     return r as Deferred<R>
   }
 
-  data class DistributeResult(
+  data class DistributeResult<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
     val job: Deferred<ITaskResult<*>?>,
-    val dsl: DistributedJobDsl?
+    val dsl: DistributedJobDsl<EXT, EXT_CONF>?
   ) {
     suspend fun await() = (job.await() ?: okNull) as ITaskResult<Any?>
   }
@@ -112,21 +114,21 @@ class GlobalMap {
    *
    *              TODO: clean up the mess
    */
-  suspend fun distribute(
+  suspend fun <EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> distribute(
     name: String,
-    ctx: TaskContext<*, *, *>,
-    block: DistributedJobDsl.() -> Unit,
+    ctx: TaskContext<*, EXT, EXT_CONF>,
+    block: DistributedJobDsl<EXT, EXT_CONF>.() -> Unit,
     await: Boolean = false,
     timeoutMs: Long = 600_000
-  ): DistributeResult {
+  ): DistributeResult<EXT, EXT_CONF> {
     logger.info { "distribute $name ${ctx.address} - starting" }
 
     val distributeKey = "distribute.$name.${ctx.path}"
 
     val dsl = if(await) null else
       (globalMap.getOrPut(distributeKey, {
-        DistributedJobDsl(name).apply(block)
-      }) as DistributedJobDsl)
+        DistributedJobDsl<EXT, EXT_CONF>(name).apply(block)
+      }) as DistributedJobDsl<EXT, EXT_CONF>)
 
 //    println("got dsl: $dsl, map: ${globalMap.hashCode()} - ${ctx.address} ")
 
@@ -157,7 +159,7 @@ class GlobalMap {
   }
 
   private suspend fun awaitAllParties(name: String, path: String, timeoutMs: Long = 600_000) {
-    awaitCondition<DistributedJobDsl>(path, { it.allPartiesArrived() }, timeoutMs)
+    awaitCondition<DistributedJobDsl<*, *>>(path, { it.allPartiesArrived() }, timeoutMs)
     logger.info { "distribute $name all parties arrived, $path" }
   }
 
@@ -166,10 +168,10 @@ class GlobalMap {
   }
 
 
-  class DistributedJobDsl(
+  class DistributedJobDsl<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig> (
     val name: String
   ) {
-    internal val jobs: ArrayList<DistributedJobEntry> = ArrayList()
+    internal val jobs: ArrayList<DistributedJobEntry<EXT, EXT_CONF>> = ArrayList()
 
     lateinit var ctx: TaskContext<*, *, *>
     lateinit var ssh: SshProvider
@@ -177,11 +179,11 @@ class GlobalMap {
     val jobResultMap = ConcurrentHashMap<String, TaskResult<Any>>()
     var await: Boolean = false
 
-    infix fun List<String>.with(block: suspend TaskContext<*, *, *>.() -> ITaskResult<*>) {
-      jobs += DistributedJobEntry(this, block)
+    infix fun List<String>.with(block: suspend TaskContext<*, EXT, EXT_CONF>.() -> ITaskResult<*>) {
+      jobs += DistributedJobEntry(this, block )
     }
 
-    fun getJob(host: Host): (suspend TaskContext<*, *, *>.() -> ITaskResult<*>)? {
+    fun getJob(host: Host): (suspend TaskContext<*, EXT, EXT_CONF>.() -> ITaskResult<*>)? {
       println("job for $host in $jobs")
       jobs.forEach { (hosts, job) ->
         if (hosts.contains(host.address)) return job
@@ -190,9 +192,9 @@ class GlobalMap {
       return null
     }
 
-    internal data class DistributedJobEntry(
+    internal data class DistributedJobEntry<EXT: DeployFastExtension<EXT, EXT_CONF>, EXT_CONF: ExtensionConfig>(
       val hosts: List<String>,
-      val block: (suspend TaskContext<*, *, *>.() -> ITaskResult<*>)
+      val block: (suspend TaskContext<*, EXT, EXT_CONF>.() -> ITaskResult<*>)
     )
 
     fun allPartiesArrived(): Boolean {

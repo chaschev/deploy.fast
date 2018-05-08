@@ -86,7 +86,8 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
 
     println("files: ${stashConfig.files}, owners: ${config.owners}")
 
-    (distribute("stash.copyFiles",
+    (distribute(
+      name = "stash.copyFiles",
       await = !config.owners.contains(address)
     ) {
 

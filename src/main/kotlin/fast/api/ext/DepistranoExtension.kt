@@ -8,6 +8,7 @@ import fast.lang.lazyVar
 import fast.ssh.SshProvider
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.files.exists
+import honey.lang.joinSpace
 import mu.KLogging
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatterBuilder
@@ -20,8 +21,9 @@ typealias DepistranoTaskContext = ChildTaskContext<DepistranoExtension, Depistra
  *  checkout tag
  * TODO checkout ref
  * ok test 3 machines
+ * ok link
  * TODO keep releases
- * TODO rollback to release
+ * TODO rollback to release by ref/name
  * TODO take a break
  * TODO FUCK IT
  */
@@ -46,9 +48,10 @@ class DepistranoExtension(
 }
 
 data class VCSUpdateResult(
+  val refId: String,
   /** a 6 digit ref id, i.e. 6 digits of commit hash in github */
-  val ref: String,
-  val refId: String
+  val shortRef: String,
+  val log: String
 )
 
 interface ICheckoutMethod {
@@ -73,11 +76,6 @@ data class CheckoutMethod(
   override val update: ICheckoutMethod.() -> VCSUpdateResult
 ) : ICheckoutMethod
 
-class DepistranoRuntime(
-  val dsl: DepistranoConfigDSL
-) {
-  var releaseName: String = dsl.releaseTagDateFormat.format(LocalDateTime.now())
-}
 
 class DepistranoGitCheckoutDSL {
   //user defined vars
@@ -86,12 +84,12 @@ class DepistranoGitCheckoutDSL {
 
   var target: GitCheckoutTarget? = null
 
-  var folder: String by lazyVar {"${ctx.config.srcDir}/${ctx.config.projectName}"}
+  var folder: String by lazyVar { "${ctx.config.srcDir}/${ctx.config.projectName}" }
 
   //provided at runtime
 
   lateinit var ctx: DepistranoTaskContext
-  val ssh: SshProvider by lazy {ctx.ssh}
+  val ssh: SshProvider by lazy { ctx.ssh }
 
   suspend fun checkout(): VCSUpdateResult {
     val config = ctx.config
@@ -100,7 +98,7 @@ class DepistranoGitCheckoutDSL {
       val checkedOut = ssh.files().exists(folder)
 
       //TODO That's for target = null. Support custom checkout with target
-      val refId = script {
+      val r = script {
         cd(srcDir)
 
         capture {
@@ -113,6 +111,7 @@ class DepistranoGitCheckoutDSL {
 
           if (!checkedOut) {
             sh("git clone $url")
+
             cd(folder)
           } else {
             cd(folder)
@@ -124,11 +123,18 @@ class DepistranoGitCheckoutDSL {
         capture("revisionCapture") {
           sh("git rev-parse --verify HEAD")
         }
-      }.execute(ssh)["revisionCapture"]!!.text!!.toString()
+
+        capture("logCapture") {
+          sh("git --no-pager log -3 --all --date-order --reverse")
+        }
+      }.execute(ssh)
+
+      val refId = r["revisionCapture"]!!.text!!.toString()
+      val log = r["logCapture"]!!.text!!.toString()
 
       logger.info { "checked out revision $refId" }
 
-      return VCSUpdateResult(refId, refId.substring(0, 6))
+      return VCSUpdateResult(refId, refId.substring(0, 6), log)
     }
   }
 
@@ -144,7 +150,8 @@ class DepistranoGitCheckoutDSL {
 
 class DepistranoConfigDSL(
   val hosts: List<Host>,
-  val ctx: DepistranoTaskContext
+  val ctx: DepistranoTaskContext,
+  val configName: String = "default"
 ) : ExtensionConfig {
   lateinit var projectDir: String
   lateinit var projectName: String
@@ -159,12 +166,12 @@ class DepistranoConfigDSL(
 
   val srcDir by lazy { "$projectDir/src" }
   val stashDir by lazy { "$projectDir/stash" }
+  val releasesDir by lazy { "$projectDir/releases" }
 
   var build: (suspend (DepistranoTaskContext) -> ITaskResult<List<String>>)? = null
 
   /** checkout works with an empty folder */
-  var checkout: (suspend (ctx: DepistranoTaskContext, ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult)? = null
-  var checkout3: DepistranoGitCheckoutDSL? = null
+  var checkout: DepistranoGitCheckoutDSL? = null
 //  var update: ((ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult)? = null
 
   var distribute: (suspend (DepistranoTaskContext) -> Unit)? = null
@@ -175,14 +182,8 @@ class DepistranoConfigDSL(
     .appendPattern("YYYYMMdd_HHmm_ss")
     .toFormatter()
 
-  val runtime = DepistranoRuntime(this)
-
-  fun checkout3(block: DepistranoGitCheckoutDSL.() -> Unit) {
-    checkout3 = DepistranoGitCheckoutDSL().apply(block)
-  }
-
-  fun checkout(block: suspend (ctx: DepistranoTaskContext, ssh: SshProvider, folder: String, ref: String?) -> VCSUpdateResult) {
-    checkout = block
+  fun checkout(block: DepistranoGitCheckoutDSL.() -> Unit) {
+    checkout = DepistranoGitCheckoutDSL().apply(block)
   }
 
   fun build(block: suspend DepistranoTaskContext.() -> ITaskResult<List<String>>) {
@@ -227,6 +228,24 @@ data class DepistranoHost(
 
 }
 
+data class DepistranoGlobals(
+  var release: String = ""
+) {
+  fun setVcsRef(r: VCSUpdateResult) {
+    vcs = r
+
+    val x = release
+
+    if (!x.matches(DepistranoTasks.COMMIT_REF_REGEX)) {
+      release = "${x}_${r.shortRef}"
+    }
+  }
+
+  val artifacts = ArrayList<String>()
+
+  lateinit var vcs: VCSUpdateResult
+}
+
 
 class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<DepistranoExtension, DepistranoConfigDSL>(ext, parentCtx) {
@@ -236,22 +255,44 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
       mkdirs(
         config.projectDir,
         config.srcDir,
-        config.stashDir
+        config.stashDir,
+        config.releasesDir
       )
     }.execute(ssh).toFast()
+
+    //TODO refactor to use Task's context Type
+    distribute ("depi.prepare") {
+      val depiConfig = config
+
+      app.addresses().take(1) with {
+
+        logger.info { "I am ($address) building setting the depi globals, everyone is watching, path: $path" }
+
+        val releaseName = LocalDateTime.now().format(depiConfig.releaseTagDateFormat)
+
+        app.globalMap["${depiConfig.configName}.depi.globals"] = DepistranoGlobals(releaseName)
+
+        logger.info { "depi.prepare $address - ${depiGlobals()}" }
+
+        ok
+      }
+    }.await() as ITaskResult<List<String>?>
   }
+
+  fun DepistranoTaskContext.depiGlobals() = app.globalMap["${config.configName}.depi.globals"] as DepistranoGlobals
 
   //checkout will set release tag
   val checkoutTask by extensionTask {
     config.apply {
-      val r = with(checkout3!!) {
+      val r = with(checkout!!) {
         ctx = this@extensionTask
         checkout()
       }
 
-      runtime.releaseName += "_ref${r.ref}"
+      depiGlobals().setVcsRef(r)
 
-      ssh.files().writeToString("$srcDir/vcsRef", "${r.ref} ${r.refId}")
+      ssh.files().writeToString("$srcDir/vcsRef", "${r.shortRef} ${r.refId}")
+      ssh.files().writeToString("$srcDir/vcsLog", r.log)
     }
     ok
   }
@@ -271,15 +312,17 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
    * job2.await()
    */
   val buildTask by extensionTask {
-    val depiConfig = config
-
     distribute("depi.build") {
       app.addresses().take(1) with {
         logger.info { "I am ($address) building the project, everyone is watching, path: $path" }
 
-        val r = depiConfig.build!!.invoke(this@extensionTask)
+        val r = config.build!!.invoke(this@extensionTask)
 
-        logger.info { "$address - finished building artifacts: ${r.valueNullable()}" }
+        val artifacts = r.value
+
+        if(artifacts != null) depiGlobals().artifacts.addAll(artifacts)
+
+        logger.info { "$address - finished building artifacts: ${r.value}" }
 
         r
       }
@@ -289,10 +332,10 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   val distributeTask by extensionTask {
     val artifacts = buildTask.play(this).value
 
-    with(extension.stash.tasks(this)) {
+    var r: ITaskResult<*> = with(extension.stash.tasks(this)) {
       var r: ITaskResult<*> = ok
 
-      r *= if(artifacts != null) {
+      r *= if (artifacts != null) {
         stash("depi.distribute", listOf(address), artifacts)
       } else {
         stash("depi.distribute")
@@ -302,10 +345,31 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
       r.asBoolean()
     }
+
+    r *= script {
+      mkdirs(releaseDir())
+      sh("cp ${depiGlobals().artifacts.joinSpace()} ${releaseDir()}")
+      sh("cp ${config.srcDir}/vcs* ${releaseDir()}")
+      sh("echo ${depiGlobals().release} >${config.releasesDir}/current.txt")
+    }.execute(ssh).toFast()
+
+    r.asBoolean()
   }
 
-  val linkTask by extensionTask {
+  fun DepistranoTaskContext.releaseDir() = "${config.releasesDir}/${depiGlobals().release}"
 
+  val linkTask by extensionTask {
+    script {
+      symlinks {
+        "${config.releasesDir}/current" to releaseDir()
+      }
+    }.execute(ssh)
+    //ok pre-create releases folder
+    //ok stored shared depi object in a global map
+    //ok create release folder via pattern
+    //ok share artifact via global map
+    //todo copy vcs files & artifacts to release folder
+    //todo update current link, write current folder into a file
     ok
   }
 
@@ -318,19 +382,19 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   }
 
   suspend fun installRequirements() = extensionFun("installRequirements") {
-    extension.apt.tasks(this).requirePackage("git")
+    extension.apt.tasks(extCtx).requirePackage("git")
   }
 
   suspend fun deploy() = extensionFun("installRequirements") {
     var r: ITaskResult<*>
 
-    r = prepareTask.play(this).abortIfError()
-    r *= checkoutTask.play(this).abortIfError()
+    r = prepareTask.play(extCtx).abortIfError()
+    r *= checkoutTask.play(extCtx).abortIfError()
 //    r *= buildTask.play(this).abortIfError()
-    r *= distributeTask.play(this).abortIfError()
-    r *= linkTask.play(this).abortIfError()
-    r *= executeTask.play(this).abortIfError()
-    r *= sweepTask.play(this).abortIfError()
+    r *= distributeTask.play(extCtx).abortIfError()
+    r *= linkTask.play(extCtx).abortIfError()
+    r *= executeTask.play(extCtx).abortIfError()
+    r *= sweepTask.play(extCtx).abortIfError()
 
     r.asBoolean()
   }
@@ -341,7 +405,9 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
   suspend fun updateFile() = updateFileTask()
 
-  companion object : KLogging()
+  companion object : KLogging() {
+    val COMMIT_REF_REGEX = """^.*_[0-9a-f]{6}$""".toRegex()
+  }
 }
 
 

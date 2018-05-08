@@ -115,3 +115,7 @@ inline fun CharSequence.scanForIndex(predicate: (ch: Char, index:Int, length: In
 }
 
 fun CoroutineScope.getCurrentJob() = coroutineContext[Job]!!
+
+fun Iterable<String>.joinSpace() = joinToString(" ")
+fun Iterable<String>.joinComma() = joinToString(", ")
+fun Iterable<String>.joinEol() = joinToString("\n")

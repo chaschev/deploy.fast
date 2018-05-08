@@ -8,8 +8,6 @@ import fast.dsl.DeployFastDSL
 import fast.dsl.TaskResult
 import fast.dsl.toFast
 import fast.ssh.command.script.ScriptDsl
-import fast.ssh.command.script.ScriptDsl.Companion.script
-import fast.ssh.files.exists
 import fast.ssh.logger
 import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking
@@ -48,7 +46,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     projectName = "deploy.fast"
 
 
-    checkout3 {
+    checkout {
       url = "https://github.com/chaschev/deploy.fast.git"
 //      url = "https://chaschev@bitbucket.org/chaschev/honey-badger.git"
     }
