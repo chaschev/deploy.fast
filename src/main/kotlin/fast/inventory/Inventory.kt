@@ -3,6 +3,8 @@ package fast.inventory
 import fast.lang.InitLater
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.KnownHostsConfig
+import fast.ssh.command.ConsoleCommand
+import org.apache.logging.log4j.MarkerManager
 import org.kodein.di.generic.instance
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -83,7 +85,14 @@ data class Host(
 
   val groups: List<Group> = _groups
 
+  val marker = MarkerManager.getMarker(address).setParents(IPS)
+
   fun getVar(name: String) = inventory.getVar(name, this)
+
+  companion object {
+    val IPS = MarkerManager.getMarker("IPS")
+    val local = Host("localhost")
+  }
 }
 
 interface IGroup : IWithVars {

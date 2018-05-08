@@ -126,8 +126,8 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
 
     val confString: String = ssh.files().readAsString("$extractedTmpHomePath/conf/cassandra.yaml")
 
-    val host = config.hosts.find { it.listenAddress == ssh.address() }
-      ?: throw Exception("host not found in cassandra conf: ${ssh.address()}")
+    val host = config.hosts.find { it.listenAddress == ssh.address }
+      ?: throw Exception("host not found in cassandra conf: ${ssh.address}")
 
     val patcher = SlyYamlPatcher(StringBuilder(confString))
       .replaceField("cluster_name", config.cluster.name)

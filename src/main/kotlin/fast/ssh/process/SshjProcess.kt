@@ -1,8 +1,6 @@
 package fast.ssh.process
 
-//import io.vertx.core.AsyncResult
-//import io.vertx.core.Closeable
-//import io.vertx.core.Handler
+import fast.inventory.Host
 import kotlinx.coroutines.experimental.Job
 import net.schmizz.sshj.connection.channel.direct.Session
 import fast.ssh.tryClose
@@ -10,7 +8,11 @@ import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
 
-class SshjProcess(val job: Job, internal val command: Session.Command) : BasicProcess, Cancellable, Closeable {
+class SshjProcess(
+  val job: Job,
+  internal val command: Session.Command,
+  val host: Host
+) : BasicProcess, Cancellable, Closeable {
   override fun close() {
     cancel()
   }
@@ -32,7 +34,8 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
       command.tryClose()
     }
 
-    return ConsoleCommandResult(console,
+    return ConsoleCommandResult(
+      console,
       command.exitStatus,
       command.isEOF,
       isTimeout,
@@ -46,9 +49,5 @@ class SshjProcess(val job: Job, internal val command: Session.Command) : BasicPr
 
     job.cancel()
   }
-
-//    override fun close(completionHandler: Handler<AsyncResult<Void>>?) {
-//        newCommand.tryClose()
-//    }
 }
 

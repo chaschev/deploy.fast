@@ -1,5 +1,6 @@
 package fast.ssh
 
+import fast.inventory.Host
 import kotlinx.coroutines.experimental.runBlocking
 import mu.KLogging
 import net.schmizz.sshj.SSHClient
@@ -9,8 +10,11 @@ import java.io.*
 
 
 class GenericSshProvider(
-  val config: SshConfig)
+  val config: SshConfig
+)
   : SshProvider {
+  override val host: Host
+    get() = config.host
 
   companion object : KLogging()
 
@@ -72,6 +76,7 @@ class GenericSshProvider(
 
   override fun user() = config.authUser
   override val home by lazy { runBlocking { run("echo \$HOME").text().trim()} }
-  override fun address() = config.address
+  override val address
+    get() = config.address
 }
 

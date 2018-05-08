@@ -11,7 +11,7 @@ class SshDSL {
   }
 
   fun privateKey(host: Host, user: String = "root", block: (KnownHostsConfig.() -> Unit)? = null): KnownHostsConfig {
-    val config = KnownHostsConfig(address = host.address, authUser = user)
+    val config = KnownHostsConfig(host = host, authUser = user)
 
     return (if (block != null) config.apply(block) else config)
   }
@@ -20,7 +20,7 @@ class SshDSL {
     host: Host, user: String, password: String,
     block: (KnownHostsConfig.() -> Unit)? = null
   ): KnownHostsConfig {
-    val config = KnownHostsConfig(address = host.address, authUser = user, authPassword = password)
+    val config = KnownHostsConfig(host = host, authUser = user, authPassword = password)
 
     return (if (block != null) config.apply(block) else config)
   }

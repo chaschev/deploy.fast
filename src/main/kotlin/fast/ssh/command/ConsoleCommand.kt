@@ -1,18 +1,31 @@
 package fast.ssh.command
 
-//import io.vertx.core.Future
-//import io.vertx.kotlin.coroutines.asFuture
 import fast.ssh.IConsoleProcess
+import fast.ssh.command.ConsoleLogging.sshErrLogger
+import fast.ssh.command.ConsoleLogging.sshOutLogger
 import fast.ssh.process.Console
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.MarkerManager
 
+
+object ConsoleLogging {
+  val sshOutLogger = LogManager.getLogger("ssh.out")
+  val sshErrLogger = LogManager.getLogger("ssh.err")
+
+
+  val SSH_MARKER = MarkerManager.getMarker("ssh")
+  val SSH_ERR_MARKER = MarkerManager.getMarker("ssh_err").setParents(SSH_MARKER)
+  val SSH_OUT_MARKER = MarkerManager.getMarker("ssh_out").setParents(SSH_MARKER)
+}
 
 abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   var printToOutput: Boolean = true
 
-  companion object {
-    val printingHandler: (Console) -> Unit = { console ->
-      print(console.newText())
-    }
+  val printingHandler: (Console) -> Unit = { console ->
+//    print(console.newText())
+
+    sshOutLogger.debug(process.host.marker, console.newIn)
+    sshErrLogger.debug(process.host.marker, console.newErr)
   }
 
   suspend fun runBlocking(timeoutMs: Int = 60000, handler: ((Console) -> Unit)? = null): CommandResult<T> {
@@ -56,7 +69,7 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
       if (!printToOutput)
         handler
       else {
-        {console: Console ->
+        { console: Console ->
           printingHandler(console)
           handler(console)
         }

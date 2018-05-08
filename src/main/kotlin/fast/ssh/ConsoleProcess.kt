@@ -1,5 +1,9 @@
 package fast.ssh
 
+import fast.inventory.Host
+import fast.ssh.command.ConsoleLogging
+import fast.ssh.command.ConsoleLogging.sshErrLogger
+import fast.ssh.command.ConsoleLogging.sshOutLogger
 import kotlinx.coroutines.experimental.*
 import mu.KLogging
 import fast.ssh.command.Regexes
@@ -13,11 +17,14 @@ import java.io.InputStream
  */
 interface IConsoleProcess : Cancellable {
   val console: Console
+  val host: Host
 
   fun start(timeoutMs: Int = 60000, callback: ((console: Console) -> Unit)?): IConsoleProcess
   var result: ConsoleCommandResult?
 
   val startedAt: Long
+  val egg: ProcessEgg
+
   suspend fun await(): IConsoleProcess
 }
 
@@ -31,7 +38,7 @@ interface IConsoleProcess : Cancellable {
  *  mom - creates a baby process and is holding birth information. Command line and environment
  */
 open class ConsoleProcess(
-  val mom: ProcessMom
+  override val egg: ProcessEgg
 //        val state: CommandState = CommandState.RUNNING,
 
 ) : IConsoleProcess {
@@ -56,13 +63,21 @@ open class ConsoleProcess(
     return job.await()
   }
 
+  override val host
+    get() = egg.host
+
   override fun start(timeoutMs: Int, callback: ((console: Console) -> Unit)?): ConsoleProcess {
     logger.debug { "starting a new job: ${describeMe()} with timeout ${timeoutMs}ms" }
 
     job = asyncNoisy {
-      process = mom.giveBirth(getCurrentJob())
+      process = egg.giveBirth(getCurrentJob())
 
-      logger.debug { "started $mom" }
+      logger.debug { "started $egg" }
+
+      val cmd = "\n> ${egg.cmd}\n"
+
+      sshOutLogger.debug(host.marker, cmd)
+//      sshErrLogger.debug(host.marker, cmd)
 
       val writer = process.stdin.bufferedWriter()
 
@@ -105,7 +120,7 @@ open class ConsoleProcess(
       while (isActive) {
         val timeMs = System.currentTimeMillis() - startedAt
         if (timeMs > timeoutMs) {
-          logger.info { "timeout ${timeoutMs}ms for '$mom'" }
+          logger.info { "timeout ${timeoutMs}ms for '$egg'" }
 
           result = ConsoleCommandResult(console = console, isTimeout = true, timeMs = timeMs)
 
@@ -129,7 +144,7 @@ open class ConsoleProcess(
           logger.info { "command finished with result $r,\n" +
             "  stdout=${r.console.stdout.cuteCutLast(100).trim()}\n" +
             "  error=${r.console.stderr.cuteCutLast(100).trim()}\n" +
-            "  command=${mom.toString().cuteSubstring(0, 40)}\n" }
+            "  command=${egg.toString().cuteSubstring(0, 40)}\n" }
 
           break
         }
@@ -159,7 +174,7 @@ open class ConsoleProcess(
     return this
   }
 
-  private fun describeMe() = mom.toString().cuteCut(60)
+  private fun describeMe() = egg.toString().cuteCut(60)
 
   override fun cancel() {
     readJob1?.cancel()

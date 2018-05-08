@@ -21,7 +21,7 @@ interface ConsoleProvider : Closeable {
   fun files(sudo: Boolean = false): Files
   fun user(): String
   val home: String
-  fun address(): String
+  val address: String
 }
 
 suspend fun ConsoleProvider.runAndWaitCustom(

@@ -4,11 +4,7 @@ import fast.ssh.files.SshFiles
 import mu.KLogging
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.xfer.FileSystemFile
-import fast.ssh.process.*
-import fast.ssh.process.SshjProcessMom.Companion.newCommand
 import java.io.File
-import java.time.Duration
-import java.time.Instant
 
 class GenericSshSession(override val provider: GenericSshProvider) : SshSession {
   companion object : KLogging()
