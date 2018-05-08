@@ -103,7 +103,10 @@ class GlobalMap {
    *
    * Returns a job to await for completion. Inactive parties register with null dsl.
    *
-   * @param block Null means the party can't do this orchestration.
+   * TODO: it is not so clear if hosts defined in dsl are the same as hosts that provide non-null dsl.
+   *  Fuck it for now
+   *
+   * @param await True means the party can't do this orchestration.
    *              I.e. it doesn't have artifacts, so it doesn't know which files to copy
    *              So, it can't provide definition of the task, which is dsl
    *
@@ -112,16 +115,16 @@ class GlobalMap {
   suspend fun distribute(
     name: String,
     ctx: TaskContext<*, *, *>,
-    block: (DistributedJobDsl.() -> Unit)?,
+    block: DistributedJobDsl.() -> Unit,
+    await: Boolean = false,
     timeoutMs: Long = 600_000
   ): DistributeResult {
     logger.info { "distribute $name ${ctx.address} - starting" }
 
     val distributeKey = "distribute.$name.${ctx.path}"
 
-    val dsl = if(block == null) null else
+    val dsl = if(await) null else
       (globalMap.getOrPut(distributeKey, {
-        //        println("inside the fucking block! ${ctx.address}")
         DistributedJobDsl(name).apply(block)
       }) as DistributedJobDsl)
 
@@ -172,6 +175,7 @@ class GlobalMap {
     lateinit var ssh: SshProvider
 
     val jobResultMap = ConcurrentHashMap<String, TaskResult<Any>>()
+    var await: Boolean = false
 
     infix fun List<String>.with(block: suspend TaskContext<*, *, *>.() -> ITaskResult<*>) {
       jobs += DistributedJobEntry(this, block)

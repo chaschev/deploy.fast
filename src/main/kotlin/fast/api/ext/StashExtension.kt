@@ -86,28 +86,28 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
 
     println("files: ${stashConfig.files}, owners: ${config.owners}")
 
-    (if (!config.owners.contains(address)) {
-      distribute("stash.copyFiles").await()
-    } else {
-      distribute("stash.copyFiles") {
-        stashConfig.owners.take(1) with {
-          println("files: ${stashConfig.files}")
-          app.globalMap["stash.files.$id"] = stashConfig.files
+    (distribute("stash.copyFiles",
+      await = !config.owners.contains(address)
+    ) {
 
-          var r: ITaskResult<*> = ssh.run("cp ${stashConfig.files.joinToString(" ")} ${stashConfig.stashFolder}")
+      stashConfig.owners.take(1) with {
+        println("files: ${stashConfig.files}")
 
-          // todo: verify checksum via global map
-          // todo: provide ssh auth
-          for (host in stashConfig.hosts) {
-            if (host.address == address) continue
+        app.globalMap["stash.files.$id"] = stashConfig.files
 
-            r *= ssh.run("scp -i ${ssh.home}/.ssh/fast_id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${stashConfig.stashFolder}/* ${host.address}:${stashConfig.stashFolder}")
-          }
+        var r: ITaskResult<*> = ssh.run("cp ${stashConfig.files.joinToString(" ")} ${stashConfig.stashFolder}")
 
-          r
+        // todo: verify checksum via global map
+        // todo: provide ssh auth
+        for (host in stashConfig.hosts) {
+          if (host.address == address) continue
+
+          r *= ssh.run("scp -i ${ssh.home}/.ssh/fast_id -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${stashConfig.stashFolder}/* ${host.address}:${stashConfig.stashFolder}")
         }
-      }.await()
-    } as ITaskResult<Any>?)?.asBoolean() ?: ok
+
+        r
+      }
+    }.await() as ITaskResult<Any>?)?.asBoolean() ?: ok
   }
 
   suspend fun unstash(id: String) = extensionFun("unstash") {
