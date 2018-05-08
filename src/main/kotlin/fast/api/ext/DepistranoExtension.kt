@@ -368,8 +368,8 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
     //ok stored shared depi object in a global map
     //ok create release folder via pattern
     //ok share artifact via global map
-    //todo copy vcs files & artifacts to release folder
-    //todo update current link, write current folder into a file
+    //ok copy vcs files & artifacts to release folder
+    //ok update current link, write current folder into a file
     ok
   }
 
@@ -378,6 +378,22 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   }
 
   val sweepTask by extensionTask {
+    val releases = ssh.files()
+      .ls(config.releasesDir)
+      .filter { it.name[0].isDigit() }
+      .sortedBy { it.name }
+
+    val amountToCut = Math.max(releases.size - config.keepReleases, 0)
+
+    val releasesToRemove = releases.take(amountToCut)
+
+    logger.info { "found ${releases.size}, " +
+      "removing $amountToCut (${releases.map { it.name }} " +
+      "-> ${releases.takeLast(releases.size - amountToCut)})" }
+
+    if(releasesToRemove.isNotEmpty())
+      ssh.files().remove(*releasesToRemove.map { it.path }.toTypedArray(), recursive = true)
+
     ok
   }
 
