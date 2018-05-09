@@ -5,54 +5,60 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.S} [%-6.90t] %-5level %logger{36} - %msg%n"/>
         </Console>
-        <RollingFile name="fuckLog4j"
-                     fileName="logs/rolling.log"
-                     filePattern="logs/rolling-%d{MM-dd-yyyy}-%i.log">
-            <PatternLayout pattern="%d{HH:mm:ss.S} [%-6.90t] %-5level %logger{36} - %msg%n"/>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-                <SizeBasedTriggeringPolicy size="1 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="10"/>
-        </RollingFile>
-        <Routing name="sshRouting">
-            <MarkerFilter marker="IPS" onMatch="ACCEPT" onMismatch="DENY"/>
+        <Routing name="outRouting">
+            <MarkerFilter marker="IPS_OUT" onMatch="ACCEPT" onMismatch="DENY"/>
             <Routes pattern="$${marker:}">
                 <Route>
                     <RollingFile name="routing"
-                                 fileName="logs/${marker:}.log"
-                                 filePattern="logs/${marker:}-%d{MM-dd-yyyy}-%i.log">
+                                 fileName="logs/${marker:}.out"
+                                 filePattern="logs/${marker:}-%d{MM-dd-yyyy}-%i.out">
                         <PatternLayout pattern="%m"/>
                         <Policies>
-                            <SizeBasedTriggeringPolicy size="50 MB"/>
+                            <SizeBasedTriggeringPolicy size="25 MB"/>
                         </Policies>
                         <DefaultRolloverStrategy max="100"/>
                     </RollingFile>
                 </Route>
             </Routes>
         </Routing>
+
+        <Routing name="logRouting">
+            <Routes pattern="$${marker:}">
+                <Route>
+                    <RollingFile name="routing"
+                                 fileName="logs/${marker:}.log"
+                                 filePattern="logs/${marker:}-%d{MM-dd-yyyy}-%i.log">
+                        <PatternLayout pattern="%d{HH:mm:ss.S} [%-6.90t] %-5level %logger{36} - %msg%n"/>
+                        <Policies>
+                            <SizeBasedTriggeringPolicy size="25 MB"/>
+                        </Policies>
+                        <DefaultRolloverStrategy max="100"/>
+                    </RollingFile>
+                </Route>
+            </Routes>
+        </Routing>
+
     </Appenders>
     <Loggers>
         <Logger name="net.schmizz" level="warn"/>
         <Logger name="net.schmizz.sshj.DefaultConfig" level="error"/>
 
         <Logger name="fast" level="debug" additivity="false">
-            <AppenderRef ref="fuckLog4j"/>
-            <AppenderRef ref="Console"/>
+            <!--<AppenderRef ref="fuckLog4j"/>-->
+            <!--<AppenderRef ref="Console"/>-->
         </Logger>
 
         <Logger name="ssh.out" additivity="false">
-            <AppenderRef ref="sshRouting"/>
+            <AppenderRef ref="outRouting"/>
         </Logger>
 
         <Logger name="ssh.err" additivity="false">
-            <AppenderRef ref="sshRouting"/>
+            <AppenderRef ref="outRouting"/>
         </Logger>
 
         <Root level="debug">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="fuckLog4j"/>
-            <AppenderRef ref="Routing"/>
+            <AppenderRef ref="logRouting"/>
         </Root>
     </Loggers>
 </Configuration>

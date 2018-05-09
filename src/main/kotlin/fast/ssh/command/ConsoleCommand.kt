@@ -1,21 +1,30 @@
 package fast.ssh.command
 
 import fast.ssh.IConsoleProcess
+import fast.ssh.command.ConsoleLogging.outLogger
 import fast.ssh.command.ConsoleLogging.sshErrLogger
 import fast.ssh.command.ConsoleLogging.sshOutLogger
 import fast.ssh.process.Console
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.MarkerManager
+import org.apache.logging.slf4j.Log4jMarkerFactory
+import org.slf4j.LoggerFactory
+import org.slf4j.MarkerFactory
 
+/*
+open class KLogging : KLoggable {
+  override val logger: KLogger = logger()
+}
+*/
 
 object ConsoleLogging {
-  val sshOutLogger = LogManager.getLogger("ssh.out")
-  val sshErrLogger = LogManager.getLogger("ssh.err")
+  val sshOutLogger = LoggerFactory.getLogger("ssh.out")
+  val outLogger = LoggerFactory.getLogger("log.out")
+  val sshErrLogger = LoggerFactory.getLogger("ssh.err")
+  val markerFactory = Log4jMarkerFactory()
 
+  val SSH_MARKER = MarkerFactory.getMarker("ssh")
+  val SSH_ERR_MARKER = MarkerFactory.getMarker("ssh_err").apply {add(SSH_MARKER)}
+  val SSH_OUT_MARKER = MarkerFactory.getMarker("ssh_out").apply { SSH_MARKER.add(this)}
 
-  val SSH_MARKER = MarkerManager.getMarker("ssh")
-  val SSH_ERR_MARKER = MarkerManager.getMarker("ssh_err").setParents(SSH_MARKER)
-  val SSH_OUT_MARKER = MarkerManager.getMarker("ssh_out").setParents(SSH_MARKER)
 }
 
 abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
@@ -24,7 +33,13 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
   val printingHandler: (Console) -> Unit = { console ->
 //    print(console.newText())
 
-    sshOutLogger.debug(process.host.marker, console.newIn)
+    val outTrimmed = console.newOut.trim()
+    val errTrimmed = console.newErr.trim()
+
+    if(!outTrimmed.isEmpty()) outLogger.debug(process.host.marker, outTrimmed)
+    if(!errTrimmed.isEmpty()) outLogger.debug(process.host.marker, errTrimmed)
+
+    sshOutLogger.debug(process.host.marker, console.newOut)
     sshErrLogger.debug(process.host.marker, console.newErr)
   }
 

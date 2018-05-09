@@ -253,7 +253,7 @@ class ShellScript<R>(
           dsl.allCapturesProcessing!!.invoke(console, captureMap)
         },
         consoleHandler = { con ->
-          val newHolders = con.newIn.mapEachNamedTextBlock(
+          val newHolders = con.newOut.mapEachNamedTextBlock(
             "--- start ",
             "--- end "
           ) { start, end, blockId, blockText ->
@@ -272,10 +272,11 @@ class ShellScript<R>(
             if(newHolders.isEmpty()) {
               holder.text = con.stdout.subSequence(holder.start, con.stdout.length)
             } else {
+              // got String index out of range: -1776
               holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
             }
 
-            holder.command.handleInput?.invoke(con, con.newIn)
+            holder.command.handleInput?.invoke(con, con.newOut)
           }
 
           // if found new blocks, change the current capture

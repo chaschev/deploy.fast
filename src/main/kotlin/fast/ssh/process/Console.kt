@@ -15,10 +15,10 @@ class Console(
 
   fun closeSession() = session.cancel()
 
-  var newIn: String = ""
+  var newOut: String = ""
   var newErr: String = ""
 
-  fun newText(): String = newIn + newErr
+  fun newText(): String = newOut + newErr
 
   fun writeln(text: String) = write("$text\n")
 

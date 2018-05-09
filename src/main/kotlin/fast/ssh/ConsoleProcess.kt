@@ -1,14 +1,13 @@
 package fast.ssh
 
 import fast.inventory.Host
-import fast.ssh.command.ConsoleLogging
-import fast.ssh.command.ConsoleLogging.sshErrLogger
 import fast.ssh.command.ConsoleLogging.sshOutLogger
 import kotlinx.coroutines.experimental.*
 import mu.KLogging
 import fast.ssh.command.Regexes
 import fast.ssh.process.*
 import honey.lang.getCurrentJob
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
@@ -44,6 +43,8 @@ open class ConsoleProcess(
 ) : IConsoleProcess {
   companion object : KLogging()
 
+  val log = LoggerFactory.getLogger("test")
+
   override var result: ConsoleCommandResult? = null
 
   override val startedAt = System.currentTimeMillis()
@@ -72,7 +73,7 @@ open class ConsoleProcess(
     job = asyncNoisy {
       process = egg.giveBirth(getCurrentJob())
 
-      logger.debug { "started $egg" }
+      log.info(host.marker, "started $egg")
 
       val cmd = "\n> ${egg.cmd}\n"
 
@@ -89,9 +90,9 @@ open class ConsoleProcess(
       // todo: change to non-blocking coroutines
       readJob1 = launch(CommonPool) {
         while (true) {
-          console.newIn = tryRead(stdout, console.stdout)
+          console.newOut = tryRead(stdout, console.stdout)
 
-          if (callback != null && !console.newIn.isEmpty()) {
+          if (callback != null && !console.newOut.isEmpty()) {
             callback(console)
           }
 
