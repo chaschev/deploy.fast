@@ -119,3 +119,11 @@ fun CoroutineScope.getCurrentJob() = coroutineContext[Job]!!
 fun Iterable<String>.joinSpace() = joinToString(" ")
 fun Iterable<String>.joinComma() = joinToString(", ")
 fun Iterable<String>.joinEol() = joinToString("\n")
+
+fun CharSequence.startsWithAny(prefixes: Iterable<String>): Boolean {
+  return prefixes.find { this.startsWith(it) } != null
+}
+
+fun CharSequence.startsWithAny(prefixes: Array<out String>): Boolean {
+  return prefixes.find { this.startsWith(it) } != null
+}
