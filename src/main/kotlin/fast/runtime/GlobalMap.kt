@@ -121,7 +121,7 @@ class GlobalMap {
     await: Boolean = false,
     timeoutMs: Long = 600_000
   ): DistributeResult<EXT, EXT_CONF> {
-    logger.info { "distribute $name ${ctx.address} - starting" }
+    logger.info(ctx.host) { "distribute $name ${ctx.address} - starting" }
 
     val distributeKey = "distribute.$name.${ctx.path}"
 
@@ -136,19 +136,19 @@ class GlobalMap {
 
     val job = if (myJob == null) {
       asyncNoisy {
-        logger.info { "distribute $name ${ctx.address} - no job, awaiting others ${ctx.path}" }
-        awaitAllParties(name, distributeKey, timeoutMs)
+        logger.info(ctx.host) { "distribute $name ${ctx.address} - no job, awaiting others ${ctx.path}" }
+        awaitAllParties(ctx.host, name, distributeKey, timeoutMs)
         null
       }
     } else {
-      logger.info { "distribute $name ${ctx.address} - job started ${ctx.path}" }
+      logger.info(ctx.host) { "distribute $name ${ctx.address} - job started ${ctx.path}" }
 
       val r = myJob(ctx)
 
-      dsl.arrived(ctx.session.host, r)
+      dsl.arrived(ctx.host, r)
 
       asyncNoisy {
-        awaitAllParties(name, distributeKey, timeoutMs)  //todo: fix - await for leftover period of time
+        awaitAllParties(ctx.host, name, distributeKey, timeoutMs)  //todo: fix - await for leftover period of time
         r
       }
     }
@@ -158,9 +158,9 @@ class GlobalMap {
     return DistributeResult(job, dsl)
   }
 
-  private suspend fun awaitAllParties(name: String, path: String, timeoutMs: Long = 600_000) {
+  private suspend fun awaitAllParties(host: Host, name: String, path: String, timeoutMs: Long = 600_000) {
     awaitCondition<DistributedJobDsl<*, *>>(path, { it.allPartiesArrived() }, timeoutMs)
-    logger.info { "distribute $name all parties arrived, $path" }
+    logger.info(host) { "distribute $name all parties arrived, $path" }
   }
 
   operator fun set(s: String, value: Any): Any? {
@@ -207,7 +207,7 @@ class GlobalMap {
     fun arrived(host: Host, result: ITaskResult<*>) {
       jobResultMap[host.address] = result as TaskResult<Any>
 
-      logger.info { "distribute $name ${host.address} - arrived in a distribution task [${jobResultMap.size}/${size()}]" }
+      logger.info(host) { "distribute $name ${host.address} - arrived in a distribution task [${jobResultMap.size}/${size()}]" }
     }
   }
 

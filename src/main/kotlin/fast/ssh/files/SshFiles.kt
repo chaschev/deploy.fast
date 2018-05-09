@@ -81,33 +81,37 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
       "uploading ${files.size} files to $dest, total: ${sizeKb}kb"
     }
 
-    val transfer = (provider as GenericSshProvider).sshClient.newSCPFileTransfer()
+    val prov = provider as GenericSshProvider
+    val transfer = prov.sshClient.newSCPFileTransfer()
+
+    val host = prov.host
 
     if (files.size == 1) {
-      logger.info { "transferring ${files[0]} to $dest" }
+      logger.info(host) { "transferring ${files[0]} to $dest" }
 
       transfer.upload(FileSystemFile(files[0]), dest)
     } else {
       for (file in files) {
-        logger.info { "transferring $file to $dest" }
+        logger.info(host) { "transferring $file to $dest" }
 
         transfer.upload(FileSystemFile(file), dest + "/" + file.name)
       }
     }
 
-    logger.info { Companion.logDuration(startedAt, sizeKb) }
+    logger.info(host) { Companion.logDuration(startedAt, sizeKb) }
 
   }
 
   override fun copyRemoteFiles(destDir: File, vararg sourcePaths: String): List<File> {
     check(destDir.isDirectory)
 
-    val transfer = (provider as GenericSshProvider).sshClient.newSCPFileTransfer();
+    val prov = provider as GenericSshProvider
+    val transfer = prov.sshClient.newSCPFileTransfer();
 
     val startedAt = System.currentTimeMillis()
 
     val files = sourcePaths.map { path ->
-      logger.info { "transferring $path to ${destDir.absolutePath}" }
+      logger.info(prov.host) { "transferring $path to ${destDir.absolutePath}" }
 
       val file = File(destDir, File(path).name)
 

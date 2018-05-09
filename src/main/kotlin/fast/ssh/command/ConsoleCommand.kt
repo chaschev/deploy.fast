@@ -16,15 +16,12 @@ open class KLogging : KLoggable {
 */
 
 object ConsoleLogging {
+  /* delivers session stdout to .out files */
   val sshOutLogger = LoggerFactory.getLogger("ssh.out")
-  val outLogger = LoggerFactory.getLogger("log.out")
   val sshErrLogger = LoggerFactory.getLogger("ssh.err")
-  val markerFactory = Log4jMarkerFactory()
 
-  val SSH_MARKER = MarkerFactory.getMarker("ssh")
-  val SSH_ERR_MARKER = MarkerFactory.getMarker("ssh_err").apply {add(SSH_MARKER)}
-  val SSH_OUT_MARKER = MarkerFactory.getMarker("ssh_out").apply { SSH_MARKER.add(this)}
-
+  /* delivers session stdout to .log files */
+  val outLogger = LoggerFactory.getLogger("ssh.out.log")
 }
 
 abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {

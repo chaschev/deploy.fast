@@ -273,6 +273,7 @@ class ShellScript<R>(
               holder.text = con.stdout.subSequence(holder.start, con.stdout.length)
             } else {
               // got String index out of range: -1776
+              println("holder.start: ${holder.start}, newHolders[0].start: ${newHolders[0].start}")
               holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
             }
 

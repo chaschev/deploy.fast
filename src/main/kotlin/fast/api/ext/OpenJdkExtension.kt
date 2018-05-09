@@ -52,36 +52,36 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
 
     val apt = ext.apt
 
-    logger.info { "trying to delete old installed openjdk packages..." }
+    logger.info(host) { "trying to delete old installed openjdk packages..." }
 
     for (i in 1..3) {
       val installed = apt.tasks(this).listInstalled("openjdk")
 
       if (installed.isEmpty()) {
-        logger.info { "found 0 packages installed, finishing" }
+        logger.info(host) { "found 0 packages installed, finishing" }
       }
 
-      logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
+      logger.info(host) { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
 
       for (pack in installed) {
-        logger.info { "removing $pack..." }
+        logger.info(host) { "removing $pack..." }
         apt.tasks(this).remove(pack)
       }
     }
 
-    logger.info { "dpkg: trying to delete old openjdk packages..." }
+    logger.info(host) { "dpkg: trying to delete old openjdk packages..." }
 
     for (i in 1..3) {
       val installed = apt.tasks(this).dpkgListInstalled("openjdk").value!!
 
       if (installed.isEmpty()) {
-        logger.info { "found 0 packages installed, finishing" }
+        logger.info(host) { "found 0 packages installed, finishing" }
       }
 
-      logger.info { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
+      logger.info(host) { "#$i. found ${installed.size} old packages: ${installed.joinToString(",")}" }
 
       for (pack in installed) {
-        logger.info { "removing $pack..." }
+        logger.info(host) { "removing $pack..." }
         apt.tasks(this).dpkgRemove(pack.name)
       }
     }
@@ -140,16 +140,16 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
 
     val requiredJavaVersion: Version = Version.parse(conf.version.toString())
 
-    logger.info { "found java $javaVersion, javac $javacVersion" }
+    logger.info(host) { "found java $javaVersion, javac $javacVersion" }
 
     val result = if (options.force
       || javaVersion ?: Version.ZERO < requiredJavaVersion
       || javacVersion ?: Version.ZERO < requiredJavaVersion) {
 
       if (options.force)
-        logger.info { "java installation is forced" }
+        logger.info(host) { "java installation is forced" }
       else
-        logger.info { "java is not installed or less than $requiredJavaVersion" }
+        logger.info(host) { "java is not installed or less than $requiredJavaVersion" }
 
       if (options.clearPreviousVersions) {
         if (!uninstall().ok) {
@@ -157,7 +157,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
         }
       }
 
-      logger.info { "installing java ${requiredJavaVersion.asString()}" }
+      logger.info(host) { "installing java ${requiredJavaVersion.asString()}" }
 
       apt.tasks(this).update()
 
@@ -167,14 +167,14 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
       )
 
       if (r.ok) {
-        logger.info { "installed java $requiredJavaVersion" }
+        logger.info(host) { "installed java $requiredJavaVersion" }
         r
       } else {
-        logger.info { "could not install java $requiredJavaVersion: $r" }
+        logger.info(host) { "could not install java $requiredJavaVersion: $r" }
         throw Exception("could not install java $requiredJavaVersion")
       }
     } else {
-      logger.info { "there is no need for java update, sir" }
+      logger.info(host) { "there is no need for java update, sir" }
       TaskResult.ok
     }
 

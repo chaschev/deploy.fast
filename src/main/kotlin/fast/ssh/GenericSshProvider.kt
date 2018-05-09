@@ -25,7 +25,7 @@ class GenericSshProvider(
       try {
         val ssh = SSHClient()
 
-        logger.info { "connecting to ${config.address}" }
+        logger.info(host) { "connecting to ${config.address}" }
 
         ssh.loadKnownHosts(File(config.knownHostsPath))
 
@@ -40,7 +40,7 @@ class GenericSshProvider(
 
         ssh.connect(config.address)
 
-        logger.info { "connected" }
+        logger.info(host) { "connected" }
 
         val location = "${System.getenv("HOME")}/.vagrant.d/insecure_private_key"
 
@@ -53,7 +53,7 @@ class GenericSshProvider(
           ssh.authPassword(config.authUser, config.authPassword)
         }
 
-        logger.info { "authenticated" }
+        logger.info(host) { "authenticated" }
 
         sshClient = ssh
         //ssh.authPassword(sshAddress.authUser, sshAddress.authPassword)

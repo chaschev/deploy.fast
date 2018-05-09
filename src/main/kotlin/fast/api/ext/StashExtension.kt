@@ -128,7 +128,7 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
 
 
   suspend fun doIt() = extensionFun("doIt") {
-    logger.info { "stashing-unstashing" }
+    logger.info(host) { "stashing-unstashing" }
 
 
     ok

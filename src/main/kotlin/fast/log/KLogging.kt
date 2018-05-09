@@ -1,105 +1,100 @@
 package fast.log
 
-import fast.inventory.Host
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.BufferedWriter
+import java.io.PrintStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 open class KLogging {
   val logger = KLogger(LoggerFactory.getLogger(javaClass))
 }
 
-class KLogger(val logger: Logger) : Logger by logger {
+/*
+ LoggerRules:
+  a list of filters
+  a list of appenders
 
-  inline fun trace(msg: () -> Any?) {
-    if (isTraceEnabled) trace(msg.toStringSafe())
-  }
+ Logger:
+  filters
+  transformers
+  appenders
 
-  /**
-   * Lazy add a log message if isDebugEnabled is true
-   */
-  inline fun debug(msg: () -> Any?) {
-    if (isDebugEnabled) debug(msg.toStringSafe())
-  }
 
-  /**
-   * Lazy add a log message if isInfoEnabled is true
-   */
-  inline fun info(msg: () -> Any?) {
-    if (isInfoEnabled) info(msg.toStringSafe())
-  }
+ RootLoggerRules:
+  matching(net.schmizz)
+    addLevelFilter(warn)
 
-  /**
-   * Lazy add a log message if isWarnEnabled is true
-   */
-  inline fun warn(msg: () -> Any?) {
-    if (isWarnEnabled) warn(msg.toStringSafe())
-  }
+  matching(*)
+ */
 
-  /**
-   * Lazy add a log message if isErrorEnabled is true
-   */
-  inline fun error(msg: () -> Any?) {
-    if (isErrorEnabled) error(msg.toStringSafe())
-  }
-
-  /**
-   * Lazy add a log message with throwable payload if isTraceEnabled is true
-   */
-  inline fun trace(t: Throwable, msg: () -> Any?) {
-    if (isTraceEnabled) trace(msg.toStringSafe(), t)
-  }
-
-  /**
-   * Lazy add a log message with throwable payload if isDebugEnabled is true
-   */
-  inline fun debug(t: Throwable, msg: () -> Any?) {
-    if (isDebugEnabled) debug(msg.toStringSafe(), t)
-  }
-
-  /**
-   * Lazy add a log message with throwable payload if isInfoEnabled is true
-   */
-  inline fun info(t: Throwable, msg: () -> Any?) {
-    if (isInfoEnabled) info(msg.toStringSafe(), t)
-  }
-
-  /**
-   * Lazy add a log message with throwable payload if isWarnEnabled is true
-   */
-  inline fun warn(t: Throwable, msg: () -> Any?) {
-    if (isWarnEnabled) warn(msg.toStringSafe(), t)
-  }
-
-  /**
-   * Lazy add a log message with throwable payload if isErrorEnabled is true
-   */
-  inline fun error(t: Throwable, msg: () -> Any?) {
-    if (isErrorEnabled) error(msg.toStringSafe(), t)
-  }
-
-  @Suppress("NOTHING_TO_INLINE")
-  inline fun (() -> Any?).toStringSafe(): String {
-    return try {
-      invoke().toString()
-    } catch (e: Exception) {
-      "Log message invocation failed: $e"
-    }
-  }
-
+enum class LogLevel {
+  all, trace, debug, info, warn, error, fatal, none
 }
 
-fun KLogger.debug(host: Host, msg: () -> Any?) {
-  if (isDebugEnabled) debug(host.marker, msg.toStringSafe())
+enum class TransformerType {
+  obj, text, binary
 }
 
-fun KLogger.info(host: Host, msg: () -> Any?) {
-  if (isInfoEnabled) info(host.marker, msg.toStringSafe())
+interface Transformer<C, O> {
+  val type: TransformerType
+
+  fun transform(classifier: C?, obj: O, level: LogLevel): Any = TODO()
+  fun transformIntoText(classifier: C?, obj: O, out: PrintStream, err: PrintStream, level: LogLevel): Unit =
+    TODO("that's GC-free version which probably is not supported yet")
+  fun transformIntoBinary(classifier: C?, obj: O, out: BufferedWriter, err: BufferedWriter): Unit =
+    TODO("that's GC-free version which probably is not supported yet")
 }
 
-fun KLogger.warn(host: Host, msg: () -> Any?) {
-  if (isWarnEnabled) warn(host.marker, msg.toStringSafe())
+class PatternTransformer(
+  val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ss.SSS")
+) : Transformer<Any, Any> {
+  override val type: TransformerType
+    get() = TransformerType.text
+
+  override fun transform(classifier: Any?, obj: Any, level: LogLevel): Any {
+    val sb = StringBuilder()
+    val time = LocalDateTime.now()
+
+    dateFormatter.formatTo(time, sb)
+
+    sb.append(" [").append(level).append("] - ").append(obj).append("\n")
+
+    return sb
+  }
+
+  override fun transformIntoText(classifier: Any?, obj: Any, out: PrintStream, err: PrintStream, level: LogLevel) {
+    val time = LocalDateTime.now()
+
+    dateFormatter.formatTo(time, out)
+    out.format(" [%s] - %s\n", level, obj)
+  }
 }
 
-fun KLogger.error(host: Host, msg: () -> Any?) {
-  if (isErrorEnabled) error(host.marker, msg.toStringSafe())
+class ConfBranchDidntMatchException(msg: String = "conf branch didn't match") : Exception(msg)
+
+fun CharSequence.startsWithAny(prefixes: Iterable<String>): Boolean {
+  return prefixes.find { this.startsWith(it) } != null
 }
+
+fun CharSequence.startsWithAny(prefixes: Array<out String>): Boolean {
+  return prefixes.find { this.startsWith(it) } != null
+}
+
+
+class ConsoleAppender(override val name: String) : Appender<Any, Any> {
+  override fun append(obj: Any) {
+    print(obj.toString())
+  }
+
+  override fun transform(transformer: Transformer<Any, Any>, classifier: Any?, obj: Any, level: LogLevel) {
+    transformer.transformIntoText(classifier, obj, System.out, System.out, level)
+  }
+}
+
+class DebugConsoleAppender(override val name: String) : Appender<Any, Any> {
+  override fun append(obj: Any) {
+    println("$name - $obj")
+  }
+}
+

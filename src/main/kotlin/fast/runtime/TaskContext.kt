@@ -53,7 +53,11 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
   @Volatile
   private var job: Deferred<ITaskResult<Any>>? = null
 
-  val address: String by lazy { session.host.address }
+  val address: String
+    get() = host.address
+
+  val host
+    get() = session.host
 
   /**
    * Api to play a Task
@@ -78,7 +82,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     job = asyncNoisy {
       val childContext = newChildContext(childTask, interceptors = interceptors)
 
-      logger.info { "playing task: ${childContext.path}" }
+      logger.info(host) { "playing task: ${childContext.path}" }
 
       //types are wrong, but so far I don't know how to replace *
       (childTask as Task<Any, EXT, EXT_CONF>).doIt(childContext)
@@ -151,8 +155,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     childTask: AnyTask,
     interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
   ): ITaskResult<*> {
-    // TODO apply interceptors here (modify tasks)
-//    if(childTask is ExtensionTask) return playExtensionTask(childTask)
+    logger.info { "${host.name} - play task $path" }
 
     var result: ITaskResult<*> = ok
     var taskResult: ITaskResult<*>? = null

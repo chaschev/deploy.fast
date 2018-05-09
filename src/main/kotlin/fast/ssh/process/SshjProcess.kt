@@ -31,7 +31,7 @@ class SshjProcess(
 
   override fun getResult(console: Console, isTimeout: Boolean): ConsoleCommandResult {
     if(command.isOpen) {
-      command.tryClose()
+      command.tryClose(host)
     }
 
     return ConsoleCommandResult(
@@ -44,7 +44,7 @@ class SshjProcess(
 
   override fun cancel() {
     if(command.isOpen) {
-      command.tryClose()
+      command.tryClose(host)
     }
 
     job.cancel()

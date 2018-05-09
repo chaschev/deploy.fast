@@ -3,6 +3,8 @@
     <Appenders>
         <!-- Console Appender -->
         <Console name="Console" target="SYSTEM_OUT">
+            <!--<MarkerFilter marker="IPS_OUT" onMatch="DENY" onMismatch="NEUTRAL"/>-->
+
             <PatternLayout pattern="%d{HH:mm:ss.S} [%-6.90t] %-5level %logger{36} - %msg%n"/>
         </Console>
         <Routing name="outRouting">
@@ -46,6 +48,10 @@
         <Logger name="fast" level="debug" additivity="false">
             <!--<AppenderRef ref="fuckLog4j"/>-->
             <!--<AppenderRef ref="Console"/>-->
+        </Logger>
+
+        <Logger name="ssh.out.log" additivity="true">
+            <AppenderRef ref="logRouting"/>
         </Logger>
 
         <Logger name="ssh.out" additivity="false">

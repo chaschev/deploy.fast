@@ -1,13 +1,13 @@
 package fast.ssh
 
+import fast.inventory.Host
+import fast.log.KLogging
 import kotlinx.coroutines.experimental.*
-import mu.KotlinLogging
 import net.schmizz.sshj.connection.channel.direct.Session
-import kotlin.coroutines.experimental.CoroutineContext
 
 //TODO: this might be called too many times
 //TODO: can be synced through internal openCloseLock
-fun Session.Command.tryClose() {
+fun Session.Command.tryClose(host: Host) {
   if (!isOpen) return
 
   val closeJob = asyncNoisy {
@@ -20,7 +20,7 @@ fun Session.Command.tryClose() {
       delay(300)
     }
     if (!closeJob.isCompleted) {
-      GenericSshSession.logger.info { "couldn't close command in 300ms" }
+      GenericSshSession.logger.info(host) { "couldn't close command in 300ms" }
     }
   }
 }
@@ -59,7 +59,7 @@ fun CharSequence.cuteSubstring(from: Int, to: Int, multiOnRight: Boolean = true)
 
 }
 
-val logger = KotlinLogging.logger("badger.core")
+val logger = KLogging().logger
 
 fun <T> asyncNoisy(
   block: suspend CoroutineScope.() -> T

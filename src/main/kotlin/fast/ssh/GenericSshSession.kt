@@ -43,12 +43,12 @@ class GenericSshSession(override val provider: GenericSshProvider) : SshSession 
     val transfer = provider.sshClient.newSCPFileTransfer()
 
     if (files.size == 1) {
-      logger.info { "transferring ${files[0]} to $dest" }
+      logger.info(provider.host) { "transferring ${files[0]} to $dest" }
 
       transfer.upload(FileSystemFile(files[0]), dest)
     } else {
       for (file in files) {
-        logger.info { "transferring $file to $dest" }
+        logger.info(provider.host) { "transferring $file to $dest" }
 
         transfer.upload(FileSystemFile(file), dest + "/" + file.name)
       }

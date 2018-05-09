@@ -85,10 +85,6 @@ data class Host(
 
   val marker = MarkerFactory.getMarker(name).apply { add(IPS_OUT) }
 
-  init {
-
-  }
-
   fun getVar(name: String) = inventory.getVar(name, this)
 
   companion object {

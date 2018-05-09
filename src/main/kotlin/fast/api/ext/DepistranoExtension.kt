@@ -132,7 +132,7 @@ class DepistranoGitCheckoutDSL {
       val refId = r["revisionCapture"]!!.text!!.toString()
       val log = r["logCapture"]!!.text!!.toString()
 
-      logger.info { "checked out revision $refId" }
+      logger.info(ctx.host) { "checked out revision $refId" }
 
       return VCSUpdateResult(refId, refId.substring(0, 6), log)
     }
@@ -266,13 +266,13 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
       app.addresses().take(1) with {
 
-        logger.info { "I am ($address) building setting the depi globals, everyone is watching, path: $path" }
+        logger.info(host) { "I am ($address) building setting the depi globals, everyone is watching, path: $path" }
 
         val releaseName = LocalDateTime.now().format(depiConfig.releaseTagDateFormat)
 
         app.globalMap["${depiConfig.configName}.depi.globals"] = DepistranoGlobals(releaseName)
 
-        logger.info { "depi.prepare $address - ${depiGlobals()}" }
+        logger.info(host) { "depi.prepare $address - ${depiGlobals()}" }
 
         ok
       }
@@ -314,7 +314,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
   val buildTask by extensionTask {
     distribute("depi.build") {
       app.addresses().take(1) with {
-        logger.info { "I am ($address) building the project, everyone is watching, path: $path" }
+        logger.info(host) { "I am ($address) building the project, everyone is watching, path: $path" }
 
         val r = config.build!!.invoke(this@extensionTask)
 
@@ -322,7 +322,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
         if(artifacts != null) depiGlobals().artifacts.addAll(artifacts)
 
-        logger.info { "$address - finished building artifacts: ${r.value}" }
+        logger.info(host) { "$address - finished building artifacts: ${r.value}" }
 
         r
       }
@@ -387,7 +387,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
     val releasesToRemove = releases.take(amountToCut)
 
-    logger.info { "found ${releases.size}, " +
+    logger.info(host) { "found ${releases.size}, " +
       "removing $amountToCut (${releases.map { it.name }} " +
       "-> ${releases.takeLast(releases.size - amountToCut)})" }
 

@@ -50,7 +50,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<VagrantExtension, VagrantConfig>(ext, parentCtx) {
 
   suspend fun updateFile() = extensionFun("updateFile") {
-      logger.info { "updating Vagrantfile" }
+      logger.info(host) { "updating Vagrantfile" }
 
       val config = extension.config(this)
 

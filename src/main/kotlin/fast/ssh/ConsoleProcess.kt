@@ -117,7 +117,7 @@ open class ConsoleProcess(
       while (isActive) {
         val timeMs = System.currentTimeMillis() - startedAt
         if (timeMs > timeoutMs) {
-          logger.info { "timeout ${timeoutMs}ms for '$egg'" }
+          logger.info(host) { "timeout ${timeoutMs}ms for '$egg'" }
 
           result = ConsoleCommandResult(console = console, isTimeout = true, timeMs = timeMs)
 

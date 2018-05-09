@@ -30,7 +30,7 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
   : NamedExtTasks<SystemdExtension, SystemdConfig>(ext, parentCtx) {
 
   suspend fun installService() = extensionFun("installService") {
-    logger.info { "installing systemd service ${config.name}.service" }
+    logger.info(host) { "installing systemd service ${config.name}.service" }
 
     val confString = SystemdTemplate(config).generate()
 
@@ -71,7 +71,7 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
       val passedMs = System.currentTimeMillis() - startedMs
       if(passedMs > startTimeoutSec * 1000) break
 
-      logger.info { "awaiting ${config.name} to come up [${passedMs / 1000}/$startTimeoutSec]s..." }
+      logger.info(host) { "awaiting ${config.name} to come up [${passedMs / 1000}/$startTimeoutSec]s..." }
 
       delay(2000)
     }
@@ -85,13 +85,13 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
       val passedMs = System.currentTimeMillis() - startedMs
       if(passedMs > aliveTimeoutSec * 1000) break
 
-      logger.info { "awaiting ${config.name} to stay alive [${passedMs / 1000}/$aliveTimeoutSec]s..." }
+      logger.info(host) { "awaiting ${config.name} to stay alive [${passedMs / 1000}/$aliveTimeoutSec]s..." }
 
       delay(2000)
     }
 
     if(!active) {
-      logger.info { "service  ${config.name} crashed after timeout. Retrieving logs..."  }
+      logger.info(host) { "service  ${config.name} crashed after timeout. Retrieving logs..."  }
       val logs = logs().value
       return@extensionFun failed("service crashed after timeout, logs: $logs")
     }

@@ -152,7 +152,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
             val duration = Duration.between(Instant.now(), startedAt)
 
-            logger.info { "finished in $duration, which is ${duration.toMillis() / times}ms per operation" }
+            logger.info(host) { "finished in $duration, which is ${duration.toMillis() / times}ms per operation" }
 
             TaskResult.ok
           }
