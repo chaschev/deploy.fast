@@ -2,7 +2,7 @@ package fast.api.ext
 
 import fast.api.*
 import fast.runtime.TaskContext
-import mu.KLogging
+import fast.log.KLogging
 
 typealias GradleTaskContext = ChildTaskContext<GradleExtension, GradleConfig>
 

@@ -9,7 +9,7 @@ import fast.ssh.SshProvider
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.files.exists
 import honey.lang.joinSpace
-import mu.KLogging
+import fast.log.KLogging
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatterBuilder
 

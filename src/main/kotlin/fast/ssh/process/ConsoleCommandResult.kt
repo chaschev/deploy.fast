@@ -12,6 +12,4 @@ data class ConsoleCommandResult(
 
 
   override fun toString(): String = "ConsoleCommandResult{isOk=${isOk()}, exitCode=$exitCode, timeMs=$timeMs}"
-
-
 }

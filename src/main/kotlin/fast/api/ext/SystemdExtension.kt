@@ -9,7 +9,7 @@ import fast.ssh.run
 import fast.ssh.runAndWait
 import fast.ssh.runResult
 import kotlinx.coroutines.experimental.delay
-import mu.KLogging
+import fast.log.KLogging
 
 typealias SystemdTaskContext = ChildTaskContext<SystemdExtension, SystemdConfig>
 

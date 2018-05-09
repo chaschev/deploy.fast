@@ -7,7 +7,7 @@ import fast.inventory.Host
 import fast.runtime.TaskContext
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.run
-import mu.KLogging
+import fast.log.KLogging
 import java.io.File
 
 typealias StashTaskContext = ChildTaskContext<StashExtension, StashConfig>

@@ -5,7 +5,7 @@ import fast.dsl.ServiceStatus
 import fast.dsl.TaskResult
 import fast.inventory.Host
 import fast.ssh.command.script.ScriptDsl.Companion.script
-import mu.KLogging
+import fast.log.KLogging
 
 typealias CassandraTaskContext = ChildTaskContext<CassandraExtension, CassandraConfig>
 

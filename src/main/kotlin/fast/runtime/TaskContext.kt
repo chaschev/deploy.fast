@@ -9,7 +9,7 @@ import fast.api.Task
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
-import mu.KLogging
+import fast.log.KLogging
 import org.kodein.di.generic.instance
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf

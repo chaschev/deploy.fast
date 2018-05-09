@@ -5,7 +5,7 @@ import fast.dsl.*
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version
 import fast.ssh.runAndWaitProcess
-import mu.KLogging
+import fast.log.KLogging
 
 class OpenJdkExtension(
   config: (OpenJDKTaskContext) -> OpenJdkConfig

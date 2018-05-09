@@ -2,7 +2,7 @@ package fast.ssh
 
 import fast.inventory.Host
 import kotlinx.coroutines.experimental.runBlocking
-import mu.KLogging
+import fast.log.KLogging
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.transport.TransportException
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier

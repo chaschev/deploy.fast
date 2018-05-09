@@ -1,9 +1,9 @@
 package fast.ssh
 
 import fast.inventory.Host
+import fast.log.KLogging
 import fast.ssh.command.ConsoleLogging.sshOutLogger
 import kotlinx.coroutines.experimental.*
-import mu.KLogging
 import fast.ssh.command.Regexes
 import fast.ssh.process.*
 import honey.lang.getCurrentJob
@@ -38,12 +38,9 @@ interface IConsoleProcess : Cancellable {
  */
 open class ConsoleProcess(
   override val egg: ProcessEgg
-//        val state: CommandState = CommandState.RUNNING,
-
 ) : IConsoleProcess {
   companion object : KLogging()
 
-  val log = LoggerFactory.getLogger("test")
 
   override var result: ConsoleCommandResult? = null
 
@@ -73,12 +70,11 @@ open class ConsoleProcess(
     job = asyncNoisy {
       process = egg.giveBirth(getCurrentJob())
 
-      log.info(host.marker, "started $egg")
+      logger.info(host.marker, "started $egg")
 
       val cmd = "\n> ${egg.cmd}\n"
 
       sshOutLogger.debug(host.marker, cmd)
-//      sshErrLogger.debug(host.marker, cmd)
 
       val writer = process.stdin.bufferedWriter()
 

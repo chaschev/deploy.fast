@@ -11,7 +11,7 @@ import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.delay
-import mu.KLogging
+import fast.log.KLogging
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 

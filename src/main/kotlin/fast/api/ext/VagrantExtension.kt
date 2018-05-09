@@ -5,7 +5,7 @@ import fast.dsl.TaskResult.Companion.ok
 import fast.inventory.Host
 import fast.lang.nullForException
 import fast.runtime.TaskContext
-import mu.KLogging
+import fast.log.KLogging
 import java.io.File
 
 typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>

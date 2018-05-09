@@ -1,7 +1,7 @@
 package fast.ssh
 
 import fast.ssh.files.SshFiles
-import mu.KLogging
+import fast.log.KLogging
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.xfer.FileSystemFile
 import java.io.File
