@@ -127,3 +127,8 @@ fun CharSequence.startsWithAny(prefixes: Iterable<out String>): Boolean {
 fun CharSequence.startsWithAny(prefixes: Array<out String>): Boolean {
   return prefixes.find { this.startsWith(it) } != null
 }
+
+fun ByteArray.text() = String(this)
+
+fun Class<out Any>.readResource(path: String) =
+  getResourceAsStream(path).readBytes().text()

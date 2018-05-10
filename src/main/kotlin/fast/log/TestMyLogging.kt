@@ -5,14 +5,26 @@ import fast.log.LogLevel.*
 import fast.log.RoutingAppender.Companion.routing
 import java.io.File
 import fast.log.OkLogContext.Companion.okLog
+import honey.lang.readResource
+import org.slf4j.LoggerFactory
 
 
-//todo restrictTo
+//ok restrictTo
 //ok routingAppender
 //todo slf4j bindings
 //todo slf4j integration
 //todo log rotation
+//todo nice & fast pattern layout
 
+
+/*
+* The idea for nice and fast layout
+*
+* printNextField
+* printFieldOfWidth
+* printField(obj, formatter)
+*  -> DoubleFormatter - will tell
+*/
 
 object TestMyLogging {
   @JvmStatic
@@ -108,6 +120,16 @@ object TestMyLogging {
 
     okLog.getLogger("asshole.logging.package.xxx").info { "I am an asshole and I work" }
     okLog.getLogger("butterfly.poo.package.xxx").info { "I am a beautiful butterfly and I poo" }
+
+
+//    println(this::class.java.readResource("/r/delme"))
+    println(this::class.java.readResource("/META-INF/services/org.slf4j.spi.SLF4JServiceProvider"))
+
+
+
+    LoggerFactory.getLogger("ok slf4j say hi").info("don't poo on slf4j")
   }
+
+
 }
 

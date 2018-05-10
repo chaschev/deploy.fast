@@ -1,5 +1,6 @@
 package fast.log
 
+import java.io.BufferedWriter
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -14,7 +15,7 @@ class FileAppenderDsl(
     file.createNewFile()
   }
 
-  val writer = PrintStream(FileOutputStream(file, true), autoFlush)
+  val writer = FileOutputStream(file, true).bufferedWriter()
 
   override fun supportsTransform() = true
 
@@ -28,7 +29,7 @@ class FileAppenderDsl(
   }
 
   override fun append(obj: Any) {
-    writer.print(obj.toString())
+    writer.write(obj.toString())
   }
 
   companion object {

@@ -1,6 +1,7 @@
 package fast.log
 
 import fast.lang.initLater
+import fast.log.slf4j.Slf4jLoggerImpl
 import java.util.concurrent.ConcurrentHashMap
 
 class OkLogContext(
@@ -16,14 +17,15 @@ class OkLogContext(
     appenderMap.getOrPut(name, block)
   }
 
-  fun getLogger(name: String): LoggerImpl<Any, Any> {
+  fun getLogger(name: String): Slf4jLoggerImpl<Any, Any> {
     return getClassifiedLogger(name, null)
   }
 
-  fun <C> getClassifiedLogger(name: String, classifier: C?): LoggerImpl<Any, Any> {
+
+  fun <C> getClassifiedLogger(name: String, classifier: C?): Slf4jLoggerImpl<Any, Any> {
     if (debugMode) println("getLogger($name, $classifier)")
 
-    val logger = LoggerImpl<Any, Any>(name, classifier)
+    val logger = Slf4jLoggerImpl<Any, Any>(name, classifier)
     val dsl = LoggerFactoryDSL(logger, this)
 
     logger.level = dsl.defaultLevel

@@ -4,11 +4,12 @@ import java.io.BufferedWriter
 import java.io.OutputStream
 import java.io.PrintStream
 import java.io.Writer
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
 class ConsoleAppender(override val name: String) : Appender<Any, Any> {
+  private val out = System.out.bufferedWriter()
+
   override fun append(obj: Any) {
     print(obj.toString())
   }
@@ -16,7 +17,8 @@ class ConsoleAppender(override val name: String) : Appender<Any, Any> {
   override fun supportsTransform(): Boolean  = true
 
   override fun transform(transformer: Transformer<Any, Any>, classifier: Any?, obj: Any, level: LogLevel) {
-    transformer.transformIntoText(classifier, obj, System.out, System.out, level)
+    transformer.transformIntoText(classifier, obj, out, out, level)
+    out.flush()
   }
 }
 

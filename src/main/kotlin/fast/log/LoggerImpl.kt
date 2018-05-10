@@ -2,7 +2,9 @@ package fast.log
 
 import java.util.ArrayList
 
-class LoggerImpl<BC, O>(
+
+open class LoggerImpl<BC, O>(
+  @get:JvmName("_name")
   val name: String,
   val classifier: BC? = null
 ) {
@@ -47,7 +49,7 @@ class LoggerImpl<BC, O>(
     return isEnabled(LogLevel.info)
   }
 
-  public fun isEnabled(levelToCheck: LogLevel) = level.ordinal <= levelToCheck.ordinal
+  fun isEnabled(levelToCheck: LogLevel) = level.ordinal <= levelToCheck.ordinal
 
   val filters = ArrayList<MessageFilter<*, *>>()
   val appenders = ArrayList<Appender<Any, Any>>()
