@@ -5,8 +5,8 @@ package fast.log
  *                 null input log level means "any" log level, so null/noRoute return is not ok
  */
 class RoutingAppender<C, O>(
-  val aClass: Class<C>,
-  override val name: String = "${aClass.simpleName}.routing.appender",
+  val classifier: Class<C>,
+  override val name: String = "${classifier.simpleName}.routing.appender",
   private val routes: (C?, LogLevel) -> Appender<C, O>?
 ) : Appender<C, O> {
   private val routeMap = ArrayList<Triple<C, LogLevel?, Appender<C, O>>>()
@@ -37,7 +37,7 @@ class RoutingAppender<C, O>(
   }
 
   private fun getRoute(classifier: C?, level: LogLevel): Appender<C, O> {
-    if(classifier != null && !aClass.isInstance(classifier)) return noRoute as Appender<C, O>
+    if(classifier != null && !this.classifier.isInstance(classifier)) return noRoute as Appender<C, O>
 
     var r = tryFindRoute(classifier, level)
 
@@ -76,5 +76,14 @@ class RoutingAppender<C, O>(
   companion object {
     private val notFound = ConsoleAppender("noAppender")
     val noRoute = ConsoleAppender("noRoute")
+
+    inline fun <reified C> routing(
+//      classifier: Class<C>,
+      crossinline routes: (C?) -> Appender<C, Any>?
+    ): RoutingAppender<C, Any> {
+      return RoutingAppender(C::class.java, routes = { host, _ ->
+        routes(host)
+      })
+    }
   }
 }

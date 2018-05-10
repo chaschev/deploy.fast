@@ -38,8 +38,15 @@ class LoggerFactoryDSL(
   fun <C, O> allCustom(block: LoggerModifierDsl<C, O>.() -> Unit) =
     LoggerModifierDsl(logger as LoggerImpl<C, O>).apply(block)
 
-  fun any(block: LoggerModifierDsl<*, *>.() -> Unit) =
-    LoggerModifierDsl(logger as LoggerImpl<Any, Any>).apply(block)
+  fun any(block: LoggerModifierDsl<Any, Any>.() -> Unit): LoggerModifierDsl<Any, Any>? {
+    val r = nullForException(ConfBranchDidntMatchException::class.java) {
+      LoggerModifierDsl(logger as LoggerImpl<Any, Any>).apply(block)
+    }
+
+    if (ctx.debugMode) println(" dsl.any() = $r")
+
+    return r
+  }
 
   fun <C, O> allWithClassifier(classifier: C, block: LoggerModifierDsl<C, O>.() -> Unit) =
     LoggerModifierDsl(logger as LoggerImpl<C, O>).apply(block)

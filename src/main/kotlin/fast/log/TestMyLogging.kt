@@ -1,11 +1,12 @@
 package fast.log
 
 import fast.inventory.Host
+import fast.log.RoutingAppender.Companion.routing
 import java.io.File
 
 
 //todo restrictTo
-//todo routingAppender
+//ok routingAppender
 //todo slf4j bindings
 //todo slf4j integration
 //todo log rotation
@@ -56,16 +57,22 @@ object TestMyLogging {
       all<Host> {
 //        classifyBase { it.name == "vm1" }
         withTransformer(PatternTransformer())
-        intoAppenders(RoutingAppender(
-          Host::class.java,
-          routes = {host, _ ->
-            if(host == null)
-              null
-            else
-              FileAppenderDsl(File("log/routes-${host.name}.out")) as Appender<Host, Any>
+        intoAppenders(
+          routing<Host> { host ->
+            when (host) {
+              null -> null
+              else -> FileAppenderDsl(File("log/routes-${host.name}.out")) as Appender<Host, Any>
+            }
           }
+        )
+      }
 
-        ))
+      any {
+        //        classifyBase { it.name == "vm1" }
+        withTransformer(PatternTransformer())
+        intoAppenders(
+          NowhereAppender("nowhere1")
+        )
       }
     }.apply {
       debugMode = true
@@ -90,3 +97,4 @@ object TestMyLogging {
     simpleLogger.log(LogLevel.info, Host("vm4"), {"hi to vm4"})
   }
 }
+
