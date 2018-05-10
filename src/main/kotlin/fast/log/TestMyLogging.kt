@@ -6,8 +6,10 @@ import java.io.File
 
 //todo restrictTo
 //todo routingAppender
-//todo slf4j
+//todo slf4j bindings
+//todo slf4j integration
 //todo log rotation
+
 
 object TestMyLogging {
   @JvmStatic
@@ -50,22 +52,41 @@ object TestMyLogging {
         withTransformer(PatternTransformer())
         intoAppenders(console2, vm2)
       }
+
+      all<Host> {
+//        classifyBase { it.name == "vm1" }
+        withTransformer(PatternTransformer())
+        intoAppenders(RoutingAppender(
+          Host::class.java,
+          routes = {host, _ ->
+            if(host == null)
+              null
+            else
+              FileAppenderDsl(File("log/routes-${host.name}.out")) as Appender<Host, Any>
+          }
+
+        ))
+      }
     }.apply {
       debugMode = true
     }
-
 
     val simpleLogger = OkLogContext.okLog.getLogger("simple")
 
     simpleLogger.info { "info" }
 
-    val hostLoggerVm1 = OkLogContext.okLog.getClassifiedLogger("simple", Host("vm1"))
-    val hostLoggerVm2 = OkLogContext.okLog.getClassifiedLogger("simple", Host("vm2"))
+//    val hostLoggerVm1 = OkLogContext.okLog.getClassifiedLogger("simple3", Host("vm1"))
+//    val hostLoggerVm2 = OkLogContext.okLog.getClassifiedLogger("simple3", Host("vm2"))
 
-    hostLoggerVm1.log(LogLevel.info, null, { "vm1" })
-    hostLoggerVm1.log(LogLevel.info, "console.out", { "vm1 con.out" })
+//    hostLoggerVm1.log(LogLevel.info, null, { "vm1" })
+//    hostLoggerVm1.log(LogLevel.info, "console.out", { "vm1 con.out" })
 
-    hostLoggerVm2.log(LogLevel.info, null, { "vm2" })
-    hostLoggerVm2.log(LogLevel.info, "console.out", { "vm2 con.out" })
+//    hostLoggerVm2.log(LogLevel.info, null, { "vm2" })
+//    hostLoggerVm2.log(LogLevel.info, "console.out", { "vm2 con.out" })
+
+    simpleLogger.log(LogLevel.info, Host("vm1"), {"hi to vm1"})
+    simpleLogger.log(LogLevel.info, Host("vm2"), {"hi to vm2"})
+    simpleLogger.log(LogLevel.info, Host("vm3"), {"hi to vm3"})
+    simpleLogger.log(LogLevel.info, Host("vm4"), {"hi to vm4"})
   }
 }

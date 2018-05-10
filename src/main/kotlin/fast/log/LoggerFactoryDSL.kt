@@ -1,6 +1,7 @@
 package fast.log
 
 import fast.lang.nullForException
+import honey.lang.startsWithAny
 
 /**
  * These are logger building rules.

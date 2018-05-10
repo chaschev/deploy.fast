@@ -10,7 +10,7 @@ class LoggerImpl<BC, O>(
     if (isInfoEnabled()) log(LogLevel.info, null, lazyMsg)
   }
 
-//  @SuppressWarnings("UNCHECKED_CAST")
+  //  @SuppressWarnings("UNCHECKED_CAST")
   inline fun log(level: LogLevel, classifier: BC? = null, lazyMsg: () -> O) {
     if (!isEnabled(level)) return
 
@@ -24,8 +24,7 @@ class LoggerImpl<BC, O>(
       }
     }
 
-
-    if(transformer == null) {
+    if (transformer == null) {
       for (appender in appenders) {
         appender.append(obj as Any, classifier, level)
       }
@@ -33,8 +32,8 @@ class LoggerImpl<BC, O>(
       var transformed: Any? = null
 
       for (appender in appenders) {
-        if(!appender.supportsTransform()) {
-          if(transformed == null) transformed = transformer?.transform(classifier, obj, level) ?: obj as Any
+        if (!appender.supportsTransform()) {
+          if (transformed == null) transformed = transformer?.transform(classifier, obj, level) ?: obj as Any
           appender.append(transformed, classifier, level)
         } else {
           appender.transform(transformer!! as Transformer<Any, Any>, classifier, obj as Any, level)

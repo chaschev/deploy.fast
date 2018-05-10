@@ -1,7 +1,5 @@
 package fast.log
 
-import fast.lang.nullForException
-
 interface Appender<C, O> {
   val name: String
 
@@ -14,3 +12,4 @@ interface Appender<C, O> {
 
   fun supportsTransform() = false
 }
+
