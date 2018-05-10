@@ -54,4 +54,8 @@ class LoggerImpl<BC, O>(
   var transformer: Transformer<Any, O>? = null
 
   lateinit var level: LogLevel
+
+  override fun toString(): String {
+    return "LoggerImpl($name, $level, filters=$filters, appenders=$appenders, transformer=$transformer"
+  }
 }

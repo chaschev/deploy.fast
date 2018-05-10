@@ -13,6 +13,11 @@ class LoggerFactoryDSL(
 ) {
 
   var defaultLevel = LogLevel.debug
+  var rules: RulesDsl? = null
+
+  fun rules(block: RulesDsl.() -> Unit) {
+    this.rules = RulesDsl().apply(block)
+  }
 
   fun <C, O> matching(predicate: (String) -> Boolean, block: LoggerModifierDsl<C, O>.() -> Unit) {
     LoggerModifierDsl(logger as LoggerImpl<C, O>).apply(block)
@@ -38,7 +43,9 @@ class LoggerFactoryDSL(
   fun <C, O> allCustom(block: LoggerModifierDsl<C, O>.() -> Unit) =
     LoggerModifierDsl(logger as LoggerImpl<C, O>).apply(block)
 
-  fun any(block: LoggerModifierDsl<Any, Any>.() -> Unit): LoggerModifierDsl<Any, Any>? {
+  fun any(name: String? = null, block: LoggerModifierDsl<Any, Any>.() -> Unit): LoggerModifierDsl<Any, Any>? {
+    applyRules(name)
+
     val r = nullForException(ConfBranchDidntMatchException::class.java) {
       LoggerModifierDsl(logger as LoggerImpl<Any, Any>).apply(block)
     }
@@ -46,6 +53,14 @@ class LoggerFactoryDSL(
     if (ctx.debugMode) println(" dsl.any() = $r")
 
     return r
+  }
+
+  private fun applyRules(chainName: String?) {
+    for (rules in rules?.list.orEmpty()) {
+      if(rules.isApplicable(chainName)) {
+        rules.apply(logger)
+      }
+    }
   }
 
   fun <C, O> allWithClassifier(classifier: C, block: LoggerModifierDsl<C, O>.() -> Unit) =

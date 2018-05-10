@@ -120,7 +120,7 @@ fun Iterable<String>.joinSpace() = joinToString(" ")
 fun Iterable<String>.joinComma() = joinToString(", ")
 fun Iterable<String>.joinEol() = joinToString("\n")
 
-fun CharSequence.startsWithAny(prefixes: Iterable<String>): Boolean {
+fun CharSequence.startsWithAny(prefixes: Iterable<out String>): Boolean {
   return prefixes.find { this.startsWith(it) } != null
 }
 

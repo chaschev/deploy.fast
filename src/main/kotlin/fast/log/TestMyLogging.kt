@@ -1,8 +1,10 @@
 package fast.log
 
 import fast.inventory.Host
+import fast.log.LogLevel.*
 import fast.log.RoutingAppender.Companion.routing
 import java.io.File
+import fast.log.OkLogContext.Companion.okLog
 
 
 //todo restrictTo
@@ -36,6 +38,15 @@ object TestMyLogging {
         withAppender(*//*.$host.out*//*)
       }*/
 
+      rules {
+        restrict {
+          applyTo("*")
+
+          "asshole.logging.package" to warn
+          "butterfly.poo.package" to trace
+        }
+      }
+
       all<Host> {
         classifyBase { it.name == "vm1" }
         classifyMsg<String> { c, msg -> c == "console.out" }
@@ -68,33 +79,35 @@ object TestMyLogging {
       }
 
       any {
-        //        classifyBase { it.name == "vm1" }
         withTransformer(PatternTransformer())
         intoAppenders(
-          NowhereAppender("nowhere1")
+          console1
         )
       }
     }.apply {
-      debugMode = true
+      debugMode = false
     }
 
-    val simpleLogger = OkLogContext.okLog.getLogger("simple")
+    val simpleLogger = okLog.getLogger("simple")
 
     simpleLogger.info { "info" }
 
-//    val hostLoggerVm1 = OkLogContext.okLog.getClassifiedLogger("simple3", Host("vm1"))
-//    val hostLoggerVm2 = OkLogContext.okLog.getClassifiedLogger("simple3", Host("vm2"))
+    val hostLoggerVm1 = okLog.getClassifiedLogger("simple3", Host("vm1"))
+    val hostLoggerVm2 = okLog.getClassifiedLogger("simple3", Host("vm2"))
 
-//    hostLoggerVm1.log(LogLevel.info, null, { "vm1" })
-//    hostLoggerVm1.log(LogLevel.info, "console.out", { "vm1 con.out" })
+    hostLoggerVm1.log(info, null, { "vm1" })
+    hostLoggerVm1.log(info, "console.out", { "vm1 con.out" })
 
-//    hostLoggerVm2.log(LogLevel.info, null, { "vm2" })
-//    hostLoggerVm2.log(LogLevel.info, "console.out", { "vm2 con.out" })
+    hostLoggerVm2.log(info, null, { "vm2" })
+    hostLoggerVm2.log(info, "console.out", { "vm2 con.out" })
 
-    simpleLogger.log(LogLevel.info, Host("vm1"), {"hi to vm1"})
-    simpleLogger.log(LogLevel.info, Host("vm2"), {"hi to vm2"})
-    simpleLogger.log(LogLevel.info, Host("vm3"), {"hi to vm3"})
-    simpleLogger.log(LogLevel.info, Host("vm4"), {"hi to vm4"})
+    simpleLogger.log(info, Host("vm1"), {"hi to vm1"})
+    simpleLogger.log(info, Host("vm2"), {"hi to vm2"})
+    simpleLogger.log(info, Host("vm3"), {"hi to vm3"})
+    simpleLogger.log(info, Host("vm4"), {"hi to vm4"})
+
+    okLog.getLogger("asshole.logging.package.xxx").info { "I am an asshole and I work" }
+    okLog.getLogger("butterfly.poo.package.xxx").info { "I am a beautiful butterfly and I poo" }
   }
 }
 

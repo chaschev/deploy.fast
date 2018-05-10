@@ -14,6 +14,15 @@ class LoggerModifierDsl<BC, O>(
     logger.filters.add(messageFilter)
   }
 
+  fun filterBase(filter: (LoggerImpl<BC, O>) -> Boolean) {
+    matched = matched && filter(logger)
+
+    if (OkLogContext.okLog.debugMode) println(" filterBase matched=$matched")
+
+    if (!matched) throw ConfBranchDidntMatchException()
+  }
+
+
   fun classifyBase(filter: (BC) -> Boolean) {
     val c = logger.classifier
 
@@ -23,7 +32,7 @@ class LoggerModifierDsl<BC, O>(
       matched = false
     }
 
-    if (OkLogContext.okLog.debugMode) println(" withBaseClassifier matched=$matched")
+    if (OkLogContext.okLog.debugMode) println(" classifyBase matched=$matched")
 
 
     if (!matched) throw ConfBranchDidntMatchException()
