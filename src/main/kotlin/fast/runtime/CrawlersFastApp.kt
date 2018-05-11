@@ -12,9 +12,6 @@ import fast.ssh.logger
 import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking
 import mu.KLogger
-import org.apache.logging.log4j.Marker
-import org.apache.logging.log4j.core.appender.FileAppender
-import org.apache.logging.log4j.core.appender.routing.RoutingAppender
 import org.kodein.di.generic.instance
 import java.time.Duration
 import java.time.Instant
@@ -80,29 +77,11 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     }
   }
 
-  class FixedFileAppender : FileAppender.Builder<FixedFileAppender>() {
-    companion object {
-      fun newFileAppend(): FixedFileAppender {
-        return FixedFileAppender().asBuilder()
-      }
-    }
-  }
-
-  class FixedRoutingAppender : RoutingAppender.Builder<FixedRoutingAppender>() {
-    companion object {
-      fun newRoutingAppend(): FixedRoutingAppender {
-        return FixedRoutingAppender().asBuilder()
-      }
-    }
-  }
-
-  inline fun KLogger.info(marker: Marker, msg: () -> String) {
-//    (underlyingLogger as Log4jLogger).info(marker, msg())
-  }
-
   companion object {
     @JvmStatic
     fun main(args: Array<String>) {
+      configDeployFastLogging()
+
       CrawlersAppDI
 
       val scheduler = DeployFastScheduler<CrawlersFastApp>()

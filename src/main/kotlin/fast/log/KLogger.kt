@@ -73,19 +73,19 @@ class KLogger(val logger: Logger) : Logger by logger {
   }
 
   fun debug(host: Host, msg: () -> Any?) {
-    if (isDebugEnabled) debug(host.marker, msg.toStringSafe())
+    //TODO FIX if (isDebugEnabled) debug(host.marker, msg.toStringSafe())
   }
 
   fun info(host: Host, msg: () -> Any?) {
-    if (isInfoEnabled) info(host.marker, msg.toStringSafe())
+    //TODO FIX if (isInfoEnabled) info(host.marker, msg.toStringSafe())
   }
 
   fun warn(host: Host, msg: () -> Any?) {
-    if (isWarnEnabled) warn(host.marker, msg.toStringSafe())
+    //TODO FIX if (isWarnEnabled) warn(host.marker, msg.toStringSafe())
   }
 
   fun error(host: Host, msg: () -> Any?) {
-    if (isErrorEnabled) error(host.marker, msg.toStringSafe())
+    //TODO FIX if (isErrorEnabled) error(host.marker, msg.toStringSafe())
   }
 
 

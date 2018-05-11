@@ -1,13 +1,11 @@
 package fast.ssh.command
 
 import fast.ssh.IConsoleProcess
-import fast.ssh.command.ConsoleLogging.outLogger
-import fast.ssh.command.ConsoleLogging.sshErrLogger
-import fast.ssh.command.ConsoleLogging.sshOutLogger
+//import fast.ssh.command.ConsoleLogging.outLogger
+//import fast.ssh.command.ConsoleLogging.sshErrLogger
+//import fast.ssh.command.ConsoleLogging.sshOutLogger
 import fast.ssh.process.Console
-import org.apache.logging.slf4j.Log4jMarkerFactory
 import org.slf4j.LoggerFactory
-import org.slf4j.MarkerFactory
 
 /*
 open class KLogging : KLoggable {
@@ -17,11 +15,11 @@ open class KLogging : KLoggable {
 
 object ConsoleLogging {
   /* delivers session stdout to .out files */
-  val sshOutLogger = LoggerFactory.getLogger("ssh.out")
-  val sshErrLogger = LoggerFactory.getLogger("ssh.err")
+//  val sshOutLogger = LoggerFactory.getLogger("ssh.out")
+//  val sshErrLogger = LoggerFactory.getLogger("ssh.err")
 
   /* delivers session stdout to .log files */
-  val outLogger = LoggerFactory.getLogger("ssh.out.log")
+//  val outLogger = LoggerFactory.getLogger("ssh.out.log")
 }
 
 abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
@@ -33,11 +31,13 @@ abstract class ConsoleCommand<T>(internal open val process: IConsoleProcess) {
     val outTrimmed = console.newOut.trim()
     val errTrimmed = console.newErr.trim()
 
-    if(!outTrimmed.isEmpty()) outLogger.debug(process.host.marker, outTrimmed)
-    if(!errTrimmed.isEmpty()) outLogger.debug(process.host.marker, errTrimmed)
 
-    sshOutLogger.debug(process.host.marker, console.newOut)
-    sshErrLogger.debug(process.host.marker, console.newErr)
+
+    //TODO FIX if(!outTrimmed.isEmpty()) outLogger.debug(process.host.marker, outTrimmed)
+    //TODO FIX if(!errTrimmed.isEmpty()) outLogger.debug(process.host.marker, errTrimmed)
+
+    //TODO FIX sshOutLogger.debug(process.host.marker, console.newOut)
+    //TODO FIX sshErrLogger.debug(process.host.marker, console.newErr)
   }
 
   suspend fun runBlocking(timeoutMs: Int = 60000, handler: ((Console) -> Unit)? = null): CommandResult<T> {

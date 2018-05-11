@@ -37,7 +37,7 @@ interface Transformer<C, O> {
   val type: TransformerType
 
   fun transform(classifier: C?, obj: O, level: LogLevel): Any = TODO()
-  fun transformIntoText(classifier: C?, obj: O, out: BufferedWriter, err: BufferedWriter, level: LogLevel): Unit =
+  fun transformIntoText(classifier: C?, obj: O, out: BufferedWriter, err: BufferedWriter, level: LogLevel, logger: LoggerImpl<Any?, O>, e: Throwable?, args: Any?): Unit =
     TODO("that's GC-free version which probably is not supported yet")
   fun transformIntoBinary(classifier: C?, obj: O, out: BufferedWriter, err: BufferedWriter): Unit =
     TODO("that's GC-free version which probably is not supported yet")

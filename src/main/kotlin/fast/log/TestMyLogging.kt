@@ -60,7 +60,7 @@ object TestMyLogging {
       }
 
       all<Host> {
-        classifyBase { it.name == "vm1" }
+        classifyBase { it?.name == "vm1" }
         classifyMsg<String> { c, msg -> c == "console.out" }
         filter<Any> { msg -> true }
         withTransformer(PatternTransformer())
@@ -72,13 +72,13 @@ object TestMyLogging {
 
       //each of these loggers will receive a classifier, i.e. a host during init from user
       all<Host> {
-        classifyBase { it.name == "vm1" }
+        classifyBase { it?.name == "vm1" }
         withTransformer(PatternTransformer())
         intoAppenders(console2, vm2)
       }
 
       all<Host> {
-//        classifyBase { it.name == "vm1" }
+        //        classifyBase { it.name == "vm1" }
         withTransformer(PatternTransformer())
         intoAppenders(
           routing<Host> { host ->
@@ -107,16 +107,16 @@ object TestMyLogging {
     val hostLoggerVm1 = okLog.getClassifiedLogger("simple3", Host("vm1"))
     val hostLoggerVm2 = okLog.getClassifiedLogger("simple3", Host("vm2"))
 
-    hostLoggerVm1.log(info, null, { "vm1" })
-    hostLoggerVm1.log(info, "console.out", { "vm1 con.out" })
+    hostLoggerVm1.log(info, lazyMsg = { "vm1" })
+    hostLoggerVm1.log(info, "console.out", lazyMsg = { "vm1 con.out" })
 
-    hostLoggerVm2.log(info, null, { "vm2" })
-    hostLoggerVm2.log(info, "console.out", { "vm2 con.out" })
+    hostLoggerVm2.log(info, null, lazyMsg = { "vm2" })
+    hostLoggerVm2.log(info, "console.out", lazyMsg = { "vm2 con.out" })
 
-    simpleLogger.log(info, Host("vm1"), {"hi to vm1"})
-    simpleLogger.log(info, Host("vm2"), {"hi to vm2"})
-    simpleLogger.log(info, Host("vm3"), {"hi to vm3"})
-    simpleLogger.log(info, Host("vm4"), {"hi to vm4"})
+    simpleLogger.log(info, Host("vm1"), lazyMsg = { "hi to vm1" })
+    simpleLogger.log(info, Host("vm2"), lazyMsg = { "hi to vm2" })
+    simpleLogger.log(info, Host("vm3"), lazyMsg = { "hi to vm3" })
+    simpleLogger.log(info, Host("vm4"), lazyMsg = { "hi to vm4" })
 
     okLog.getLogger("asshole.logging.package.xxx").info { "I am an asshole and I work" }
     okLog.getLogger("butterfly.poo.package.xxx").info { "I am a beautiful butterfly and I poo" }

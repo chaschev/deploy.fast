@@ -23,7 +23,7 @@ class LoggerModifierDsl<BC, O>(
   }
 
 
-  fun classifyBase(filter: (BC) -> Boolean) {
+  fun classifyBase(filter: (BC?) -> Boolean) {
     val c = logger.classifier
 
     if (c != null) {
@@ -39,15 +39,23 @@ class LoggerModifierDsl<BC, O>(
   }
 
   fun <C> filter(filter: (O) -> Boolean) {
-    logger.filters.add(MessageFilter.of(filter))
+    logger.filters.add(MessageFilter.ofObj(filter))
   }
 
-  fun <C> classifyMsg(filter: (C?, O) -> Boolean) {
-    logger.filters.add(MessageFilter.of(filter))
+  fun <C> classifyMsg(filter: (classifier: C?, msg: O) -> Boolean) {
+    logger.filters.add(MessageFilter.ofObj(filter))
+  }
+
+  fun <C> classifyMsg(filter: (classifier: C?) -> Boolean) {
+    logger.filters.add(MessageFilter.of({c: C?, _ ->  filter(c)}))
   }
 
   fun <C> filterMessages(filter: (C?, O, LogLevel) -> Boolean) {
-    logger.filters.add(MessageFilter.of(filter))
+    logger.filters.add(MessageFilter.ofObj(filter))
+  }
+
+  fun filterLevel(levelAtLeast: LogLevel) {
+    logger.filters.add(MessageFilter.of {it >= levelAtLeast} )
   }
 
   fun <C> filterMessages(filter: MessageFilter<C, O>) {

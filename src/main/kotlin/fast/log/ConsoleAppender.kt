@@ -7,19 +7,16 @@ import java.io.Writer
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class ConsoleAppender(override val name: String) : Appender<Any, Any> {
+class ConsoleAppender(
+  override val name: String,
+  override val autoFlush: Boolean = true
+) : WriterAppender<Any, Any> {
   private val out = System.out.bufferedWriter()
 
-  override fun append(obj: Any) {
-    print(obj.toString())
-  }
+  override val writer: BufferedWriter
+    get() = out
 
-  override fun supportsTransform(): Boolean  = true
 
-  override fun transform(transformer: Transformer<Any, Any>, classifier: Any?, obj: Any, level: LogLevel) {
-    transformer.transformIntoText(classifier, obj, out, out, level)
-    out.flush()
-  }
 }
 
 class NowhereAppender(override val name: String) : Appender<Any, Any> {
@@ -39,7 +36,7 @@ class NowhereAppender(override val name: String) : Appender<Any, Any> {
 
   override fun supportsTransform(): Boolean  = true
 
-  override fun transform(transformer: Transformer<Any, Any>, classifier: Any?, obj: Any, level: LogLevel) {
+  override fun transform(transformer: Transformer<Any, Any>, classifier: Any?, obj: Any, level: LogLevel, logger: LoggerImpl<Any?, Any>, e: Throwable?, args: Any?) {
     // fastest
     nowhere.write(level.name)
     nowhere.write(classifier.toString())

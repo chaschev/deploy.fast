@@ -55,6 +55,11 @@ class LoggerFactoryDSL(
     return r
   }
 
+  fun ref(name: String): Appender<Any, Any> {
+    return ctx.getAppender(name)!!
+  }
+
+
   private fun applyRules(chainName: String?) {
     for (rules in rules?.list.orEmpty()) {
       if(rules.isApplicable(chainName)) {

@@ -17,6 +17,13 @@ class OkLogContext(
     appenderMap.getOrPut(name, block)
   }
 
+  fun getAppender(name: String): Appender<Any, Any>? {
+    if (debugMode) println("getAppender($name)")
+
+    return appenderMap.get(name) as Appender<Any, Any>?
+  }
+
+
   fun getLogger(name: String): Slf4jLoggerImpl<Any, Any> {
     return getClassifiedLogger(name, null)
   }

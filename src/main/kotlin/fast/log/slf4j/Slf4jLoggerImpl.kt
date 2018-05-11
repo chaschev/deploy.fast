@@ -1,6 +1,7 @@
 package fast.log.slf4j
 
 import fast.log.LogLevel
+import fast.log.LogLevel.*
 import fast.log.LoggerImpl
 import org.slf4j.Logger
 import org.slf4j.Marker
@@ -14,11 +15,11 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(msg: String) {
-    log(LogLevel.info, null, {msg as O})
+    log(info, msg as O)
   }
 
-  override fun info(format: String?, arg: Any?) {
-    TODO("not implemented")
+  override fun info(format: String, arg: Any) {
+    log(info, format as O, args = arg)
   }
 
   override fun info(format: String?, arg1: Any?, arg2: Any?) {
@@ -30,7 +31,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(msg: String?, t: Throwable?) {
-    TODO("not implemented")
+    log(info, msg as O, e = t)
   }
 
   override fun info(marker: Marker?, msg: String?) {
@@ -53,12 +54,10 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-  override fun isInfoEnabled(marker: Marker?): Boolean {
-    TODO("not implemented")
-  }
 
-  override fun warn(msg: String?) {
-    TODO("not implemented")
+
+  override fun warn(msg: String) {
+    log(warn, msg as O)
   }
 
   override fun warn(format: String?, arg: Any?) {
@@ -99,13 +98,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
 
 
 
-  override fun isErrorEnabled(): Boolean {
-    TODO("not implemented")
-  }
 
-  override fun isErrorEnabled(marker: Marker?): Boolean {
-    TODO("not implemented")
-  }
 
   override fun error(msg: String?) {
     TODO("not implemented")
@@ -147,28 +140,22 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-  override fun isDebugEnabled(): Boolean {
-    TODO("not implemented")
+
+
+  override fun debug(msg: String) {
+    log(debug, msg as O)
   }
 
-  override fun isDebugEnabled(marker: Marker?): Boolean {
-    TODO("not implemented")
-  }
-
-  override fun debug(msg: String?) {
-    TODO("not implemented")
-  }
-
-  override fun debug(format: String?, arg: Any?) {
-    TODO("not implemented")
+  override fun debug(format: String, arg: Any?) {
+    log(debug, format as O, args = arg)
   }
 
   override fun debug(format: String?, arg1: Any?, arg2: Any?) {
-    TODO("not implemented")
+    log(debug, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun debug(format: String?, vararg arguments: Any?) {
-    TODO("not implemented")
+    log(debug, format as O, args = *arguments)
   }
 
   override fun debug(msg: String?, t: Throwable?) {
@@ -200,15 +187,15 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun trace(format: String?, arg: Any?) {
-    TODO("not implemented")
+    log(trace, format as O, args = arg)
   }
 
   override fun trace(format: String?, arg1: Any?, arg2: Any?) {
-    TODO("not implemented")
+    log(trace, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun trace(format: String?, vararg arguments: Any?) {
-    TODO("not implemented")
+    log(trace, format as O, args = *arguments)
   }
 
   override fun trace(msg: String?, t: Throwable?) {
@@ -235,20 +222,22 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-  override fun isWarnEnabled(): Boolean {
-    TODO("not implemented")
-  }
+  override fun isTraceEnabled(): Boolean = isEnabled(trace)
 
-  override fun isWarnEnabled(marker: Marker?): Boolean {
-    TODO("not implemented")
-  }
+  override fun isTraceEnabled(marker: Marker?): Boolean = isEnabled(trace)
 
-  override fun isTraceEnabled(): Boolean {
-    TODO("not implemented")
-  }
+  override fun isDebugEnabled() = isEnabled(debug)
 
-  override fun isTraceEnabled(marker: Marker?): Boolean {
-    TODO("not implemented")
-  }
+  override fun isDebugEnabled(marker: Marker?)= isEnabled(debug)
+
+  override fun isInfoEnabled(marker: Marker?)= isEnabled(info)
+
+  override fun isWarnEnabled(): Boolean = isEnabled(warn)
+
+  override fun isWarnEnabled(marker: Marker?): Boolean = isEnabled(warn)
+
+  override fun isErrorEnabled()= isEnabled(error)
+
+  override fun isErrorEnabled(marker: Marker?)= isEnabled(error)
 
 }

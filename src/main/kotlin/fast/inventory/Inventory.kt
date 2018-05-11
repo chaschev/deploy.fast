@@ -83,7 +83,7 @@ data class Host(
 
   val groups: List<Group> = _groups
 
-  val marker = MarkerFactory.getMarker(name).apply { add(IPS_OUT) }
+  //TODO FIX val marker = MarkerFactory.getMarker(name).apply { add(IPS_OUT) }
 
   fun getVar(name: String) = inventory.getVar(name, this)
 

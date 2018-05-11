@@ -2,7 +2,6 @@ package fast.ssh
 
 import fast.inventory.Host
 import fast.log.KLogging
-import fast.ssh.command.ConsoleLogging.sshOutLogger
 import kotlinx.coroutines.experimental.*
 import fast.ssh.command.Regexes
 import fast.ssh.process.*
@@ -70,11 +69,11 @@ open class ConsoleProcess(
     job = asyncNoisy {
       process = egg.giveBirth(getCurrentJob())
 
-      logger.info(host.marker, "started $egg")
+      //TODO FIX logger.info(host.marker, "started $egg")
 
       val cmd = "\n> ${egg.cmd}\n"
 
-      sshOutLogger.debug(host.marker, cmd)
+      //TODO FIX sshOutLogger.debug(host.marker, cmd)
 
       val writer = process.stdin.bufferedWriter()
 

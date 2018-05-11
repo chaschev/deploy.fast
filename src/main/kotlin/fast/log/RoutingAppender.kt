@@ -27,13 +27,16 @@ class RoutingAppender<C, O>(
     transformer: Transformer<C, O>,
     classifier: C?,
     obj: O,
-    level: LogLevel
+    level: LogLevel,
+    logger: LoggerImpl<Any?, O>,
+    e: Throwable?,
+    args: Any?
   ) {
     val appender = getRoute(classifier, level)
 
     if(appender == noRoute) return
 
-    appender.transform(transformer, classifier, obj, level)
+    appender.transform(transformer, classifier, obj, level, logger, e, args)
   }
 
   private fun getRoute(classifier: C?, level: LogLevel): Appender<C, O> {
@@ -74,14 +77,14 @@ class RoutingAppender<C, O>(
   }
 
   companion object {
-    private val notFound = ConsoleAppender("noAppender")
-    val noRoute = ConsoleAppender("noRoute")
+    private val notFound = ConsoleAppender("noAppender", false)
+    val noRoute = ConsoleAppender("noRoute", false)
 
     inline fun <reified C> routing(
-//      classifier: Class<C>,
+      name: String = "${C::class.java.simpleName}.routing.appender",
       crossinline routes: (C?) -> Appender<C, Any>?
     ): RoutingAppender<C, Any> {
-      return RoutingAppender(C::class.java, routes = { host, _ ->
+      return RoutingAppender(C::class.java, name = name, routes = { host, _ ->
         routes(host)
       })
     }

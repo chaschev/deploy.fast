@@ -34,7 +34,7 @@ object TestLogging  {
       .withPattern("%d{HH:mm:ss.SSS} %level %msg%n")
       .build()
 
-    val appender = CrawlersFastApp.FixedFileAppender.newFileAppend()
+    /*val appender = CrawlersFastApp.FixedFileAppender.newFileAppend()
       .setConfiguration(config)
       .withName("ssh.out.appender")
       .withLayout(layout)
@@ -49,10 +49,10 @@ object TestLogging  {
     appender.start()
     config.addAppender(appender)
 
-    ThreadContext.put("threadName", Thread.currentThread().name);
+    ThreadContext.put("threadName", Thread.currentThread().name);*/
 
 
-    config.addLogger(ctx, appender)
+//    config.addLogger(ctx, appender)
 
     val logger1 = LogManager.getLogger("test")
     val warnLevelLogger = LogManager.getLogger("net.schmizz")

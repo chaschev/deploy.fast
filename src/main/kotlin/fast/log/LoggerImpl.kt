@@ -1,5 +1,6 @@
 package fast.log
 
+import fast.log.MessageFilterType.*
 import java.util.ArrayList
 
 
@@ -9,20 +10,43 @@ open class LoggerImpl<BC, O>(
   val classifier: BC? = null
 ) {
   inline fun info(lazyMsg: () -> O) {
-    if (isInfoEnabled()) log(LogLevel.info, null, lazyMsg)
+    if (isInfoEnabled()) log(LogLevel.info, lazyMsg =  lazyMsg)
   }
 
   //  @SuppressWarnings("UNCHECKED_CAST")
-  inline fun log(level: LogLevel, classifier: BC? = null, lazyMsg: () -> O) {
+  inline fun log(level: LogLevel, classifier: BC? = null, e: Throwable? = null, args: Array<out Any>? = null, lazyMsg: () -> O) {
     if (!isEnabled(level)) return
-
-    val obj = lazyMsg()
 
     for (_filter in filters) {
       val filter = _filter as MessageFilter<Any, O>
 
-      if (!filter.accept(classifier, obj, level)) {
-        return
+      when(filter.type) {
+        simple -> if (!filter.accept(classifier, level)) return
+        simpleWithArgs ->  if ( args != null && !filter.accept(classifier, level, args)) return
+        else -> {/* ignore */}
+      }
+    }
+
+    val obj = lazyMsg()
+
+    log(level, obj, classifier, e, args)
+  }
+
+  fun log(level: LogLevel, obj: O, classifier: BC? = null, e: Throwable? = null, vararg args: Any?) {
+    if(e != null ) {
+      //TODO push it into transformer
+      e.printStackTrace()
+
+      return
+    }
+
+    for (_filter in filters) {
+      val filter = _filter as MessageFilter<Any, O>
+
+      when(filter.type) {
+        obj -> if (!filter.accept(classifier,obj, level)) return
+        objWithArgs ->  if ( args != null && !filter.accept(classifier, obj, level, args)) return
+        else -> {/* ignore */}
       }
     }
 
@@ -38,11 +62,10 @@ open class LoggerImpl<BC, O>(
           if (transformed == null) transformed = transformer?.transform(classifier, obj, level) ?: obj as Any
           appender.append(transformed, classifier, level)
         } else {
-          appender.transform(transformer!! as Transformer<Any, Any>, classifier, obj as Any, level)
+          appender.transform(transformer!! as Transformer<Any, Any>, classifier, obj as Any, level, this as LoggerImpl<Any?, Any>, e, args)
         }
       }
     }
-
   }
 
   fun isInfoEnabled(): Boolean {
@@ -56,6 +79,8 @@ open class LoggerImpl<BC, O>(
   var transformer: Transformer<Any, O>? = null
 
   lateinit var level: LogLevel
+
+  val simpleName = name.substringAfterLast('.')
 
   override fun toString(): String {
     return "LoggerImpl($name, $level, filters=$filters, appenders=$appenders, transformer=$transformer"
