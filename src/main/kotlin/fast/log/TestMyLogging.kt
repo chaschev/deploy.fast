@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 //todo log rotation
 //todo nice & fast pattern layout
 
-//todo {} support
+//ok {} support
 //todo FIXME
 //todo fix restrictions
 //todo exceptions
@@ -59,15 +59,15 @@ object TestMyLogging {
         restrict {
           applyTo("*")
 
-          "asshole.logging.package" to warn
-          "butterfly.poo.package" to trace
+          "asshole.logging.package" to WARN
+          "butterfly.poo.package" to TRACE
         }
       }
 
-      all<Host> {
-        classifyBase { it?.name == "vm1" }
-        classifyMsg<String> { c, msg -> c == "console.out" }
-        filter<Any> { msg -> true }
+      all {
+        classifyBase { it is Host && it.name == "vm1" }
+        classifyMsg { it == "console.out" }
+        filter<Any> { true }
         withTransformer(PatternTransformer())
         intoAppenders(
           console1,
@@ -76,13 +76,13 @@ object TestMyLogging {
       }
 
       //each of these loggers will receive a classifier, i.e. a host during init from user
-      all<Host> {
-        classifyBase { it?.name == "vm1" }
+      all {
+        classifyBase { it is Host && it.name == "vm1" }
         withTransformer(PatternTransformer())
         intoAppenders(console2, vm2)
       }
 
-      all<Host> {
+      all {
         //        classifyBase { it.name == "vm1" }
         withTransformer(PatternTransformer())
         intoAppenders(
@@ -112,16 +112,16 @@ object TestMyLogging {
     val hostLoggerVm1 = okLog.getClassifiedLogger("simple3", Host("vm1"))
     val hostLoggerVm2 = okLog.getClassifiedLogger("simple3", Host("vm2"))
 
-    hostLoggerVm1.log(info, lazyMsg = { "vm1" })
-    hostLoggerVm1.log(info, "console.out", lazyMsg = { "vm1 con.out" })
+    hostLoggerVm1.log(INFO, lazyMsg = { "vm1" })
+    hostLoggerVm1.log(INFO, "console.out", lazyMsg = { "vm1 con.out" })
 
-    hostLoggerVm2.log(info, null, lazyMsg = { "vm2" })
-    hostLoggerVm2.log(info, "console.out", lazyMsg = { "vm2 con.out" })
+    hostLoggerVm2.log(INFO, null, lazyMsg = { "vm2" })
+    hostLoggerVm2.log(INFO, "console.out", lazyMsg = { "vm2 con.out" })
 
-    simpleLogger.log(info, Host("vm1"), lazyMsg = { "hi to vm1" })
-    simpleLogger.log(info, Host("vm2"), lazyMsg = { "hi to vm2" })
-    simpleLogger.log(info, Host("vm3"), lazyMsg = { "hi to vm3" })
-    simpleLogger.log(info, Host("vm4"), lazyMsg = { "hi to vm4" })
+    simpleLogger.log(INFO, Host("vm1"), lazyMsg = { "hi to vm1" })
+    simpleLogger.log(INFO, Host("vm2"), lazyMsg = { "hi to vm2" })
+    simpleLogger.log(INFO, Host("vm3"), lazyMsg = { "hi to vm3" })
+    simpleLogger.log(INFO, Host("vm4"), lazyMsg = { "hi to vm4" })
 
     okLog.getLogger("asshole.logging.package.xxx").info { "I am an asshole and I work" }
     okLog.getLogger("butterfly.poo.package.xxx").info { "I am a beautiful butterfly and I poo" }
@@ -129,7 +129,6 @@ object TestMyLogging {
 
 //    println(this::class.java.readResource("/r/delme"))
     println(this::class.java.readResource("/META-INF/services/org.slf4j.spi.SLF4JServiceProvider"))
-
 
 
     LoggerFactory.getLogger("ok slf4j say hi").info("don't poo on slf4j")

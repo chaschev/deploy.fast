@@ -12,6 +12,7 @@ import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.delay
 import fast.log.KLogging
+import fast.log.OkLogging
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
@@ -211,7 +212,7 @@ class GlobalMap {
     }
   }
 
-  companion object : KLogging() {
+  companion object : OkLogging() {
 
   }
 }

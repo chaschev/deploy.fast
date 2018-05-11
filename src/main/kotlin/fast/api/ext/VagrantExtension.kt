@@ -6,6 +6,7 @@ import fast.inventory.Host
 import fast.lang.nullForException
 import fast.runtime.TaskContext
 import fast.log.KLogging
+import fast.log.OkLogging
 import java.io.File
 
 typealias VagrantTaskContext = ChildTaskContext<VagrantExtension, VagrantConfig>
@@ -68,7 +69,7 @@ class VagrantTasks(ext: VagrantExtension, parentCtx: ChildTaskContext<*, *>)
 
 
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 

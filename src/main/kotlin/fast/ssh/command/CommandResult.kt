@@ -46,7 +46,7 @@ open class CommandResult<T>(
     try {
       this.value = value()
     } catch (e: Exception) {
-      logger.warn("exception during parsing result", e)
+      logger.warn(e) {"exception during parsing result"}
       withError("exception during parsing result, ${e.message}") }
     return this
   }

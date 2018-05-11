@@ -10,6 +10,7 @@ import fast.runtime.DeployFastDI.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
 import fast.log.KLogging
+import fast.log.OkLogging
 import org.kodein.di.generic.instance
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -112,7 +113,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     if (customName != null)
       childContext.path = "$path.$customName"
 
-    logger.debug { "created new context: ${childContext.path}" }
+    logger.debug(host) { "created new context: ${childContext.path}" }
 
     this.children.add(childContext)
 
@@ -155,7 +156,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     childTask: AnyTask,
     interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
   ): ITaskResult<*> {
-    logger.info { "${host.name} - play task $path" }
+    logger.info(host) { "${host.name} - play task $path" }
 
     var result: ITaskResult<*> = ok
     var taskResult: ITaskResult<*>? = null
@@ -235,7 +236,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     return app.globalMap.distribute(name, this as TaskContext<*, EXT, EXT_CONF>, block, await, timeoutMs)
   }
 
-  companion object : KLogging()
+  companion object : OkLogging()
 
 /*
   internal fun runChildTasks(childContext: SessionRuntimeContext) {

@@ -4,7 +4,7 @@ class RestrictionsRulesDsl(override val applyTo: ArrayList<String>) : AppliedRul
   constructor(vararg applyTo: String) :
     this(applyTo.toCollection(ArrayList()) as ArrayList<String>)
 
-  var level: LogLevel = LogLevel.info
+  var level: LogLevel = LogLevel.INFO
 
   val regexRules = ArrayList<Pair<Regex, LogLevel>>()
   val prefixRules = ArrayList<Pair<String, LogLevel>>()
@@ -17,14 +17,14 @@ class RestrictionsRulesDsl(override val applyTo: ArrayList<String>) : AppliedRul
   override fun apply(logger: LoggerImpl<*, *>) {
     for ((prefix, level) in prefixRules) {
       if(logger.name.startsWith(prefix)) {
-        logger.level = level
+        logger.setIfHigher(level)
         return
       }
     }
 
     for ((regex, level) in regexRules) {
       if(logger.name.matches(regex)) {
-        logger.level = level
+        logger.setIfHigher(level)
         return
       }
     }

@@ -272,7 +272,9 @@ class ShellScript<R>(
             if(newHolders.isEmpty()) {
               holder.text = con.stdout.subSequence(holder.start, con.stdout.length)
             } else {
-              // got String index out of range: -1776
+              // got String index out of range: -1776,
+              // holder.start: 8448, newHolders[0].start: 51 => -8405
+              // holder.start: 0, newHolders[0].start: 30 => -28
               println("holder.start: ${holder.start}, newHolders[0].start: ${newHolders[0].start}")
               holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
             }

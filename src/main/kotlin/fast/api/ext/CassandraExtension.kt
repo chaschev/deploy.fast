@@ -6,6 +6,7 @@ import fast.dsl.TaskResult
 import fast.inventory.Host
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.log.KLogging
+import fast.log.OkLogging
 
 typealias CassandraTaskContext = ChildTaskContext<CassandraExtension, CassandraConfig>
 
@@ -170,7 +171,7 @@ class CassandraTasks(ext: CassandraExtension, parentCtx: ChildTaskContext<*, *>)
   }
 
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 class CassandraConfig(

@@ -8,6 +8,7 @@ import fast.runtime.TaskContext
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.run
 import fast.log.KLogging
+import fast.log.OkLogging
 import java.io.File
 
 typealias StashTaskContext = ChildTaskContext<StashExtension, StashConfig>
@@ -135,7 +136,7 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
   }
 
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 

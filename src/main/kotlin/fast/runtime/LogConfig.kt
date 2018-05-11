@@ -7,11 +7,7 @@ import fast.log.*
 import fast.log.LogLevel.*
 import fast.log.RoutingAppender.Companion.routing
 import java.io.File
-import fast.log.OkLogContext.Companion.okLog
-import honey.lang.readResource
-import org.slf4j.LoggerFactory
 import fast.log.OkLogContext
-import fast.log.LoggerFactoryDSL
 
 fun configDeployFastLogging() {
   val console = ConsoleAppender("console", true)
@@ -35,8 +31,8 @@ fun configDeployFastLogging() {
       restrict {
         applyTo("*")
 
-        "net.schmizz" to warn
-        "net.schmizz.sshj.DefaultConfig" to error
+        "net.schmizz.sshj.DefaultConfig" to ERROR
+        "net.schmizz" to WARN
       }
     }
 
@@ -50,9 +46,9 @@ fun configDeployFastLogging() {
       }
     ))
 
-    //all messages having out marker
-    all<Host> {
-      classifyMsg { c: Any? -> c == "ssh.out" }
+    //all loggers having out marker
+    all {
+      classifyBase { c: Any? -> c  == "ssh.out" }
       withTransformer(PlainTextTransformer())
       intoAppenders(
         ref("routing.out")
@@ -60,8 +56,8 @@ fun configDeployFastLogging() {
     }
 
     //all messages having host specified from any of the loggers
-    all<Host> {
-      classifyMsg { c: Host? -> c != null }
+    all {
+      classifyMsg { it is Host }
       withTransformer(PlainTextTransformer())
       intoAppenders(
         ref("routing.out")
@@ -69,8 +65,8 @@ fun configDeployFastLogging() {
     }
 
     //all loggers having host specified
-    all<Host> {
-      classifyBase { it != null  }
+    all {
+      classifyBase { it is Host }
       withTransformer(PatternTransformer())
       intoAppenders(
         ref("routing.log")
@@ -80,6 +76,11 @@ fun configDeployFastLogging() {
     //default messaging processing: no classifier specified - dump to console
 
     any {
+      filterBase {
+        !it.name.endsWith(".out") &&
+        !it.name.endsWith(".err") &&
+        !it.name.endsWith(".log")
+      }
       classifyBase { it == null }
       classifyMsg { c: Any? -> c == null}
       withTransformer(PatternTransformer())
@@ -87,16 +88,16 @@ fun configDeployFastLogging() {
     }
 
     /* Additionally, add logs of level info from a host vm1 to console */
-    all<Host> {
-      classifyMsg { c: Any? -> c == null}
-      filterLevel(info)
+    all {
+      classifyMsg { it is Host && it.name == "vm1"}
+      filterLevel(INFO)
       withTransformer(PatternTransformer())
       intoAppenders(console)
     }
 
-    all<Host> {
-      classifyBase { it?.name == "vm1" }
-      filterLevel(info)
+    all {
+      classifyBase { it is Host && it.name == "vm1" }
+      filterLevel(INFO)
       withTransformer(PatternTransformer())
       intoAppenders(console)
     }

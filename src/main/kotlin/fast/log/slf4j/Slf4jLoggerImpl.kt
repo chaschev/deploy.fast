@@ -1,10 +1,14 @@
 package fast.log.slf4j
 
-import fast.log.LogLevel
 import fast.log.LogLevel.*
 import fast.log.LoggerImpl
 import org.slf4j.Logger
 import org.slf4j.Marker
+
+
+fun Logger.ok(): LoggerImpl<Any, Any> {
+  return this as LoggerImpl<Any, Any>
+}
 
 open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   LoggerImpl<BC, O>(name, classifier),
@@ -15,11 +19,11 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(msg: String) {
-    log(info, msg as O)
+    log(INFO, msg as O)
   }
 
   override fun info(format: String, arg: Any) {
-    log(info, format as O, args = arg)
+    log(INFO, format as O, args = arg)
   }
 
   override fun info(format: String?, arg1: Any?, arg2: Any?) {
@@ -31,7 +35,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(msg: String?, t: Throwable?) {
-    log(info, msg as O, e = t)
+    log(INFO, msg as O, e = t)
   }
 
   override fun info(marker: Marker?, msg: String?) {
@@ -55,31 +59,31 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun warn(msg: String) {
-    log(warn, msg as O)
+    log(WARN, msg as O)
   }
 
   override fun warn(format: String?, arg: Any?) {
-    log(warn, format as O, args = arg)
+    log(WARN, format as O, args = arg)
   }
 
   override fun warn(format: String?, vararg arguments: Any?) {
-    log(warn, format as O, args = arguments)
+    log(WARN, format as O, args = arguments)
   }
 
   override fun warn(format: String?, arg1: Any?, arg2: Any?) {
-    log(warn, format as O, args = *arrayOf(arg1, arg2))
+    log(WARN, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun warn(msg: String?, t: Throwable?) {
-    log(warn, msg as O, e = t)
+    log(WARN, msg as O, e = t)
   }
 
   override fun warn(marker: Marker?, msg: String?) {
-    log(warn, classifier = marker?.name as BC, _obj = msg as O)
+    log(WARN, msgClassifier = marker?.name as BC, _obj = msg as O)
   }
 
   override fun warn(marker: Marker?, format: String?, arg: Any?) {
-    log(warn, classifier = marker?.name as BC, _obj = format as O, args = arg)
+    log(WARN, msgClassifier = marker?.name as BC, _obj = format as O, args = arg)
   }
 
   override fun warn(marker: Marker?, format: String?, arg1: Any?, arg2: Any?) {
@@ -141,19 +145,19 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
 
 
   override fun debug(msg: String) {
-    log(debug, msg as O)
+    log(DEBUG, msg as O)
   }
 
   override fun debug(format: String, arg: Any?) {
-    log(debug, format as O, args = arg)
+    log(DEBUG, format as O, args = arg)
   }
 
   override fun debug(format: String?, arg1: Any?, arg2: Any?) {
-    log(debug, format as O, args = *arrayOf(arg1, arg2))
+    log(DEBUG, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun debug(format: String?, vararg arguments: Any?) {
-    log(debug, format as O, args = *arguments)
+    log(DEBUG, format as O, args = *arguments)
   }
 
   override fun debug(msg: String?, t: Throwable?) {
@@ -185,15 +189,15 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun trace(format: String?, arg: Any?) {
-    log(trace, format as O, args = arg)
+    log(TRACE, format as O, args = arg)
   }
 
   override fun trace(format: String?, arg1: Any?, arg2: Any?) {
-    log(trace, format as O, args = *arrayOf(arg1, arg2))
+    log(TRACE, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun trace(format: String?, vararg arguments: Any?) {
-    log(trace, format as O, args = *arguments)
+    log(TRACE, format as O, args = *arguments)
   }
 
   override fun trace(msg: String?, t: Throwable?) {
@@ -220,22 +224,16 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-  override fun isTraceEnabled(): Boolean = isEnabled(trace)
 
-  override fun isTraceEnabled(marker: Marker?): Boolean = isEnabled(trace)
 
-  override fun isDebugEnabled() = isEnabled(debug)
+  override fun isTraceEnabled(marker: Marker?): Boolean = isEnabled(TRACE)
 
-  override fun isDebugEnabled(marker: Marker?)= isEnabled(debug)
+  override fun isDebugEnabled(marker: Marker?)= isEnabled(DEBUG)
 
-  override fun isInfoEnabled(marker: Marker?)= isEnabled(info)
+  override fun isInfoEnabled(marker: Marker?)= isEnabled(INFO)
 
-  override fun isWarnEnabled(): Boolean = isEnabled(warn)
+  override fun isWarnEnabled(marker: Marker?): Boolean = isEnabled(WARN)
 
-  override fun isWarnEnabled(marker: Marker?): Boolean = isEnabled(warn)
-
-  override fun isErrorEnabled()= isEnabled(error)
-
-  override fun isErrorEnabled(marker: Marker?)= isEnabled(error)
+  override fun isErrorEnabled(marker: Marker?)= isEnabled(ERROR)
 
 }

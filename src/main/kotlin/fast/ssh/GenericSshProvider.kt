@@ -3,6 +3,7 @@ package fast.ssh
 import fast.inventory.Host
 import kotlinx.coroutines.experimental.runBlocking
 import fast.log.KLogging
+import fast.log.OkLogging
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.transport.TransportException
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
@@ -16,7 +17,7 @@ class GenericSshProvider(
   override val host: Host
     get() = config.host
 
-  companion object : KLogging()
+  companion object : OkLogging()
 
   internal lateinit var sshClient: SSHClient
 

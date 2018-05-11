@@ -1,5 +1,6 @@
 package fast.ssh.files
 
+import fast.log.OkLogging
 import net.schmizz.sshj.xfer.FileSystemFile
 import fast.ssh.*
 import java.io.File
@@ -22,7 +23,7 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
       timeoutMs = 10 * 1000).value
   }
 
-  companion object {
+  companion object : OkLogging() {
     private val lsRegex = "^([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+(.{9,11}[^\\s]+)\\s+(.*)$".toRegex()
     internal fun logDuration(startedAt: Long, sizeKb: Int): String {
       val duration = Duration.between(Instant.ofEpochMilli(startedAt), Instant.now()).toMillis() + 1

@@ -3,6 +3,7 @@ package fast.api.ext
 import fast.api.*
 import fast.runtime.TaskContext
 import fast.log.KLogging
+import fast.log.OkLogging
 
 typealias GradleTaskContext = ChildTaskContext<GradleExtension, GradleConfig>
 
@@ -45,7 +46,7 @@ class GradleTasks(ext: GradleExtension, parentCtx: ChildTaskContext<*, *>)
   suspend fun install() =
     extension.zippedApp.tasks(extCtx).install()
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 

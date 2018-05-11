@@ -46,7 +46,6 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 //    projectName = "honey-badger"
     projectName = "deploy.fast"
 
-
     checkout {
       url = "https://github.com/chaschev/deploy.fast.git"
 //      url = "https://chaschev@bitbucket.org/chaschev/honey-badger.git"
@@ -90,7 +89,6 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
         scheduler.doIt()
       }
     }
-
 
     fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
       val app by DeployFastDI.FAST.instance<DeployFastApp<*>>()

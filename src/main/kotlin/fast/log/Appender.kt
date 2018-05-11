@@ -36,7 +36,10 @@ interface WriterAppender<C,O> : Appender<C,O> {
     e: Throwable?,
     args: Any?
   ) {
-    transformer.transformIntoText(classifier, obj, writer, writer, level, logger, e, args)
+    synchronized(writer) {
+      transformer.transformIntoText(classifier, obj, writer, writer, level, logger, e, args)
+    }
+
     if(autoFlush) writer.flush()
   }
 

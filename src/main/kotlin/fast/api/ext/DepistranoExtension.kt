@@ -10,6 +10,7 @@ import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.files.exists
 import honey.lang.joinSpace
 import fast.log.KLogging
+import fast.log.OkLogging
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatterBuilder
 
@@ -144,7 +145,7 @@ class DepistranoGitCheckoutDSL {
     val branch: String? = null
   )
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 
@@ -421,7 +422,7 @@ class DepistranoTasks(ext: DepistranoExtension, parentCtx: ChildTaskContext<*, *
 
   suspend fun updateFile() = updateFileTask()
 
-  companion object : KLogging() {
+  companion object : OkLogging() {
     val COMMIT_REF_REGEX = """^.*_[0-9a-f]{6}$""".toRegex()
   }
 }

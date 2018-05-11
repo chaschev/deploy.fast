@@ -10,6 +10,7 @@ import fast.ssh.runAndWait
 import fast.ssh.runResult
 import kotlinx.coroutines.experimental.delay
 import fast.log.KLogging
+import fast.log.OkLogging
 
 typealias SystemdTaskContext = ChildTaskContext<SystemdExtension, SystemdConfig>
 
@@ -115,7 +116,7 @@ class SystemdTasks(ext: SystemdExtension, parentCtx: ChildTaskContext<*, *>)
 //  suspend fun logs() = logs.play(extCtx)
 
 
-  companion object : KLogging()
+  companion object : OkLogging()
 }
 
 class SystemdConfig(

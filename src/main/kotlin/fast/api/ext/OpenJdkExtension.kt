@@ -6,6 +6,7 @@ import fast.ssh.command.JavaVersion
 import fast.ssh.command.Version
 import fast.ssh.runAndWaitProcess
 import fast.log.KLogging
+import fast.log.OkLogging
 
 class OpenJdkExtension(
   config: (OpenJDKTaskContext) -> OpenJdkConfig
@@ -182,7 +183,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
   }
 
 
-  companion object : KLogging() {
+  companion object : OkLogging() {
 
   }
 }

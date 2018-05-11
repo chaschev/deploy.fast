@@ -7,6 +7,16 @@ open class KLogging {
   val logger = KLogger(LoggerFactory.getLogger(javaClass))
 }
 
+open class OkLogging(classifier: Any? = null) {
+  val logger = LoggerFactory.getLogger(javaClass) as LoggerImpl<String, String>
+
+  init {
+    if(classifier != null) {
+
+    }
+  }
+}
+
 /*
  LoggerRules:
   a list of filters
@@ -26,7 +36,7 @@ open class KLogging {
  */
 
 enum class LogLevel {
-  all, trace, debug, info, warn, error, fatal, none
+  ALL, TRACE, DEBUG, INFO, WARN, ERROR, NONE
 }
 
 enum class TransformerType {

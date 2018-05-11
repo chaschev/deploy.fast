@@ -2,12 +2,13 @@ package fast.ssh
 
 import fast.ssh.files.SshFiles
 import fast.log.KLogging
+import fast.log.OkLogging
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.xfer.FileSystemFile
 import java.io.File
 
 class GenericSshSession(override val provider: GenericSshProvider) : SshSession {
-  companion object : KLogging()
+  companion object : OkLogging()
 
   internal var nativeSession: Session
 
@@ -73,7 +74,7 @@ class NativeSession : ConsoleSession {
   override fun simpleCommand(cmd: String): IConsoleProcess =
     ConsoleSession.command(cmd)
 
-  companion object : KLogging()
+  companion object : OkLogging()
 
   override fun close() {
     //ok, not very good

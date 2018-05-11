@@ -2,6 +2,7 @@ package fast.ssh
 
 import fast.inventory.Host
 import fast.log.KLogging
+import fast.log.OkLogging
 import kotlinx.coroutines.experimental.*
 import net.schmizz.sshj.connection.channel.direct.Session
 
@@ -59,7 +60,7 @@ fun CharSequence.cuteSubstring(from: Int, to: Int, multiOnRight: Boolean = true)
 
 }
 
-val logger = KLogging().logger
+val logger = OkLogging().logger
 
 fun <T> asyncNoisy(
   block: suspend CoroutineScope.() -> T
