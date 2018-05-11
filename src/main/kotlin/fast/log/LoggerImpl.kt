@@ -32,13 +32,19 @@ open class LoggerImpl<BC, O>(
     log(level, obj, classifier, e, args)
   }
 
-  fun log(level: LogLevel, obj: O, classifier: BC? = null, e: Throwable? = null, vararg args: Any?) {
+  fun log(level: LogLevel, _obj: O, classifier: BC? = null, e: Throwable? = null, vararg args: Any?) {
     if(e != null ) {
       //TODO push it into transformer
       e.printStackTrace()
 
       return
     }
+
+    val obj: O = if(_obj is CharSequence && _obj.contains("{}")) {
+      _obj.replaceSlf4jPlaceHolders(args)
+    } else {
+      _obj
+    } as O
 
     for (_filter in filters) {
       val filter = _filter as MessageFilter<Any, O>
@@ -85,4 +91,29 @@ open class LoggerImpl<BC, O>(
   override fun toString(): String {
     return "LoggerImpl($name, $level, filters=$filters, appenders=$appenders, transformer=$transformer"
   }
+}
+
+private fun  CharSequence.replaceSlf4jPlaceHolders(args: Array<out Any?>): StringBuilder {
+  val sb = StringBuilder()
+
+  var prevPos = 0
+  var pos = 0
+  var argIndex = 0
+
+  while(argIndex < args.size && pos < length) {
+    val pIndex = indexOf("{}", pos)
+
+    if(pIndex == -1) {
+      // no more place holders -> append the rest of the string
+      sb.append(subSequence(pos, length))
+      break
+    } else {
+      // append prefix, arg and advance position after placeholder
+      sb.append(subSequence(pos, pIndex))
+      sb.append(args[argIndex++])
+      pos = pIndex + 2
+    }
+  }
+
+  return sb
 }
