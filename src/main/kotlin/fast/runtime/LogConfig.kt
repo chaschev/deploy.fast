@@ -1,31 +1,23 @@
 package fast.runtime
 
 
-
 import fast.inventory.Host
+import fast.inventory.Inventory
+import fast.lang.writeln
 import fast.log.*
 import fast.log.LogLevel.*
 import fast.log.RoutingAppender.Companion.routing
 import java.io.File
 import fast.log.OkLogContext
+import honey.lang.endsWithAny
+import org.kodein.di.generic.instance
 
 fun configDeployFastLogging() {
   val console = ConsoleAppender("console", true)
 
   OkLogContext.okLog = OkLogContext {
-    /*starts("net.schmizz") {
-      setLevel(warn)
-    }*/
-
-    /* starts("net.schmizz.sshj.DefaultConfig") {
-       setLevel(error)
-     }*/
-
-    //each of these loggers will receive a classifier, i.e. a host during init from user
-    /*allWithClassifier<Host> {
-      withFilter<String, Any>(*//* filter 'console.out' messages *//*)
-        withAppender(*//*.$host.out*//*)
-      }*/
+    val inventory = DeployFastDI.FASTD.instance<Inventory>()
+    val host1 = inventory.activeHosts[0].name
 
     rules {
       restrict {
@@ -47,25 +39,26 @@ fun configDeployFastLogging() {
     ))
 
     //all loggers having out marker
-    all {
-      classifyBase { c: Any? -> c  == "ssh.out" }
+    all("base.routing.out") {
+      classifyBase { c: Any? -> c == "ssh.out" }
       withTransformer(PlainTextTransformer())
       intoAppenders(
-        ref("routing.out")
+        ref("routing.out"),
+        ref("routing.log")
       )
     }
 
-    //all messages having host specified from any of the loggers
-    all {
+    all("msg.routing.out") {
       classifyMsg { it is Host }
       withTransformer(PlainTextTransformer())
       intoAppenders(
         ref("routing.out")
+
       )
     }
 
     //all loggers having host specified
-    all {
+    all("base.routing.log") {
       classifyBase { it is Host }
       withTransformer(PatternTransformer())
       intoAppenders(
@@ -73,30 +66,58 @@ fun configDeployFastLogging() {
       )
     }
 
-    //default messaging processing: no classifier specified - dump to console
-
-    any {
+    all("msg.routing.log") {
       filterBase {
-        !it.name.endsWith(".out") &&
-        !it.name.endsWith(".err") &&
-        !it.name.endsWith(".log")
+        !it.name.endsWithAny(".out", ".err", ".log")
+      }
+      classifyMsg { it is Host }
+      withTransformer(
+        // msg.routing.out will dump raw  conole output into the same file, so we
+        // need to separate log messages with a new line symbol
+        BeforeAfterTransformer(PatternTransformer(), before = { it.newLine() })
+      )
+      intoAppenders(
+        ref("routing.log")
+      )
+    }
+
+    //default messaging processing: no classifier specified - dump to console
+    any("default") {
+      filterBase {
+        !it.name.endsWithAny(".out", ".err", ".log")
       }
       classifyBase { it == null }
-      classifyMsg { c: Any? -> c == null}
+      classifyMsg { c: Any? -> c == null }
       withTransformer(PatternTransformer())
       intoAppenders(console)
     }
 
     /* Additionally, add logs of level info from a host vm1 to console */
-    all {
-      classifyMsg { it is Host && it.name == "vm1"}
+    all("$host1.out") {
+      filterBase { it.name == "ssh.out" }
+      classifyMsg {
+        it is Host && it.name == host1
+      }
+      withTransformer(
+        BeforeAfterTransformer(PlainTextTransformer(),
+          before = { it.writeln("$host1: ") }
+        )
+      )
+      intoAppenders(console)
+    }
+
+    /* Additionally, add logs of level info from a host vm1 to console */
+    all("$host1.msg") {
+      classifyMsg {
+        it is Host && it.name == host1
+      }
       filterLevel(INFO)
       withTransformer(PatternTransformer())
       intoAppenders(console)
     }
 
-    all {
-      classifyBase { it is Host && it.name == "vm1" }
+    all("$host1.base") {
+      classifyBase { it is Host && it.name == host1 }
       filterLevel(INFO)
       withTransformer(PatternTransformer())
       intoAppenders(console)
@@ -104,5 +125,5 @@ fun configDeployFastLogging() {
 
   }.apply {
     debugMode = false
-  }}
-
+  }
+}

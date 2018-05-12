@@ -30,9 +30,9 @@ class LoggerFactoryDSL(
     LoggerChainDsl(logger as LoggerImpl<C, O>).apply(block)
   }
 
-  fun all(block: LoggerChainDsl<Any, Any>.() -> Unit): LoggerChainDsl<Any, Any>? {
+  fun all(name: String? = null, block: LoggerChainDsl<Any, Any>.() -> Unit): LoggerChainDsl<Any, Any>? {
     val r = nullForException(ConfBranchDidntMatchException::class.java) {
-      LoggerChainDsl(logger as LoggerImpl<Any, Any>).apply(block)
+      LoggerChainDsl(logger as LoggerImpl<Any, Any>, name).apply(block)
     }
 
     if (ctx.debugMode) println(" dsl.all() = $r")
@@ -40,14 +40,11 @@ class LoggerFactoryDSL(
     return r
   }
 
-  fun <C, O> allCustom(block: LoggerChainDsl<C, O>.() -> Unit) =
-    LoggerChainDsl(logger as LoggerImpl<C, O>).apply(block)
-
   fun any(name: String? = null, block: LoggerChainDsl<Any, Any>.() -> Unit): LoggerChainDsl<Any, Any>? {
     applyRules(name)
 
     val r = nullForException(ConfBranchDidntMatchException::class.java) {
-      LoggerChainDsl(logger as LoggerImpl<Any, Any>).apply(block)
+      LoggerChainDsl(logger as LoggerImpl<Any, Any>, name).apply(block)
     }
 
     if (ctx.debugMode) println(" dsl.any() = $r")

@@ -1,5 +1,6 @@
 package fast.log
 
+import fast.log.slf4j.Slf4jLoggerImpl
 import org.slf4j.LoggerFactory
 import java.io.BufferedWriter
 
@@ -8,7 +9,7 @@ open class KLogging {
 }
 
 open class OkLogging(classifier: Any? = null) {
-  val logger = LoggerFactory.getLogger(javaClass) as LoggerImpl<String, String>
+  val logger = LoggerFactory.getLogger(javaClass) as Slf4jLoggerImpl<String, String>
 
   init {
     if(classifier != null) {

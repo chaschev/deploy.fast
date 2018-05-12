@@ -1,5 +1,6 @@
 package fast.inventory
 
+import fast.runtime.DeployFastDI
 import fast.runtime.DeployFastDI.FAST
 import fast.ssh.KnownHostsConfig
 import org.kodein.di.generic.instance
@@ -11,14 +12,21 @@ class Inventory(
   val groups: List<IGroup>
 ) {
   val asOneGroup = CompositeGroup("inventory")
+  val hosts
+    get() = asOneGroup.hosts
 
   val props = ConfigProps(File(".fast/fast.props"))
+
 
   val vars = ConcurrentHashMap<String, Any>()
 
   private var initialised = false
 
   lateinit var sshConfig: KnownHostsConfig
+
+  val activeHosts by lazy {
+    DeployFastDI.FASTD.instance(tag = "runAtHosts") as List<Host>
+  }
 
   init {
     asOneGroup.groups.addAll(groups)

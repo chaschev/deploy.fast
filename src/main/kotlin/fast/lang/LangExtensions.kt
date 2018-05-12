@@ -106,13 +106,23 @@ inline fun <E, R> MutableList<E>.mapReplace(map: (E) -> R): MutableList<R> {
   return this as MutableList<R>
 }
 
-inline fun CharSequence.scanForIndex(predicate: (ch: Char, index:Int, length: Int) -> Boolean, startAt: Int): Int? {
+inline fun CharSequence.scanForIndex(startAt: Int, predicate: (ch: Char) -> Boolean): Int? {
+  for(index in startAt until length) {
+    if(predicate(this[index])) return index
+  }
+
+  return null
+}
+
+
+inline fun CharSequence.scanForIndexExt(startAt: Int, predicate: (ch: Char, index:Int, length: Int) -> Boolean): Int? {
   for(index in startAt until length) {
     if(predicate(this[index], index, length)) return index
   }
 
   return null
 }
+
 
 fun CoroutineScope.getCurrentJob() = coroutineContext[Job]!!
 
@@ -126,6 +136,10 @@ fun CharSequence.startsWithAny(prefixes: Iterable<out String>): Boolean {
 
 fun CharSequence.startsWithAny(prefixes: Array<out String>): Boolean {
   return prefixes.find { this.startsWith(it) } != null
+}
+
+fun CharSequence.endsWithAny(vararg suffixes: String): Boolean {
+  return suffixes.find { this.endsWith(it) } != null
 }
 
 fun ByteArray.text() = String(this)

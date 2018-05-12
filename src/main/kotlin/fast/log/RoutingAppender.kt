@@ -1,5 +1,7 @@
 package fast.log
 
+import java.util.*
+
 /**
  * @param routes Returns null when there is no route. Null/no route for null input classifier is ok,
  *                 null input log level means "any" log level, so null/noRoute return is not ok
@@ -9,6 +11,8 @@ class RoutingAppender<C, O>(
   override val name: String = "${classifier.simpleName}.routing.appender",
   private val routes: (C?, LogLevel) -> Appender<C, O>?
 ) : Appender<C, O> {
+
+  //TODO: switch to ConcurrentHashMap
   private val routeMap = ArrayList<Triple<C, LogLevel?, Appender<C, O>>>()
 
   override fun append(obj: O) {
@@ -46,7 +50,7 @@ class RoutingAppender<C, O>(
 
     if (r != notFound) return r
 
-    return synchronized(this) {
+    return synchronized(routeMap) {
       var r = tryFindRoute(classifier, level)
 
       if (r != notFound) {
@@ -67,13 +71,15 @@ class RoutingAppender<C, O>(
   override fun supportsTransform(): Boolean = true
 
   private fun tryFindRoute(classifier: C?, level: LogLevel): Appender<C, O> {
-    for ((c, l, a) in routeMap) {
-      if ((c == classifier) && (level == l || l == null)) {
-        return a
-      }
-    }
+   return synchronized(routeMap) {
+     for ((c, l, a) in routeMap) {
+       if ((c == classifier) && (level == l || l == null)) {
+         return@synchronized a
+       }
+     }
 
-    return notFound as Appender<C, O>
+     return@synchronized notFound as Appender<C, O>
+   }
   }
 
   companion object {

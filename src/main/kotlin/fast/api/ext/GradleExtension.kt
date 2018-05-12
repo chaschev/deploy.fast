@@ -1,6 +1,7 @@
 package fast.api.ext
 
 import fast.api.*
+import fast.dsl.CommandLineResult
 import fast.runtime.TaskContext
 import fast.log.KLogging
 import fast.log.OkLogging
@@ -33,6 +34,15 @@ class GradleExtension(
 
   override val tasks = { parentCtx: ChildTaskContext<*, *> ->
     GradleTasks(this@GradleExtension, parentCtx)
+  }
+
+  companion object {
+    fun extractError(r: CommandLineResult<Boolean>) =
+      r.text()
+        .substringBeforeLast("Build failed")
+        .substringBeforeLast("BUILD FAILED")
+        .substringBeforeLast("FAILURE:")
+        .trim()
   }
 }
 

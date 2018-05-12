@@ -78,14 +78,14 @@ open class SshFiles(override val provider: ConsoleProvider, val _sudo: Boolean) 
 
     val sizeKb = files.asSequence().sumBy { it.length().toInt() } / (1024)
 
-    logger.info {
-      "uploading ${files.size} files to $dest, total: ${sizeKb}kb"
-    }
 
     val prov = provider as GenericSshProvider
     val transfer = prov.sshClient.newSCPFileTransfer()
-
     val host = prov.host
+
+    logger.info(host) {
+      "uploading ${files.size} files to $dest, total: ${sizeKb}kb"
+    }
 
     if (files.size == 1) {
       logger.info(host) { "transferring ${files[0]} to $dest" }

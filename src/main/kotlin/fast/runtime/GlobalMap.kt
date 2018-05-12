@@ -122,7 +122,7 @@ class GlobalMap {
     await: Boolean = false,
     timeoutMs: Long = 600_000
   ): DistributeResult<EXT, EXT_CONF> {
-    logger.info(ctx.host) { "distribute $name ${ctx.address} - starting" }
+    logger.info(ctx.host) { "distribute $name - starting" }
 
     val distributeKey = "distribute.$name.${ctx.path}"
 
@@ -137,12 +137,12 @@ class GlobalMap {
 
     val job = if (myJob == null) {
       asyncNoisy {
-        logger.info(ctx.host) { "distribute $name ${ctx.address} - no job, awaiting others ${ctx.path}" }
+        logger.info(ctx.host) { "distribute $name - no job, awaiting others ${ctx.path}" }
         awaitAllParties(ctx.host, name, distributeKey, timeoutMs)
         null
       }
     } else {
-      logger.info(ctx.host) { "distribute $name ${ctx.address} - job started ${ctx.path}" }
+      logger.info(ctx.host) { "distribute $name - job started ${ctx.path}" }
 
       val r = myJob(ctx)
 
@@ -185,7 +185,8 @@ class GlobalMap {
     }
 
     fun getJob(host: Host): (suspend TaskContext<*, EXT, EXT_CONF>.() -> ITaskResult<*>)? {
-      println("job for $host in $jobs")
+      logger.info(host) { "job for $host, job owners: ${jobs.map { it.hosts }}" }
+
       jobs.forEach { (hosts, job) ->
         if (hosts.contains(host.address)) return job
       }

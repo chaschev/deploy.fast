@@ -1,6 +1,7 @@
 package fast.log
 
 import fast.inventory.Host
+import fast.log.MyPatternStamp.Companion.myStamp
 import java.io.BufferedWriter
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -63,15 +64,36 @@ class MyPatternStamp {
   val level = StringFieldStamp(5)
   val host = StringFieldStamp(3, PleaseSleepWellAlign.right)
   val loggerName = StringFieldStamp(15, PleaseSleepWellAlign.left)
+
+  companion object {
+    val myStamp = MyPatternStamp()
+  }
 }
 
 fun <O> Appendable.apply(stamp: PleaseSleepWellStamp<O>, obj: O) {
   stamp.stamp(obj, this)
 }
 
+//the goal of this is a minor patch, i.e. insert a EOL character before or after a message
+class BeforeAfterTransformer(
+  val transformer: Transformer<Any, Any>,
+  val before: ((out: BufferedWriter) -> Unit)? = null,
+  val after: ((out: BufferedWriter) -> Unit)? = null
+) : Transformer<Any, Any>{
+  override val type: TransformerType
+    get() = transformer.type
+
+  override fun transformIntoText(classifier: Any?, obj: Any, out: BufferedWriter, err: BufferedWriter, level: LogLevel, logger: LoggerImpl<Any?, Any>, e: Throwable?, args: Any?) {
+    before?.invoke(out)
+    transformer.transformIntoText(classifier, obj, out, err, level, logger, e, args)
+    after?.invoke(out)
+  }
+}
+
+
 class PatternTransformer(
+
 ) : Transformer<Any, Any> {
-  val stamp = MyPatternStamp()
 
   override val type: TransformerType
     get() = TransformerType.text
@@ -88,24 +110,19 @@ class PatternTransformer(
   }
 
   override fun transformIntoText(classifier: Any?, obj: Any, out: BufferedWriter, err: BufferedWriter, level: LogLevel, logger: LoggerImpl<Any?, Any>, e: Throwable?, args: Any?) {
-    val time = LocalDateTime.now()
-
-    //TODO: beautify this
-    stamp.date.stamp(time, out)
 
     out.run {
+      apply(myStamp.date, LocalDateTime.now())
       write(" [")
-      apply(stamp.level, level)
+      apply(myStamp.level, level)
       write("] ")
 
       if (classifier is Host) {
-//        write(" - ")
-        apply(stamp.host, classifier.name)
+        apply(myStamp.host, classifier.name)
         write(" ")
       }
 
-
-      apply(stamp.loggerName, logger.simpleName)
+      apply(myStamp.loggerName, logger.simpleName)
 
       write(" - ")
       write(obj.toString())

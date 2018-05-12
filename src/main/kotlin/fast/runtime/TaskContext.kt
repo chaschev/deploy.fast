@@ -156,7 +156,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     childTask: AnyTask,
     interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
   ): ITaskResult<*> {
-    logger.info(host) { "${host.name} - play task $path" }
+    logger.info(host) { "play task $path" }
 
     var result: ITaskResult<*> = ok
     var taskResult: ITaskResult<*>? = null

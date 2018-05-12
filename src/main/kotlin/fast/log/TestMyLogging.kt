@@ -12,13 +12,13 @@ import org.slf4j.LoggerFactory
 //ok restrictTo
 //ok routingAppender
 //ok slf4j bindings
-//todo slf4j integration
+//ok slf4j integration
 //todo log rotation
-//todo nice & fast pattern layout
+//ok nice & fast pattern layout
 
 //ok {} support
-//todo FIXME
-//todo fix restrictions
+//ok FIX
+//ok fix restrictions
 //todo exceptions
 //todo finish SLF4j Logger
 

@@ -53,16 +53,18 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
     build {
       val buildResult = ScriptDsl.script {
-        settings { abortOnError = true }
+        settings { abortOnError = false }
 
         cd("$srcDir/$projectName")
-        sh("rm -rf build/*")
+//        sh("rm -rf build/*")
         sh("gradle build --console plain")
-      }.execute(ssh)
+      }.execute(ssh).toFast()
+
+      buildResult.abortIfError {"gradle build error:\n ${GradleExtension.extractError(buildResult)}" }
 
       val jar = ssh.files().ls("$srcDir/$projectName/build/libs").find { it.name.endsWith(".jar") }!!
 
-      val artifacts = buildResult.toFast().mapValue { listOf(jar.path) }
+      val artifacts = buildResult.mapValue { listOf(jar.path) }
 
       artifacts
     }
@@ -124,7 +126,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
 
             repeat(times) {
               val pwd = ssh.run("pwd; cd /etc; pwd")
-              logger.debug { pwd.text() }
+              logger.debug(host) { pwd.text() }
             }
 
             val duration = Duration.between(Instant.now(), startedAt)

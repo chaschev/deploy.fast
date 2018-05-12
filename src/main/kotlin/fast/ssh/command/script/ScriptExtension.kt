@@ -325,8 +325,9 @@ class ShellScript<R>(
 
       if (pos == -1) break
 
-      //block name can be 'block 8<EOF>'
-      val blockNameEnd = str.scanForIndex({ ch, _, _ -> ch == '\n'}, pos + blockStart.length) ?: str.length
+      //block name can be 'block 8<EOF>' or 'block 8SomeTextHere'
+      val firstDigitIndex = str.scanForIndex(pos + blockStart.length) { it.isDigit() } ?: str.length
+      val blockNameEnd = str.scanForIndex(firstDigitIndex) { !it.isDigit() } ?: str.length
       val blockName = str.substring(pos + blockStart.length, blockNameEnd)
 
       val blockEndFullname = "$blockEnd$blockName"

@@ -12,12 +12,6 @@ import fast.ssh.command.ConsoleLogging.sshOutLogger
 import fast.ssh.process.Console
 import org.slf4j.LoggerFactory
 
-/*
-open class KLogging : KLoggable {
-  override val logger: KLogger = logger()
-}
-*/
-
 object ConsoleLogging {
   /* delivers session stdout to .out files */
   val sshOutLogger = okLog.getClassifiedLogger("ssh.out", "ssh.out")

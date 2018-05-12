@@ -108,12 +108,7 @@ class OpenJDKTasks(val ext: OpenJdkExtension, parentCtx: ChildTaskContext<*, *>)
     (OpenJDKTask("javacVersion", extension) {
       ssh.runAndWaitProcess("javac -version",
         process = { console ->
-          println("parsing java version!")
-
           val version = JavaVersion.parseJavacVersion(console.stdout.toString())
-
-          println("done parsing java version!")
-
           version
         }).toFast()
     }.play(extCtx)).value

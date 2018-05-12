@@ -4,6 +4,7 @@ import fast.dsl.AggregatedValue
 import fast.dsl.TaskResult
 import fast.lang.nullForException
 import fast.ssh.logger
+import org.slf4j.Logger
 
 interface ITaskResult<R> {
   val ok: Boolean
@@ -53,12 +54,11 @@ interface ITaskResult<R> {
     TaskResult(block(value), this.ok, this.modified)
 
   fun asBoolean() = mapValue { ok }
-  fun abortIfError(msg: String? = null, e: Exception? = null): ITaskResult<R> {
+  fun abortIfError(e: Exception? = null, msg: (() -> String)? = null): ITaskResult<R> {
     return if(ok) this else {
 
       if(msg != null) {
-        val s = "aborting due to result: $msg, $this"
-        logger.warn { s }
+        logger.warn { "aborting due to result: ${msg.invoke()}, $this" }
       }
 
       if(e != null) throw e

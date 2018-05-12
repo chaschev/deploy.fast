@@ -70,9 +70,7 @@ open class ConsoleProcess(
 
       logger.info(host)  { "started $egg" }
 
-      val cmd = "\n> ${egg.cmd}\n"
-
-      logger.debug(host, cmd)
+      logger.debug(host) {"\n> ${egg.cmd}\n"}
 
       val writer = process.stdin.bufferedWriter()
 
@@ -136,7 +134,7 @@ open class ConsoleProcess(
 
           result = r
 
-          logger.info { "command finished with result $r,\n" +
+          logger.info(host) { "command finished with result $r,\n" +
             "  stdout=${r.console.stdout.cuteCutLast(100).trim()}\n" +
             "  error=${r.console.stderr.cuteCutLast(100).trim()}\n" +
             "  command=${egg.toString().cuteSubstring(0, 40)}\n" }
