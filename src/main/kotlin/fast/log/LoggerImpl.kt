@@ -29,35 +29,35 @@ open class LoggerImpl<BC, O>(
     if(this.level < level) this.level = level
   }
 
-  inline fun trace(lazyMsg: () -> O) {
+  /*inline*/ fun trace(lazyMsg: () -> O) {
     if (isTraceEnabled()) log(TRACE, lazyMsg = lazyMsg)
   }
 
-  inline fun debug(lazyMsg: () -> O) {
+  /*inline*/ fun debug(lazyMsg: () -> O) {
     if (isDebugEnabled()) log(DEBUG, lazyMsg = lazyMsg)
   }
 
-  inline fun info(lazyMsg: () -> O) {
+  /*inline*/ fun info(lazyMsg: () -> O) {
     if (isInfoEnabled()) log(INFO, lazyMsg = lazyMsg)
   }
 
-  inline fun warn(lazyMsg: () -> O) {
+  /*inline*/ fun warn(lazyMsg: () -> O) {
     if (isWarnEnabled()) log(WARN, lazyMsg = lazyMsg)
   }
 
-  inline fun error(lazyMsg: () -> O) {
+  /*inline*/ fun error(lazyMsg: () -> O) {
     if (isWarnEnabled()) log(ERROR, lazyMsg = lazyMsg)
   }
 
-  inline fun warn(e: Throwable, lazyMsg: () -> O)  = if (isWarnEnabled()) log(WARN, e = e, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun warn(e: Throwable, lazyMsg: () -> O)  = if (isWarnEnabled()) log(WARN, e = e, lazyMsg = lazyMsg) else {}
 
-  inline fun <C> trace(classifier: C?, lazyMsg: () -> O)  = if (isTraceEnabled()) log(TRACE, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
-  inline fun <C> debug(classifier: C?, lazyMsg: () -> O)  = if (isDebugEnabled()) log(DEBUG, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
-  inline fun <C> info(classifier: C?, lazyMsg: () -> O)  = if (isInfoEnabled()) log(INFO, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
-  inline fun <C> warn(classifier: C?, lazyMsg: () -> O)  = if (isWarnEnabled()) log(WARN, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
-  inline fun <C> error(classifier: C?, lazyMsg: () -> O)  = if (isErrorEnabled()) log(ERROR, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun <C> trace(classifier: C?, lazyMsg: () -> O)  = if (isTraceEnabled()) log(TRACE, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun <C> debug(classifier: C?, lazyMsg: () -> O)  = if (isDebugEnabled()) log(DEBUG, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun <C> info(classifier: C?, lazyMsg: () -> O)  = if (isInfoEnabled()) log(INFO, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun <C> warn(classifier: C?, lazyMsg: () -> O)  = if (isWarnEnabled()) log(WARN, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
+  /*inline*/ fun <C> error(classifier: C?, lazyMsg: () -> O)  = if (isErrorEnabled()) log(ERROR, msgClassifier = classifier, lazyMsg = lazyMsg) else {}
 
-  inline fun log(level: LogLevel, msgClassifier: Any? = null, e: Throwable? = null, args: Array<out Any>? = null, lazyMsg: () -> O): Unit {
+  /*inline*/ fun log(level: LogLevel, msgClassifier: Any? = null, e: Throwable? = null, args: Array<out Any>? = null, lazyMsg: () -> O): Unit {
     for (chain in chains) {
       chain.log(level, msgClassifier, e, args, lazyMsg)
     }
@@ -77,27 +77,37 @@ open class LoggerImpl<BC, O>(
 
 
     //  @SuppressWarnings("UNCHECKED_CAST")
-    inline fun log(level: LogLevel, msgClassifier: Any? = null, e: Throwable? = null, args: Array<out Any>? = null, lazyMsg: () -> O): Unit {
-      if (!logger.isEnabled(level)) return
+    /*inline*/ fun log(level: LogLevel, msgClassifier: Any? = null, e: Throwable? = null, args: Array<out Any?>? = null, lazyMsg: () -> O): Unit {
+      if (!acceptSimpleFilters(msgClassifier, level, args)) return
+
+      val obj = lazyMsg()
+
+      log(level, obj, msgClassifier, e, args, false)
+    }
+
+    private fun acceptSimpleFilters(msgClassifier: Any?, level: LogLevel, args: Array<out Any?>?): Boolean {
+      if (!logger.isEnabled(level)) return false
 
       for (_filter in filters) {
         val filter = _filter as MessageFilter<Any, O>
 
         when (filter.type) {
-          simple -> if (!filter.accept(msgClassifier, level)) return
-          simpleWithArgs -> if (args != null && !filter.accept(msgClassifier, level, args)) return
+          simple -> if (!filter.accept(msgClassifier, level)) return false
+          simpleWithArgs -> if (args != null && !filter.accept(msgClassifier, level, args)) return false
           else -> {/* ignore */
           }
         }
       }
 
-      val obj = lazyMsg()
-
-      log(level, obj, msgClassifier, e, args)
+      return true
     }
 
-    fun log(level: LogLevel, _obj: O, msgClassifier: Any? = null, e: Throwable? = null, vararg args: Any?): Unit {
-      if (!logger.isEnabled(level)) return
+    fun log(level: LogLevel, _obj: O, msgClassifier: Any? = null, e: Throwable? = null, vararg args: Any?, applySimpleLogic: Boolean = true): Unit {
+      // that log method can be called directly from slf4j
+      // we need to apply all filtering logic from the root method if it not has been applied before
+      if(applySimpleLogic && !acceptSimpleFilters(msgClassifier, level, args)) {
+        return
+      }
 
       if (e != null) {
         //TODO push it into transformer
@@ -116,8 +126,8 @@ open class LoggerImpl<BC, O>(
         val filter = _filter as MessageFilter<Any, O>
 
         when (filter.type) {
-          obj -> if (!filter.accept(msgClassifier, obj, level)) return
-          objWithArgs -> if (args != null && !filter.accept(msgClassifier, obj, level, args)) return
+          MessageFilterType.obj -> if (!filter.accept(msgClassifier, obj, level)) return
+          MessageFilterType.objWithArgs -> if (args != null && !filter.accept(msgClassifier, obj, level, args)) return
           else -> {/* ignore */
           }
         }
@@ -168,7 +178,7 @@ private fun CharSequence.replaceSlf4jPlaceHolders(args: Array<out Any?>): String
     val pIndex = indexOf("{}", pos)
 
     if (pIndex == -1) {
-      // no more place holders -> append the rest of the string
+      // no more placeholders -> append the rest of the string
       sb.append(subSequence(pos, length))
       break
     } else {
