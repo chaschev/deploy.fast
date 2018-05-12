@@ -1,9 +1,8 @@
 package fast.log
 
-import kotlin.math.log
-
 class LoggerChainDsl<BC, O>(
-  val logger: LoggerImpl<BC, O>
+  val logger: LoggerImpl<BC, O>,
+  val name: String? = null
 ) {
 
   val chain = LoggerImpl.MessageChain(logger)
@@ -28,13 +27,7 @@ class LoggerChainDsl<BC, O>(
 
 
   fun classifyBase(filter: (BC?) -> Boolean) {
-    val c = logger.classifier
-
-    if (c != null) {
-      matched = matched && filter(c)
-    } else {
-      matched = false
-    }
+    matched = matched && filter(logger.classifier)
 
     if (OkLogContext.okLog.debugMode && !matched) println(" classifyBase matched=$matched for ${logger.name}")
 
