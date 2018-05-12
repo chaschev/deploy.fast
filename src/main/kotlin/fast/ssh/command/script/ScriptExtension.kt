@@ -253,6 +253,8 @@ class ShellScript<R>(
           dsl.allCapturesProcessing!!.invoke(console, captureMap)
         },
         consoleHandler = { con ->
+
+          //find all complete text blocks
           val newHolders = con.newOut.mapEachNamedTextBlock(
             "--- start ",
             "--- end "
@@ -266,20 +268,33 @@ class ShellScript<R>(
 
           // if there was a previous capture started, append to it
           if(currentCapture.get() != null){
-            val holder = currentCapture.get()!!
+            val currentHolder = currentCapture.get()!!
 
             //if no new holders, append all. Else: append before the start of the first holder
+            // --> what if is broken? or there could be a processing bug. need a sample
+            //
             if(newHolders.isEmpty()) {
-              holder.text = con.stdout.subSequence(holder.start, con.stdout.length)
+              currentHolder.text = con.stdout.subSequence(currentHolder.start, con.stdout.length)
             } else {
-              // got String index out of range: -1776,
               // holder.start: 8448, newHolders[0].start: 51 => -8405
-              // holder.start: 0, newHolders[0].start: 30 => -28
-              println("holder.start: ${holder.start}, newHolders[0].start: ${newHolders[0].start}")
-              holder.text = con.stdout.subSequence(holder.start, newHolders[0].start - "--- end ".length)
+              // for some reason, very rarely it finds holders before current holder
+              // which signals of weird input sequence
+
+              currentHolder.text = try {
+                con.stdout.subSequence(currentHolder.start, newHolders[0].start - "--- end ".length)
+              } catch (e: Exception) {
+                e.printStackTrace()
+                println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                println("stdout: ${con.stdout}")
+//                println("stdout: ${holder.}")
+                println("holder.start: ${currentHolder.start}, newHolders[0].start: ${newHolders[0].start}, length ${con.stdout.length}")
+                ""
+              }
             }
 
-            holder.command.handleInput?.invoke(con, con.newOut)
+            currentHolder.command.handleInput?.invoke(con, con.newOut)
           }
 
           // if found new blocks, change the current capture
