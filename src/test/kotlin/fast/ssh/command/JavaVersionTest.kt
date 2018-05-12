@@ -1,14 +1,29 @@
 import com.nhaarman.mockito_kotlin.mock
+import fast.lang.nullForException
+import fast.log.ConsoleAppender
+import fast.log.OkLogContext
+import fast.log.PatternTransformer
 import fast.ssh.command.JavaVersion
 import fast.ssh.command.JavaVersionCommand
 import fast.ssh.command.Version
 import fast.ssh.command.Version.Companion.parse
+import honey.lang.endsWithAny
 import org.junit.Assert
+import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 import kotlin.test.assertEquals
 
 class JavaVersionTest {
   companion object {
+    @BeforeClass
+    @JvmStatic
+    fun beforeClass() {
+      nullForException {
+        configDeployFastTestLogging()
+      }
+    }
+
     val openJDKOutput8 = """
 openjdk version "1.8.0_131"
 OpenJDK Runtime HiveConfig (build 1.8.0_131-8u131-b11-2ubuntu1.16.04.3-b11)
@@ -30,6 +45,10 @@ Java HotSpot(TM) 64-Bit Server VM (build 9+181, mixed mode)
     val oracleJava8_131 = JavaVersion(false, parse("8.131"))
 
   }
+
+
+
+
   @Test
   fun testParse() {
     assertEquals(
@@ -75,5 +94,28 @@ Java HotSpot(TM) 64-Bit Server VM (build 9+181, mixed mode)
     Assert.assertTrue(parse("1.a") < parse("1.b"))
     Assert.assertTrue(parse("1.a") <= parse("1.a"))
     Assert.assertTrue(parse("1.a") == parse("1.a"))
+  }
+
+
+}
+
+fun configDeployFastTestLogging() {
+  val console = ConsoleAppender("console", true)
+
+  OkLogContext.okLog = OkLogContext {
+
+    //default messaging processing: no classifier specified - dump to console
+    any("default") {
+      filterBase {
+        !it.name.endsWithAny(".out", ".err", ".log")
+      }
+      classifyBase { it == null }
+      classifyMsg { c: Any? -> c == null }
+      withTransformer(PatternTransformer())
+      intoAppenders(console)
+    }
+
+  }.apply {
+    debugMode = false
   }
 }

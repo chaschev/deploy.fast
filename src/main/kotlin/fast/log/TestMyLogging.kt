@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 //ok FIX
 //ok fix restrictions
 //todo exceptions
+//todo uncomment inlining
 //todo finish SLF4j Logger
 
 /*
