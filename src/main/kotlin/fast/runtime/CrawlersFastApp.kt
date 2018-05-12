@@ -125,7 +125,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
             val times = 3
 
             repeat(times) {
-              val pwd = ssh.run("pwd; cd /etc; pwd")
+              val pwd = ssh.run("ls /home/vagrant/crawlers/releases")
               logger.debug(host) { pwd.text() }
             }
 

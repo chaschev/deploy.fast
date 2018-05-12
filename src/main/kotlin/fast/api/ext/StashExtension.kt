@@ -119,6 +119,7 @@ class StashTasks(ext: StashExtension, parentCtx: ChildTaskContext<*, *>)
       files
         .map { it.substringAfterLast('/') to it }
         .forEach { (name, destPath) ->
+          mkdirs(destPath)
           sh("cp ${config.stashFolder}/$name $destPath")
         }
       sh("rm -f ${config.stashFolder}/*")
