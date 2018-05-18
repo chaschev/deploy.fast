@@ -11,7 +11,6 @@ import fast.ssh.command.script.ScriptDsl
 import fast.ssh.logger
 import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking
-import mu.KLogger
 import org.kodein.di.generic.instance
 import java.time.Duration
 import java.time.Instant

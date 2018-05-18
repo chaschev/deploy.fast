@@ -1,7 +1,6 @@
 package fast.ssh
 
 import fast.inventory.Host
-import fast.log.KLogging
 import fast.log.OkLogging
 import kotlinx.coroutines.experimental.*
 import net.schmizz.sshj.connection.channel.direct.Session

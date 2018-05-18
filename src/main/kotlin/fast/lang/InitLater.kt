@@ -2,7 +2,7 @@ package fast.lang
 
 import kotlin.reflect.KProperty
 
-class InitLater(val finalize: Boolean = true) {
+class InitLater(private val finalize: Boolean = true) {
   private var value: Any? = null
 
   operator fun <T> getValue(obj: Any, property: KProperty<*>): T {

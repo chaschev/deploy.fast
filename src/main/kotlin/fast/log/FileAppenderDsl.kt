@@ -3,7 +3,6 @@ package fast.log
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileOutputStream
-import java.io.PrintStream
 
 class FileAppenderDsl(
   val file: File,

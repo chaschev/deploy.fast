@@ -72,7 +72,7 @@ fun configDeployFastLogging() {
       }
       classifyMsg { it is Host }
       withTransformer(
-        // msg.routing.out will dump raw  conole output into the same file, so we
+        // msg.routing.out will dump raw  console output into the same file, so we
         // need to separate log messages with a new line symbol
         BeforeAfterTransformer(PatternTransformer(), before = { it.newLine() })
       )
