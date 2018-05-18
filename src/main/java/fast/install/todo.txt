@@ -1,7 +1,12 @@
-ok java -cp ... getJars --cache-dir=... --dest-dir=...
+ok java getJars --cache-dir=... --dest-dir=...
   ok support f .m2 and .gradle caches
   ok cache dir has repo structure
   ok empty dest dir before copying
 
-todo java -cp ... version + getVersion API
+ok java version + getVersion API
 
+todo publish to maven [local]
+todo self-start class:
+ runtime.exec -cp ... class args -> PID
+
+deployment script for kikkit, incl. local environment?!
