@@ -8,7 +8,12 @@ import java.lang.reflect.Field;
 import static fast.install.Installer.MY_JAR;
 import sun.misc.Unsafe;
 
-//todo make sure this folder is used as an installation folder only, required libraries are copied into the app folder, so we don't have to delete old jars
+/**
+ * runFast will spawn a new JVM for provided class with given arguments.
+ *
+ * Requires: getJars with default settings. libs dir can be upped in directory structure
+ *
+ */
 public class runFast {
   public runFast() {
   }
