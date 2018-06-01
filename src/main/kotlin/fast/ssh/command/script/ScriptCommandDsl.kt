@@ -7,7 +7,8 @@ import fast.api.ext.SymlinksDSL
 import fast.ssh.process.Console
 
 open class ScriptCommandDsl<R> : ScriptDslSettings() {
-  internal var processing: ((Console, CaptureMap) -> R)? = null
+  internal var resultProcessing: ((Console, CaptureMap) -> R)? = null
+  internal var consoleProcessing: ((Console, CaptureMap) -> R)? = null
 
   val commands = ArrayList<ScriptDslSettings>()
 
@@ -92,7 +93,26 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
   }
 
   fun processResult(block: ((Console, CaptureMap) -> R)) {
-    this.processing = block
+    this.resultProcessing = block
+  }
+
+  fun processConsole(block: ((Console, CaptureMap) -> R)) {
+    this.consoleProcessing = block
+  }
+
+  fun processMap(map: Map<String, String>) {
+    processConsole { console, _ ->
+      val text = console.newText()
+
+      for ((phrase, reply) in map.entries) {
+        if(text.contains(phrase)) {
+          console.writeln(reply)
+          return@processConsole false as R
+        }
+      }
+
+      true as R
+    }
   }
 
 }

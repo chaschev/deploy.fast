@@ -250,9 +250,12 @@ class ShellScript<R>(
       processing = ConsoleProcessing(
         process = { console ->
           captureProcessing(console)
-          dsl.allCapturesProcessing!!.invoke(console, captureMap)
+          dsl.resultProcessing!!.invoke(console, captureMap)
         },
         consoleHandler = { con ->
+          if(dsl.consoleProcessing != null) {
+            dsl.consoleProcessing!!.invoke(con, captureMap)
+          }
 
           //find all complete text blocks
           val newHolders = con.newOut.mapEachNamedTextBlock(

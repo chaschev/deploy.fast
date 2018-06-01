@@ -59,6 +59,8 @@ class Inventory(
     return props[name] ?:
       vars[name]
   }
+
+  fun getHostsForName(name: String) = asOneGroup.getHostsForName(name)
 }
 
 interface IWithVars {

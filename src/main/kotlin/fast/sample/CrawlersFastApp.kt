@@ -1,12 +1,15 @@
-package fast.runtime
+package fast.sample
 
 import fast.api.DeployFastApp
 import fast.api.ext.*
 import fast.api.ext.DepistranoConfigDSL.Companion.depistrano
 import fast.dsl.DeployFastAppDSL
-import fast.dsl.DeployFastDSL
+import fast.dsl.DeployFastDSL.Companion.createAppDsl
 import fast.dsl.TaskResult
 import fast.dsl.toFast
+import fast.runtime.DeployFastDI
+import fast.runtime.DeployFastScheduler
+import fast.runtime.configDeployFastLogging
 import fast.ssh.command.script.ScriptDsl
 import fast.ssh.logger
 import fast.ssh.run
@@ -94,13 +97,13 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
       val app by DeployFastDI.FAST.instance<DeployFastApp<*>>()
 
-      return DeployFastDSL.createAppDsl(app as CrawlersFastApp) {
+      return createAppDsl(app as CrawlersFastApp) {
         info {
           name = "Vagrant Extension"
           author = "Andrey Chaschev"
         }
 
-        ssh {
+        setupSsh {
           "vm" with {
             privateKey(it, "vagrant") {
               keyPath = "${"HOME".env()}/.vagrant.d/insecure_private_key"

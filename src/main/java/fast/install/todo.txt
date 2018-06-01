@@ -6,7 +6,7 @@ ok java getJars --cache-dir=... --dest-dir=...
 ok java version + getVersion API
 
 todo publish to maven [local]
-todo self-start class:
+ok self-start class:
  runtime.exec -cp ... class args -> PID
 
 deployment script for kikkit, incl. local environment?!

@@ -32,7 +32,7 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
   private var beforeGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
   private var afterGlobalTasks: (AllSessionsRuntimeContext.() -> Unit)? = null
 
-  fun ssh(block: SshDSL.() -> Unit) {
+  fun setupSsh(block: SshDSL.() -> Unit) {
     ssh = SshDSL().apply(block)
   }
 

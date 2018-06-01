@@ -4,12 +4,14 @@ import fast.ssh.SshProvider
 import fast.ssh.execute
 
 class ScriptDsl<R>(val root: ScriptCommandDsl<R>) : ScriptDslSettings() {
-  val allCapturesProcessing by lazy { root.processing }
+  val resultProcessing by lazy { root.resultProcessing }
+  val consoleProcessing by lazy { root.consoleProcessing }
 
   fun asScript() = ShellScript(this)
 
   suspend fun execute(ssh: SshProvider): ScriptCommandResult<R> {
-    require(allCapturesProcessing != null, { "processing field must be set in dsl with processing. I.e. return true, we don't give a shit" })
+    require(resultProcessing != null, { "processing field must be set in dsl with processing. I.e. return true, we don't give a shit" })
+
     return ssh.execute(this)
   }
 
@@ -21,14 +23,17 @@ class ScriptDsl<R>(val root: ScriptCommandDsl<R>) : ScriptDslSettings() {
     }
 
     fun script(block: ScriptCommandDsl<Boolean>.() -> Unit): ScriptDsl<Boolean> {
-      val commandDsl = ScriptCommandDsl<Boolean>()
+      ScriptCommandDsl<Boolean>().let { dsl ->
+        dsl.apply(block)
 
-      commandDsl.apply(block)
+        if(dsl.resultProcessing == null)
+          dsl.resultProcessing = { console, _ -> console.result.isOk()}
 
-      if(commandDsl.processing == null)
-        commandDsl.processing = {console, _ -> console.result.isOk()}
+//        if(dsl.consoleProcessing == null)
+//          dsl.consoleProcessing = { console, _ -> console.result.isOk()}
 
-      return ScriptDsl(commandDsl)
+        return ScriptDsl(dsl)
+      }
     }
   }
 }

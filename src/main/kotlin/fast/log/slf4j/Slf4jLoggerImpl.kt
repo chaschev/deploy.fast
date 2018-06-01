@@ -27,11 +27,11 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(format: String?, arg1: Any?, arg2: Any?) {
-    TODO("not implemented")
+    log(INFO, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun info(format: String?, vararg arguments: Any?) {
-    TODO("not implemented")
+    log(INFO, format as O, args = *arguments)
   }
 
   override fun info(msg: String?, t: Throwable?) {
