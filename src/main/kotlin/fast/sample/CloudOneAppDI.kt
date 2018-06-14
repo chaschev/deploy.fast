@@ -12,7 +12,7 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 
 
-object KikkitAppDI {
+object CloudOneAppDI {
   init {
     FAST = Kodein {
       extend(FAST)
@@ -45,19 +45,11 @@ object KikkitAppDI {
         ).init()
       }
 
-      bind<DeployFastApp<*>>() with singleton { KikkitFastApp() }
+      bind<DeployFastApp<*>>() with singleton { CloudOneFastApp() }
 
-      bind("dsl") from singleton { KikkitFastApp.dsl() }
+      bind("dsl") from singleton { CloudOneFastApp.dsl() }
 
       bind("runAt") from singleton { "vm" }
-     
-      bind("runAtHosts") from singleton {
-        val runAt = FASTD.instance(tag = "runAt") as String
-        val inventory = FASTD.instance<Inventory>()
-        inventory.getHostsForName(runAt)
-      }
-
-
     }
   }
 

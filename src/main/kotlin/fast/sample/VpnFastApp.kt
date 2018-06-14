@@ -7,7 +7,6 @@ import fast.api.ext.VagrantConfig
 import fast.api.ext.VagrantExtension
 import fast.dsl.DeployFastAppDSL
 import fast.dsl.DeployFastDSL.Companion.createAppDsl
-import fast.dsl.TaskResult
 import fast.dsl.TaskResult.Companion.ok
 import fast.dsl.toFast
 import fast.runtime.DeployFastDI
@@ -18,7 +17,6 @@ import fast.ssh.run
 import kotlinx.coroutines.experimental.runBlocking
 import org.kodein.di.generic.instance
 import java.io.File
-
 
 class VpnFastApp : DeployFastApp<VpnFastApp>("vpn") {
   /* TODO: convert to method invocation API */
@@ -79,8 +77,7 @@ class VpnFastApp : DeployFastApp<VpnFastApp>("vpn") {
             r *= apt.tasks(this).install("docker.io")
 
             r *= script {
-              processMap(
-                mapOf(
+              processInputWithMap(mapOf(
                   "Enter PEM pass phrase" to "pass",
                   "Confirm removal:" to "yes",
                   "Common Name" to "vpn",

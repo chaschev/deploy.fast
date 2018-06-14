@@ -96,18 +96,18 @@ open class ScriptCommandDsl<R> : ScriptDslSettings() {
     this.resultProcessing = block
   }
 
-  fun processConsole(block: ((Console, CaptureMap) -> R)) {
+  fun processInput(block: ((Console, CaptureMap) -> R)) {
     this.consoleProcessing = block
   }
 
-  fun processMap(map: Map<String, String>) {
-    processConsole { console, _ ->
+  fun processInputWithMap(map: Map<String, String>) {
+    processInput { console, _ ->
       val text = console.newText()
 
       for ((phrase, reply) in map.entries) {
         if(text.contains(phrase)) {
           console.writeln(reply)
-          return@processConsole false as R
+          return@processInput false as R
         }
       }
 
