@@ -37,7 +37,7 @@ object CrawlersAppDI {
               )
             )
           )
-        ).init()
+        ).initHosts()
       }
 
       bind<DeployFastApp<*>>() with singleton { CrawlersFastApp() }

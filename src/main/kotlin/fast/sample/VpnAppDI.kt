@@ -37,7 +37,7 @@ object VpnAppDI {
               )
             )
           )
-        ).init()
+        ).initHosts()
       }
 
       bind<DeployFastApp<*>>() with singleton { VpnFastApp() }
