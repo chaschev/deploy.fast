@@ -6,10 +6,9 @@ import fast.dsl.*
 import fast.dsl.TaskResult.Companion.ok
 import fast.api.ITaskResult
 import fast.api.Task
-import fast.runtime.DeployFastDI.FAST
+import fast.runtime.DeployFast.FAST
 import fast.ssh.asyncNoisy
 import kotlinx.coroutines.experimental.Deferred
-import fast.log.KLogging
 import fast.log.OkLogging
 import org.kodein.di.generic.instance
 import kotlin.reflect.KClass
@@ -181,7 +180,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
 
   suspend fun play(dsl: DeployFastDSL<*, *>): ITaskResult<*> {
     //that will go TaskSet/Task -> play -> iterate -> play each child
-    return play(dsl.tasks)
+    return play(dsl.defaultTasks)
   }
 
   suspend fun play(

@@ -1,7 +1,7 @@
 package fast.api
 
 import fast.dsl.*
-import fast.runtime.DeployFastDI
+import fast.runtime.DeployFast
 import fast.runtime.TaskContext
 import fast.runtime.TaskInterceptor
 import org.kodein.di.generic.instance
@@ -52,7 +52,7 @@ open class Task<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extensio
   class DummyApp : DeployFastApp<DummyApp>("dummy")
 
   companion object {
-    val rootExtension by DeployFastDI.FAST.instance<DeployFastApp<*>>()
+    val rootExtension by DeployFast.FAST.instance<DeployFastApp<*>>()
     val dummyApp = DummyApp()
     val root = LambdaTask("root", dummyApp, { TaskResult.ok })
     val dummy = LambdaTask("dummy", dummyApp, { TaskResult.ok })

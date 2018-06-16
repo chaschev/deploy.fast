@@ -4,7 +4,7 @@ import fast.api.*
 import fast.dsl.*
 import fast.inventory.Host
 import fast.inventory.Inventory
-import fast.runtime.DeployFastDI.FASTD
+import fast.runtime.DeployFast.FASTD
 import fast.ssh.GenericSshProvider
 import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
@@ -14,11 +14,11 @@ import org.kodein.di.generic.instance
 class DeployFastScheduler<APP : DeployFastApp<APP>> {
   val allSessionsContext = AllSessionsRuntimeContext()
 
-  val appCtx: AppContext by DeployFastDI.FAST.instance()
+  val appCtx: AppContext by DeployFast.FAST.instance()
 
-  val dsl = DeployFastDI.FASTD.instance<Any>("dsl") as DeployFastAppDSL<APP>
+  val dsl = DeployFast.FASTD.instance<Any>("dsl") as DeployFastAppDSL<APP>
 
-  val inventory: Inventory by DeployFastDI.FAST.instance()
+  val inventory: Inventory by DeployFast.FAST.instance()
 
   init {
     require(inventory.initialised(), { "inventory has not been initialized with init()" })

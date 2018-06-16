@@ -16,7 +16,7 @@ fun configDeployFastLogging() {
   val console = ConsoleAppender("console", true)
 
   OkLogContext.okLog = OkLogContext {
-    val inventory = DeployFastDI.FASTD.instance<Inventory>()
+    val inventory = DeployFast.FASTD.instance<Inventory>()
     val host1 = inventory.activeHosts[0].name
 
     rules {

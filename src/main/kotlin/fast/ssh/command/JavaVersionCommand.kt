@@ -1,10 +1,5 @@
 package fast.ssh.command
 
-import fast.inventory.Host
-import fast.inventory.Inventory
-import fast.lang.writeln
-import fast.log.*
-import fast.runtime.DeployFastDI
 import fast.ssh.ConsoleSession
 import fast.ssh.IConsoleProcess
 import fast.ssh.plainCmd

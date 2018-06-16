@@ -1,6 +1,8 @@
 package fast.inventory
 
-import fast.sample.DeployEnvironment
+enum class DeployEnvironment {
+  dev, vm, test, staging, prod
+}
 
 class InventoryDsl {
   private val groups = ArrayList<GroupDsl>()
@@ -11,6 +13,10 @@ class InventoryDsl {
 
   fun withGroups(vararg names: String, block: GroupDsl.() -> Unit) {
     groups.filter { names.contains(it.name) }.forEach(block)
+  }
+
+  fun withGroups(vararg names: DeployEnvironment, block: GroupDsl.() -> Unit) {
+    withGroups(names = *(names.map { it.name }.toTypedArray()), block = block)
   }
 
 

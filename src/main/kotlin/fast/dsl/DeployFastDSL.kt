@@ -15,12 +15,17 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
   internal var info: InfoDSL? = null
   internal var ssh: SshDSL? = null
 
-  val tasks: TaskSet = TaskSet(
+  val defaultTasks: TaskSet = TaskSet(
     name = ext.name,
-    desc = "Tasks of extension ${ext.name}")
+    desc = "Tasks of extension ${ext.name}"
+  )
 
   val globalTasks: TaskSet = TaskSet("${ext.name}.global",
-    "Global Tasks for Extension $ext"
+    "Default Global Tasks for Extension $ext"
+  )
+
+  val definedTasks: TaskSet = TaskSet("${ext.name}.tasks",
+    "Tasks to Call for Extension $ext"
   )
 
   fun autoInstall(): Unit = TODO()
@@ -40,6 +45,10 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
     globalTasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
   }
 
+  fun defineTasks(block: TasksDSL<EXT, CONF>.() -> Unit) {
+    definedTasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
+  }
+
 
   /*fun beforeGlobalTasks(block: AllSessionsRuntimeContext.() -> Unit) {
     beforeGlobalTasks = block
@@ -50,7 +59,7 @@ open class DeployFastDSL<CONF : ExtensionConfig, EXT : DeployFastExtension<EXT, 
   }*/
 
   fun play(block: TasksDSL<EXT, CONF>.() -> Unit) {
-    tasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
+    defaultTasks.addAll(TasksDSL<EXT, CONF>().apply(block).taskSet)
   }
 
 //  fun beforePlay(block: TasksDSL.() -> Unit) {

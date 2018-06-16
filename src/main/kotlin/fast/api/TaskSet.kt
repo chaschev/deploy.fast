@@ -25,5 +25,8 @@ class TaskSet(
   }
 
   fun size() = tasks.size
+  operator fun get(name: String): AnyTask? {
+    return tasks.find { it.name == name }
+  }
 
 }

@@ -1,4 +1,4 @@
-package fast.sample
+package fast.sample.perf
 
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.Channel

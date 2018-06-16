@@ -1,6 +1,6 @@
 package fast.inventory
 
-import fast.runtime.DeployFastDI
+import fast.runtime.DeployFast
 import org.kodein.di.generic.instance
 import org.slf4j.MarkerFactory
 
@@ -10,7 +10,7 @@ data class Host(
 ) : WithVars() {
   internal val _groups: ArrayList<Group> = ArrayList()
 
-  val inventory: Inventory by DeployFastDI.FAST.instance()
+  val inventory: Inventory by DeployFast.FAST.instance()
 
   val groups: List<Group> = _groups
 

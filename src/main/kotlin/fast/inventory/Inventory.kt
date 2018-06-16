@@ -1,6 +1,6 @@
 package fast.inventory
 
-import fast.runtime.DeployFastDI
+import fast.runtime.DeployFast
 import fast.ssh.KnownHostsConfig
 import org.kodein.di.generic.instance
 import java.io.File
@@ -28,10 +28,31 @@ class Inventory(
   lateinit var sshConfig: KnownHostsConfig
 
   val activeHosts by lazy {
-    DeployFastDI.FASTD.instance(tag = "runAtHosts") as List<Host>
+    DeployFast.FASTD.instance(tag = "runAtHosts") as List<Host>
   }
 
-  fun group(name: String) = asOneGroup.findGroup { it.name == name } ?: throw Exception("group not found: $name")
+  fun group(name: String): IGroup {
+    return (
+      if(name.contains('.'))
+        groupPath(name.split(Regex("\\.")))
+      else
+        null
+      ) ?:
+       asOneGroup.findGroup { it.name == name } ?: throw Exception("group not found: $name")
+  }
+
+  private fun groupPath(path: List<String>, parent: IGroup = asOneGroup): IGroup? {
+    if(path.isEmpty()) return parent
+
+    return if(parent is CompositeGroup) {
+      val pathEntry = parent.groups.find { it.name == path.first() } ?: return null
+
+      groupPath(path.subList(1, path.size), pathEntry)
+    } else {
+      null
+    }
+  }
+
   fun group(predicate: (IGroup) -> Boolean) = asOneGroup.findGroup(predicate) ?: throw Exception("group not found by criteria")
 
   operator fun get(name: String) = group(name)

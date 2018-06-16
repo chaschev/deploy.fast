@@ -7,7 +7,7 @@ import fast.dsl.DeployFastAppDSL
 import fast.dsl.DeployFastDSL.Companion.createAppDsl
 import fast.dsl.TaskResult
 import fast.dsl.toFast
-import fast.runtime.DeployFastDI
+import fast.runtime.DeployFast
 import fast.runtime.DeployFastScheduler
 import fast.runtime.configDeployFastLogging
 import fast.ssh.command.script.ScriptDsl
@@ -95,7 +95,7 @@ class CrawlersFastApp : DeployFastApp<CrawlersFastApp>("crawlers") {
     }
 
     fun dsl(): DeployFastAppDSL<CrawlersFastApp> {
-      val app by DeployFastDI.FAST.instance<DeployFastApp<*>>()
+      val app by DeployFast.FAST.instance<DeployFastApp<*>>()
 
       return createAppDsl(app as CrawlersFastApp) {
         info {

@@ -4,9 +4,9 @@ import fast.api.DeployFastApp
 import fast.inventory.Group
 import fast.inventory.Host
 import fast.inventory.Inventory
-import fast.runtime.DeployFastDI
-import fast.runtime.DeployFastDI.FAST
-import fast.runtime.DeployFastDI.FASTD
+import fast.runtime.DeployFast
+import fast.runtime.DeployFast.FAST
+import fast.runtime.DeployFast.FASTD
 import org.kodein.di.*
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
@@ -15,7 +15,7 @@ import org.kodein.di.generic.singleton
 
 object VpnAppDI {
   init {
-    DeployFastDI.FAST = Kodein {
+    DeployFast.FAST = Kodein {
       extend(FAST)
 
       bind<Inventory>() with singleton {

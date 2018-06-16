@@ -1,7 +1,7 @@
 package fast.api
 
 import fast.runtime.*
-import fast.runtime.DeployFastDI.FAST
+import fast.runtime.DeployFast.FAST
 import fast.runtime.TaskContext
 import org.kodein.di.generic.instance
 
