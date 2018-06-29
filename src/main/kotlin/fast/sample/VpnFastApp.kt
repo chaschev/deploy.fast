@@ -69,9 +69,10 @@ class VpnFastApp : DeployFastApp<VpnFastApp>("vpn") {
 
         play {
           task("install_vpn") {
-            //            script {
-//              sh("sudo apt-get install docker")
-//            }.execute(ssh)
+            script {
+              sh("sudo apt-get update")
+              sh("sudo apt-get install -y docker")
+            }.execute(ssh)
             var r: ITaskResult<*> = ok
 
             r *= apt.tasks(this).install("docker.io")

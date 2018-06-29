@@ -98,28 +98,24 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-
-
-
-
   override fun error(msg: String?) {
-    TODO("not implemented")
+    log(ERROR, msg as O)
   }
 
   override fun error(format: String?, arg: Any?) {
-    TODO("not implemented")
+    log(ERROR, format as O, args = arg)
   }
 
   override fun error(format: String?, arg1: Any?, arg2: Any?) {
-    TODO("not implemented")
+    log(ERROR, format as O, args = *arrayOf(arg1, arg2))
   }
 
   override fun error(format: String?, vararg arguments: Any?) {
-    TODO("not implemented")
+    log(ERROR, format as O, args = *arguments)
   }
 
   override fun error(msg: String?, t: Throwable?) {
-    TODO("not implemented")
+    log(WARN, msg as O, e = t)
   }
 
   override fun error(marker: Marker?, msg: String?) {

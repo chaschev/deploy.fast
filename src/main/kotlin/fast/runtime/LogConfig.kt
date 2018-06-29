@@ -12,6 +12,32 @@ import fast.log.OkLogContext
 import honey.lang.endsWithAny
 import org.kodein.di.generic.instance
 
+fun simpleConsoleLogging() {
+  val console = ConsoleAppender("console", true)
+
+  OkLogContext.okLog = OkLogContext {
+    rules {
+      restrict {
+        applyTo("*")
+
+        "net.schmizz.sshj.DefaultConfig" to ERROR
+        "net.schmizz" to WARN
+      }
+    }
+
+    //default messaging processing: no classifier specified - dump to console
+    any("default") {
+      classifyBase { it == null }
+      classifyMsg { c: Any? -> c == null }
+      withTransformer(PatternTransformer())
+      intoAppenders(console)
+    }
+  }.apply {
+    debugMode = false
+  }
+}
+
+
 fun configDeployFastLogging() {
   val console = ConsoleAppender("console", true)
 
