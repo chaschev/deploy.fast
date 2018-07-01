@@ -11,20 +11,19 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.net.NetworkInterface
 
-inline fun <reified T : Any> Kodein.MainBuilder.bindFromEnv(tag: String) {
+inline fun <reified V : Any> Kodein.MainBuilder.bindFromEnv(tag: String, transform: ((String?) -> V) = { value ->
+  when (V::class) {
+    String::class -> value
+    Int::class -> value?.toInt()
+    else -> value
+  } as V
+}) {
   val value = System.getenv(tag) ?: System.getProperty(tag, null)
+  println("binding $tag to $value")
 
-  println("binding $tag")
+  val transformed = transform(value)
 
-  if (value != null) {
-    println("binding $tag to $value")
-
-    when (T::class) {
-      String::class -> bind(tag) from instance(value)
-      Int::class -> bind(tag) from instance(value.toInt())
-      else -> bind(tag) from instance(value)
-    }
-  }
+  bind(tag) from instance(transformed)
 }
 
 object DeployFast {

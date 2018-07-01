@@ -43,7 +43,7 @@ object TestMyLogging {
       }*/
 
       rules {
-        restrict {
+        mute {
           applyTo("*")
 
           "asshole.logging.package" to WARN

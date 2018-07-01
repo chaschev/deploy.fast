@@ -157,7 +157,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun debug(msg: String?, t: Throwable?) {
-    TODO("not implemented")
+    log(DEBUG, msg as O, e = t)
   }
 
   override fun debug(marker: Marker?, msg: String?) {
@@ -180,32 +180,33 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
     TODO("not implemented")
   }
 
-  override fun trace(msg: String?) {
-    TODO("not implemented")
-  }
 
   override fun trace(format: String?, arg: Any?) {
     log(TRACE, format as O, args = arg)
+  }
+
+  override fun trace(format: String?, vararg arguments: Any?) {
+    log(TRACE, format as O, args = arguments)
   }
 
   override fun trace(format: String?, arg1: Any?, arg2: Any?) {
     log(TRACE, format as O, args = *arrayOf(arg1, arg2))
   }
 
-  override fun trace(format: String?, vararg arguments: Any?) {
-    log(TRACE, format as O, args = *arguments)
-  }
-
   override fun trace(msg: String?, t: Throwable?) {
-    TODO("not implemented")
+    log(TRACE, msg as O, e = t)
   }
 
   override fun trace(marker: Marker?, msg: String?) {
-    TODO("not implemented")
+    log(TRACE, msgClassifier = marker?.name as BC, _obj = msg as O)
   }
 
   override fun trace(marker: Marker?, format: String?, arg: Any?) {
-    TODO("not implemented")
+    log(TRACE, msgClassifier = marker?.name as BC, _obj = format as O, args = arg)
+  }
+  
+  override fun trace(msg: String?) {
+    log(TRACE, msg as O)
   }
 
   override fun trace(marker: Marker?, format: String?, arg1: Any?, arg2: Any?) {
