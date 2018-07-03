@@ -54,15 +54,18 @@ class OkLogContext(
     )
 
     fun simpleConsoleLogging() =
-      simpleConsoleLogging(DEFAULT_MUTE)
+      simpleConsoleLogging(LogLevel.INFO, DEFAULT_MUTE)
 
     fun simpleConsoleLogging(
-       mute: List<Pair<String, LogLevel>>
+      defaltLevel: LogLevel = LogLevel.INFO,
+      mute: List<Pair<String, LogLevel>> = DEFAULT_MUTE
     )
     {
       val console = ConsoleAppender("console", true)
 
       OkLogContext.okLog = OkLogContext {
+        defaultLevel = defaltLevel
+
         rules {
           mute {
             applyTo("*")
