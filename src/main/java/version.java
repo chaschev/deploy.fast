@@ -1,5 +1,4 @@
 import fast.install.BuildProperties;
-import fast.install.ModuleDependencies;
 
 import static fast.install.Installer.MY_JAR;
 
@@ -17,7 +16,7 @@ public class version {
   }
 
   public static String getVersion(Class<?> aClass) {
-    BuildProperties buildProps = ModuleDependencies.getBuildProperties(aClass, MY_JAR);
+    BuildProperties buildProps = BuildProperties.getBuildProperties(aClass, MY_JAR);
 
     return String.format("%s version %s rev. %s %s", buildProps.name, buildProps.version, buildProps.revision, buildProps.timestamp);
   }

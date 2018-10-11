@@ -2,6 +2,7 @@ package fast.log
 
 import fast.lang.nullForException
 import honey.lang.startsWithAny
+import java.lang.reflect.Proxy
 
 /**
  * These are logger building rules.
@@ -70,7 +71,7 @@ class LoggerFactoryDSL(
 
   fun appenders(list: List<Appender<*, *>>) {
     for (appender in list) {
-      ctx.getAppender(appender.name, { appender })
+      ctx.getAppender(appender.name) { appender }
     }
   }
 

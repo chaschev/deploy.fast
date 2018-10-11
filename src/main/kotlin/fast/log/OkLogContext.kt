@@ -53,18 +53,21 @@ class OkLogContext(
       "com.hazelcast" to LogLevel.INFO
     )
 
+    fun Any.okLogger() =
+      OkLogContext.okLog.getLogger(this::class.java.name)
+
     fun simpleConsoleLogging() =
       simpleConsoleLogging(LogLevel.INFO, DEFAULT_MUTE)
 
     fun simpleConsoleLogging(
-      defaltLevel: LogLevel = LogLevel.INFO,
+      defaultLevel: LogLevel = LogLevel.INFO,
       mute: List<Pair<String, LogLevel>> = DEFAULT_MUTE
     )
     {
       val console = ConsoleAppender("console", true)
 
       OkLogContext.okLog = OkLogContext {
-        defaultLevel = defaltLevel
+        this.defaultLevel = defaultLevel
 
         rules {
           mute {

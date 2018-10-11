@@ -73,7 +73,7 @@ dependencies {
   compile deps.kotlin.libs.reflect
   compile deps.kotlin.libs.coroutines
 
-  implementation 'org.kodein.di:kodein-di-generic-jvm:5.0.0'
+  implementation 'org.kodein.di:kodein-di-generic-jvm:5.2.0'
 
 
   compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"

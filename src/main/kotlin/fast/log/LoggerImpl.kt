@@ -65,7 +65,7 @@ open class LoggerImpl<BC, O>(
 
   fun log(level: LogLevel, _obj: O, msgClassifier: Any? = null, e: Throwable? = null, vararg args: Any?): Unit {
     for (chain in chains) {
-      chain.log(level, _obj, msgClassifier, e, args)
+      chain.log(level, _obj, msgClassifier, e, *args)
     }
   }
 
@@ -117,7 +117,18 @@ open class LoggerImpl<BC, O>(
       }
 
       val obj: O = if (_obj is CharSequence && _obj.contains("{}")) {
-        _obj.replaceSlf4jPlaceHolders(args)
+        val (sb, argCount) = _obj.replaceSlf4jPlaceHolders(args)
+
+        //there can be an exception dangling at the end of the args
+        if (argCount < args.size) {
+          val lastArg = args.last()
+          //TODO push it into transformer, with previous
+          if (lastArg is Exception) {
+            lastArg.printStackTrace()
+          }
+        }
+
+        sb
       } else {
         _obj
       } as O
@@ -167,19 +178,18 @@ open class LoggerImpl<BC, O>(
   fun isEnabled(levelToCheck: LogLevel) = level.ordinal <= levelToCheck.ordinal
 }
 
-private fun CharSequence.replaceSlf4jPlaceHolders(args: Array<out Any?>): StringBuilder {
+private fun CharSequence.replaceSlf4jPlaceHolders(args: Array<out Any?>): Pair<StringBuilder, Int> {
   val sb = StringBuilder()
 
-  var prevPos = 0
   var pos = 0
   var argIndex = 0
+
 
   while (argIndex < args.size && pos < length) {
     val pIndex = indexOf("{}", pos)
 
     if (pIndex == -1) {
-      // no more placeholders -> append the rest of the string
-      sb.append(subSequence(pos, length))
+      // no more placeholders -> break & append the rest of the string
       break
     } else {
       // append prefix, arg and advance position after placeholder
@@ -189,5 +199,7 @@ private fun CharSequence.replaceSlf4jPlaceHolders(args: Array<out Any?>): String
     }
   }
 
-  return sb
+  sb.append(subSequence(pos, length))
+
+  return sb to argIndex
 }

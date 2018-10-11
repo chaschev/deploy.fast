@@ -113,7 +113,7 @@ public class Installer {
     // manually patch jars if needed. I.e. there is a shit problem with
     // Kotlin compiler which was lazy to shade Guava libs
 
-    BuildProperties buildProps = ModuleDependencies.getBuildProperties(this.getClass(), MY_JAR);
+    BuildProperties buildProps = BuildProperties.getBuildProperties(this.getClass(), MY_JAR);
 
     Runnable preinstall = (Runnable)Class.forName(buildProps.ext.get("honeyMouth.preinstallClass")).newInstance();
 

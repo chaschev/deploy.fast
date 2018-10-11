@@ -63,11 +63,11 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun warn(format: String?, arg: Any?) {
-    log(WARN, format as O, args = arg)
+    log(WARN, format as O, args = *arrayOf(arg))
   }
 
   override fun warn(format: String?, vararg arguments: Any?) {
-    log(WARN, format as O, args = arguments)
+    log(WARN, format as O, args = *arguments)
   }
 
   override fun warn(format: String?, arg1: Any?, arg2: Any?) {

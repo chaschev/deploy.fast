@@ -7,8 +7,7 @@ import fast.inventory.Inventory
 import fast.runtime.DeployFast
 import fast.runtime.DeployFast.FAST
 import fast.runtime.DeployFast.FASTD
-import fast.runtime.bindFromEnv
-import org.kodein.di.*
+import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton

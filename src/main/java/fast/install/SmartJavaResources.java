@@ -62,13 +62,24 @@ public class SmartJavaResources {
     }
   }
 
+
   public static Properties readResourceProperties(Class<?> aClass, String path, String fallbackJarPath) {
-    final File myJar = getMyJar(aClass, fallbackJarPath);
+    File myJar;
+
+    //if can't load jar and no fallbackJarPath provided, read directly from resource
+    try {
+      myJar = getMyJar(aClass, fallbackJarPath);
+    } catch (Exception e) {
+      myJar = null;
+    }
 
     final Properties props = new Properties();
 
     try {
-      props.load(new StringReader(getText(myJar, path)));
+      if(myJar != null)
+        props.load(new StringReader(getText(myJar, path)));
+      else
+        props.load(aClass.getResourceAsStream(path));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -11,17 +11,23 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.net.NetworkInterface
 
-inline fun <reified V : Any> Kodein.MainBuilder.bindFromEnv(tag: String, transform: ((String?) -> V) = { value ->
-  when (V::class) {
-    String::class -> value
-    Int::class -> value?.toInt()
-    else -> value
-  } as V
-}) {
+inline fun <reified V : Any> Kodein.MainBuilder.bindFromEnv(
+  tag: String,
+  noinline transform: ((String?) -> V)? = null) {
   val value = System.getenv(tag) ?: System.getProperty(tag, null)
-  println("binding $tag to $value")
 
-  val transformed = transform(value)
+  val transformed = if (transform != null) {
+    transform(value)
+  } else {
+    println("bindFromEnv (fast lib): default transform for tag=$tag, value $value")
+    when (V::class) {
+      String::class -> value
+      Int::class -> value?.toInt()
+      else -> value
+    } as V
+  }
+
+  println("binding $tag to $transformed")
 
   bind(tag) from instance(transformed)
 }
@@ -44,10 +50,19 @@ object DeployFast {
         inventory.group(runAt)
       }
 
-      bindFromEnv<String>("runAt")
+      bindFromEnv ("runAt") { it ?: "dev" }
+
+
+      bind("runAtHosts") from singleton {
+        //        val runAt = FAST.direct.instance(tag = "runAt") as String
+//        val inventory = FAST.direct.instance<Inventory>()
+//        inventory.getHostsForName(runAt)
+        (FAST.direct.instance(tag = "runAt") as IGroup).hosts
+      }
 
       bind<Host>() with singleton {
         val activeGroup = FAST.direct.instance("activeGroup") as IGroup
+        var hostFound: Host? = null
 
         for (iface in NetworkInterface.getNetworkInterfaces().asSequence()) {
           for (address in iface.inetAddresses.asSequence()) {
@@ -59,49 +74,25 @@ object DeployFast {
 //            println("trying address: $hostAddress")
 
             val host: Host? = activeGroup.hosts.find { it.address == hostAddress }
-// that is a little slow
-//            ?:
-//            activeGroup.hosts.find {
-//              it.name == hostName
-//            }
+/* that is a little slow
+            ?:
+            activeGroup.hosts.find {
+              it.name == hostName
+            }*/
 
-            if (host != null) return@singleton host!!
+            if (host != null) {
+              hostFound = host
+              break
+            }
           }
+
+          if(hostFound != null) break
         }
 
-        throw IllegalStateException("could not initialize current host")
+        hostFound ?: throw IllegalStateException("could not initialize current host")
       }
 
-      bind("runAtHosts") from singleton {
-        //        val runAt = FAST.direct.instance(tag = "runAt") as String
-//        val inventory = FAST.direct.instance<Inventory>()
-//        inventory.getHostsForName(runAt)
-        (FAST.direct.instance(tag = "runAt") as IGroup).hosts
-      }
     }
-  }
-
-  fun initFromEnv(vararg vars: String = arrayOf(
-    "runAt", "one.cluster", "one.instance"
-  )): DeployFast {
-    val notNullVars = vars.mapNotNull { name ->
-      val value = System.getenv(name) ?: System.getProperty(name)
-
-      value?.let { name to it }
-    }
-
-    if (notNullVars.isNotEmpty()) {
-      FAST = Kodein {
-        extend(FAST, allowOverride = true)
-
-        for ((k, v) in notNullVars) {
-          println("binding $k to $v")
-          bind(k) from instance(v)
-        }
-      }
-    }
-
-    return this
   }
 
 

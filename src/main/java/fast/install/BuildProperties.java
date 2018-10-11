@@ -34,6 +34,10 @@ public class BuildProperties {
     ext = Collections.unmodifiableMap(temp);
   }
 
+  public static BuildProperties getBuildProperties(Class<?> aClass, String fallbackJarPath) {
+    return new BuildProperties(aClass, fallbackJarPath);
+  }
+
   @Override
   public String toString() {
     return name + " " + version + " (" + timestamp + ") rev. " + revision;
