@@ -2,19 +2,19 @@ package fast.ssh
 
 import fast.inventory.Host
 import fast.log.OkLogging
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.*
 import net.schmizz.sshj.connection.channel.direct.Session
 
 //TODO: this might be called too many times
 //TODO: can be synced through internal openCloseLock
-fun Session.Command.tryClose(host: Host) {
+ fun Session.Command.tryClose(host: Host) {
   if (!isOpen) return
 
-  val closeJob = asyncNoisy {
+  val closeJob = GlobalScope.asyncNoisy {
     close()
   }
 
-  asyncNoisy {
+  GlobalScope.asyncNoisy {
     delay(50)
     if (!closeJob.isCompleted) {
       delay(300)
@@ -61,17 +61,18 @@ fun CharSequence.cuteSubstring(from: Int, to: Int, multiOnRight: Boolean = true)
 
 val logger = OkLogging().logger
 
-fun <T> asyncNoisy(
+
+fun <T> CoroutineScope.asyncNoisy(
   block: suspend CoroutineScope.() -> T
 ): Deferred<T> {
-  return async(context = CommonPool, block = {
+  return async {
     try {
       return@async block.invoke(this)
     } catch (e: Throwable) {
-      logger.info(e, { "exception in async block" })
+      logger.info(e) { "exception in async block" }
       throw e
     }
-  })
+  }
 }
 
 

@@ -1,7 +1,7 @@
 package fast.ssh.process
 
 import fast.inventory.Host
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.Job
 import net.schmizz.sshj.connection.channel.direct.Session
 import fast.ssh.tryClose
 import java.io.Closeable

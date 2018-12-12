@@ -14,7 +14,7 @@ import fast.runtime.DeployFastScheduler
 import fast.runtime.configDeployFastLogging
 import fast.ssh.command.script.ScriptDsl.Companion.script
 import fast.ssh.run
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import org.kodein.di.generic.instance
 import java.io.File
 

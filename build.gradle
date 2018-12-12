@@ -1,7 +1,7 @@
 buildscript {
   ext.versions = [
-    'kotlin'    : '1.2.50',
-    'coroutines': '0.23.3',
+    'kotlin'    : '1.3.11',
+    'coroutines': '1.0.1',
   ]
 
   ext.deps = [
@@ -21,7 +21,7 @@ buildscript {
   dependencies {
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
     classpath "net.researchgate:gradle-release:2.7.6"
-    classpath "honey:kgit:0.1.8"
+    classpath "honey:kgit:0.1.15"
   }
 
   repositories {
@@ -59,6 +59,13 @@ apply plugin: 'maven-publish'
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
+compileKotlin {
+  kotlinOptions {
+    jvmTarget = '1.8'
+    languageVersion = "1.3"
+    suppressWarnings = true
+  }
+}
 
 dependencies {
   def withExcludes = { boolean excludeDesign ->
@@ -73,10 +80,10 @@ dependencies {
   compile deps.kotlin.libs.reflect
   compile deps.kotlin.libs.coroutines
 
-  implementation 'org.kodein.di:kodein-di-generic-jvm:5.2.0'
+  implementation 'org.kodein.di:kodein-di-generic-jvm:6.0.1'
 
 
-  compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0"
+  compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.7"
 
   compile 'com.hierynomus:sshj:0.24.0'
 
@@ -100,6 +107,8 @@ dependencies {
 group = 'fast'
 
 def repoUrl = "https://github.com/chaschev/deploy.fast.git"
+
+def mavenPublishTask = new honey.vcs.git.MavenPublishTask(repoUrl, project)
 
 task publishToGitTask(dependsOn: build) {
   doLast {
@@ -132,11 +141,18 @@ publishing {
   }
 }
 
-kotlin {
-  experimental {
-    coroutines "enable"
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+  kotlinOptions {
+    jvmTarget = "1.8"
+    languageVersion = "1.3"
   }
 }
+
+//kotlin {
+//  experimental {
+//    coroutines "enable"
+//  }
+//}
 
 release {
   preTagCommitMessage = 'gradle release - pre tag commit: '

@@ -8,7 +8,7 @@ import fast.inventory.Host
 import fast.ssh.run
 import fast.ssh.runAndWait
 import fast.ssh.runResult
-import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.delay
 import fast.log.KLogging
 import fast.log.OkLogging
 

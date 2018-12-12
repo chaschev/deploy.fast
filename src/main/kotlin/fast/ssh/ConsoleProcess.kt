@@ -5,7 +5,7 @@ import fast.log.OkLogging
 import fast.ssh.command.Regexes
 import fast.ssh.process.*
 import honey.lang.getCurrentJob
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
@@ -65,7 +65,7 @@ open class ConsoleProcess(
   override fun start(timeoutMs: Int, callback: ((console: Console) -> Unit)?): ConsoleProcess {
     logger.debug(host) { "starting a new job: ${describeMe()} with timeout ${timeoutMs}ms" }
 
-    job = asyncNoisy {
+    job = GlobalScope.asyncNoisy {
       process = egg.giveBirth(getCurrentJob())
 
       logger.info(host)  { "started $egg" }
@@ -80,7 +80,7 @@ open class ConsoleProcess(
       console = Console(writer, this@ConsoleProcess)
 
       // todo: change to non-blocking coroutines
-      readJob1 = launch(CommonPool) {
+      readJob1 = launch {
         while (true) {
           console.newOut = tryRead(stdout, console.stdout)
 
@@ -95,7 +95,7 @@ open class ConsoleProcess(
         }
       }
 
-      readJob2 = launch(CommonPool) {
+      readJob2 = launch {
         while (true) {
           console.newErr = tryRead(stderr, console.stderr)
 

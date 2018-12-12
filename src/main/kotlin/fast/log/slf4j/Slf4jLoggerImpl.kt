@@ -23,7 +23,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun info(format: String, arg: Any) {
-    log(INFO, format as O, args = arg)
+    log(INFO, format as O, args = *arrayOf(arg))
   }
 
   override fun info(format: String?, arg1: Any?, arg2: Any?) {
@@ -83,7 +83,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun warn(marker: Marker?, format: String?, arg: Any?) {
-    log(WARN, msgClassifier = marker?.name as BC, _obj = format as O, args = arg)
+    log(WARN, msgClassifier = marker?.name as BC, _obj = format as O, args = *arrayOf(arg))
   }
 
   override fun warn(marker: Marker?, format: String?, arg1: Any?, arg2: Any?) {
@@ -103,7 +103,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun error(format: String?, arg: Any?) {
-    log(ERROR, format as O, args = arg)
+    log(ERROR, format as O, args = *arrayOf(arg))
   }
 
   override fun error(format: String?, arg1: Any?, arg2: Any?) {
@@ -115,7 +115,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun error(msg: String?, t: Throwable?) {
-    log(WARN, msg as O, e = t)
+    log(ERROR, msg as O, e = t)
   }
 
   override fun error(marker: Marker?, msg: String?) {
@@ -145,7 +145,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun debug(format: String, arg: Any?) {
-    log(DEBUG, format as O, args = arg)
+    log(DEBUG, format as O, args = *arrayOf(arg))
   }
 
   override fun debug(format: String?, arg1: Any?, arg2: Any?) {
@@ -182,11 +182,11 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
 
 
   override fun trace(format: String?, arg: Any?) {
-    log(TRACE, format as O, args = arg)
+    log(TRACE, format as O, args = *arrayOf(arg))
   }
 
   override fun trace(format: String?, vararg arguments: Any?) {
-    log(TRACE, format as O, args = arguments)
+    log(TRACE, format as O, args = *arrayOf(arguments))
   }
 
   override fun trace(format: String?, arg1: Any?, arg2: Any?) {
@@ -202,7 +202,7 @@ open class Slf4jLoggerImpl<BC,O>(name: String, classifier: BC? = null):
   }
 
   override fun trace(marker: Marker?, format: String?, arg: Any?) {
-    log(TRACE, msgClassifier = marker?.name as BC, _obj = format as O, args = arg)
+    log(TRACE, msgClassifier = marker?.name as BC, _obj = format as O, args = *arrayOf(arg))
   }
   
   override fun trace(msg: String?) {

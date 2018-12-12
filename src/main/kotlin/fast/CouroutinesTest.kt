@@ -1,8 +1,8 @@
 package fast
 
 import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 object CouroutinesTest {

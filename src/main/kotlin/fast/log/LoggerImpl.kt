@@ -113,7 +113,7 @@ open class LoggerImpl<BC, O>(
         //TODO push it into transformer
         e.printStackTrace()
 
-        return
+//        return
       }
 
       val obj: O = if (_obj is CharSequence && _obj.contains("{}")) {

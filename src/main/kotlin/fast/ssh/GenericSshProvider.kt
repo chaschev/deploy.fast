@@ -1,7 +1,7 @@
 package fast.ssh
 
 import fast.inventory.Host
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.runBlocking
 import fast.log.KLogging
 import fast.log.OkLogging
 import net.schmizz.sshj.SSHClient

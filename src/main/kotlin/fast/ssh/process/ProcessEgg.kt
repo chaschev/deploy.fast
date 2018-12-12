@@ -1,7 +1,7 @@
 package fast.ssh.process
 
 import fast.inventory.Host
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.Job
 import fast.ssh.ConsoleProcess
 import fast.ssh.GenericSshSession
 import honey.lang.joinSpace

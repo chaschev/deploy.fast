@@ -9,10 +9,11 @@ import fast.dsl.TaskResult.Companion.okNull
 import fast.inventory.Host
 import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.delay
 import fast.log.KLogging
 import fast.log.OkLogging
+import kotlinx.coroutines.GlobalScope
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
@@ -61,7 +62,7 @@ class GlobalMap {
   @Deprecated("it is unusable - need to implement safe getOrPut")
   suspend fun <R> runOnce(path: String, block: suspend () -> R): Deferred<R> {
     val r = globalMap.getOrPut(path, {
-      asyncNoisy {
+      GlobalScope.asyncNoisy {
         block()
       }
     })
@@ -136,7 +137,7 @@ class GlobalMap {
     val myJob = dsl?.getJob(ctx.session.host)
 
     val job = if (myJob == null) {
-      asyncNoisy {
+      GlobalScope.asyncNoisy {
         logger.info(ctx.host) { "distribute $name - no job, awaiting others ${ctx.path}" }
         awaitAllParties(ctx.host, name, distributeKey, timeoutMs)
         null
@@ -148,7 +149,7 @@ class GlobalMap {
 
       dsl.arrived(ctx.host, r)
 
-      asyncNoisy {
+      GlobalScope.asyncNoisy {
         awaitAllParties(ctx.host, name, distributeKey, timeoutMs)  //todo: fix - await for leftover period of time
         r
       }

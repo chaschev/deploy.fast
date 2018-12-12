@@ -8,7 +8,8 @@ import fast.runtime.DeployFast.FASTD
 import fast.ssh.GenericSshProvider
 import fast.ssh.SshProvider
 import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
 import org.kodein.di.generic.instance
 
 class DeployFastScheduler<APP : DeployFastApp<APP>> {
@@ -73,7 +74,7 @@ class DeployFastScheduler<APP : DeployFastApp<APP>> {
     val rootDeployApp = FASTD.instance<DeployFastApp<*>>() as APP
 
     return appCtx.hosts.map { host ->
-      asyncNoisy {
+      GlobalScope.asyncNoisy {
         val ssh = connect(host)
 
         val rootTaskContext = rootDeployApp.createRootSessionContext(host, ssh)

@@ -1,6 +1,6 @@
 package fast.ssh.process
 
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.Job
 import java.io.InputStream
 import java.io.OutputStream
 

@@ -1,7 +1,7 @@
 package fast.sample.perf
 
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -75,7 +75,7 @@ object CoroutineChannelsAwait {
         } to channel
       }
 
-      val time = 50000
+      val time = 50000L
       println()
       println("awaiting $time ms...")
       delay(time)

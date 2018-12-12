@@ -8,8 +8,9 @@ import fast.api.ITaskResult
 import fast.api.Task
 import fast.runtime.DeployFast.FAST
 import fast.ssh.asyncNoisy
-import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.Deferred
 import fast.log.OkLogging
+import kotlinx.coroutines.GlobalScope
 import org.kodein.di.generic.instance
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -79,7 +80,7 @@ class TaskContext<R, EXT : DeployFastExtension<EXT, EXT_CONF>, EXT_CONF : Extens
     childTask: Task<Any, *, ExtensionConfig>,
     interceptors: TaskInterceptor<EXT, EXT_CONF>? = null
   ): ITaskResult<Any> {
-    job = asyncNoisy {
+    job = GlobalScope.asyncNoisy {
       val childContext = newChildContext(childTask, interceptors = interceptors)
 
       logger.info(host) { "playing task: ${childContext.path}" }
